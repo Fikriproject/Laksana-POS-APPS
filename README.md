@@ -90,7 +90,8 @@ To use other devices on the same Wi-Fi:
 
 ## 📸 Screenshots
 
-*(Placeholder: Add your screenshots here)*
+<img width="1916" height="975" alt="image" src="https://github.com/user-attachments/assets/c7c1b575-5455-4293-80d6-14c0ad56b2dd" />
 
 ---
-Developed with ❤️ by **[Your Name/Team]**
+Developed  by **[Fikri--]**
+
