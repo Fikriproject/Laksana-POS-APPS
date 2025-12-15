@@ -1,0 +1,13 @@
+{
+  "name": "kasir-laksana",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "concurrently -n \"FRONT,BACK\" -c \"cyan,magenta\" \"pnpm --filter admin-dashboard dev\" \"php -S 127.0.0.1:8000 -t apps\\api\\public\"",
+    "build": "pnpm --filter admin-dashboard build",
+    "preview": "pnpm --filter admin-dashboard preview"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
