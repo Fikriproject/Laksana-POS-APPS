@@ -66,6 +66,22 @@ interface EmployeePerformance {
     [key: string]: any;
 }
 
+
+interface Expense {
+    id: string;
+    category: string;
+    amount: number;
+    description: string;
+    created_at: string;
+    user_name?: string;
+}
+
+interface ExpenseSummary {
+    category: string;
+    total: number;
+    [key: string]: any;
+}
+
 // --- Component ---
 
 const ReportsPage = () => {
@@ -90,6 +106,17 @@ const ReportsPage = () => {
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [selectedEmployee, setSelectedEmployee] = useState<{ id: string; name: string } | null>(null);
+
+    // Expense State
+    const [expenses, setExpenses] = useState<Expense[]>([]);
+    const [expenseSummary, setExpenseSummary] = useState<ExpenseSummary[]>([]);
+    const [isAddingExpense, setIsAddingExpense] = useState(false);
+    const [newExpense, setNewExpense] = useState({
+        category: 'Belanja',
+        amount: '',
+        description: ''
+    });
+    const expenseCategories = ['Tanah sewa', 'Arisan', 'Belanja', 'Tamu', 'Infaq', 'Lainnya'];
 
     // Race condition handling
     const requestRef = useRef<number>(0);
@@ -228,11 +255,66 @@ const ReportsPage = () => {
         }
     };
 
+    const fetchExpensesData = async () => {
+        const requestId = ++requestRef.current;
+        setLoading(true);
+        setError(null);
+        try {
+            const params = { start_date: dateRange.start, end_date: `${dateRange.end} 23:59:59` };
+
+            const [listRes, summaryRes] = await Promise.all([
+                api.get('/expenses', { params }),
+                api.get('/expenses', { params: { ...params, summary: 'true' } })
+            ]);
+
+            if (requestId !== requestRef.current) return;
+
+            setExpenses(listRes.data.data.map((item: any) => ({
+                ...item,
+                amount: Number(item.amount)
+            })));
+            setExpenseSummary(summaryRes.data.data.map((item: any) => ({
+                category: item.category,
+                total: Number(item.total)
+            })));
+        } catch (error) {
+            if (requestId === requestRef.current) {
+                console.error("Failed to fetch expenses", error);
+                // Don't block the whole page if expenses fail, just log
+            }
+        } finally {
+            if (requestId === requestRef.current) {
+                setLoading(false);
+            }
+        }
+    };
+
+    const handleAddExpense = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            await api.post('/expenses', {
+                ...newExpense,
+                amount: parseFloat(newExpense.amount),
+                date: new Date().toISOString() // Use current time for expense
+            });
+            setIsAddingExpense(false);
+            setNewExpense({ category: 'Belanja', amount: '', description: '' });
+            fetchExpensesData(); // Refresh list
+            // Also refresh sales data if needed, but expenses are usually separate from sales revenue unless calculated together
+        } catch (err) {
+            alert('Gagal menyimpan pengeluaran');
+            console.error(err);
+        }
+    };
+
     // --- Effects ---
 
     useEffect(() => {
-        if (activeTab === 'sales' || activeTab === 'tax') {
+        if (activeTab === 'sales') {
             fetchSalesData();
+        } else if (activeTab === 'tax') {
+            fetchSalesData();
+            fetchExpensesData();
         }
     }, [activeTab, dateRange, filterType]);
 
@@ -659,7 +741,7 @@ const ReportsPage = () => {
                             )}
 
                             {/* TAX TAB */}
-                            {activeTab === 'tax' && salesSummary && (
+                            {activeTab === 'tax' && salesSummary && (<div>
                                 <div className="flex flex-col gap-6">
                                     {/* Stats Cards */}
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -712,11 +794,165 @@ const ReportsPage = () => {
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* Expenses Section */}
+                                <div className="mt-8 border-t border-slate-200 dark:border-[#282839] pt-8">
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h3 className="text-xl font-bold text-gray-900 dark:text-white">Pengeluaran Harian</h3>
+                                        <button
+                                            onClick={() => setIsAddingExpense(true)}
+                                            className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors text-sm font-medium"
+                                        >
+                                            <span className="material-symbols-outlined text-[20px]">add</span>
+                                            Catat Pengeluaran
+                                        </button>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                        {/* Expense Summary Chart */}
+                                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-xl p-6 shadow-sm min-h-[400px]">
+                                            <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-6">Total per Kategori</h4>
+                                            <div className="h-[300px] w-full">
+                                                {expenseSummary.length > 0 ? (
+                                                    <ResponsiveContainer width="100%" height="100%">
+                                                        <PieChart>
+                                                            <Pie
+                                                                data={expenseSummary}
+                                                                cx="50%"
+                                                                cy="50%"
+                                                                innerRadius={60}
+                                                                outerRadius={80}
+                                                                paddingAngle={5}
+                                                                dataKey="total"
+                                                                nameKey="category"
+                                                            >
+                                                                {expenseSummary.map((_, index) => (
+                                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                                ))}
+                                                            </Pie>
+                                                            <Tooltip
+                                                                contentStyle={{ backgroundColor: isDark ? '#1c1c27' : '#ffffff', borderColor: isDark ? '#3b3c54' : '#e2e8f0' }}
+                                                                itemStyle={{ color: isDark ? '#fff' : '#1e293b' }}
+                                                                formatter={(value: any) => formatRupiah(value)}
+                                                            />
+                                                            <Legend />
+                                                        </PieChart>
+                                                    </ResponsiveContainer>
+                                                ) : (
+                                                    <div className="h-full flex items-center justify-center text-gray-500">Belum ada pengeluaran</div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Expenses List */}
+                                        <div className="lg:col-span-2 bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-xl overflow-hidden shadow-sm">
+                                            <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
+                                                <table className="w-full text-left text-sm text-gray-500 dark:text-text-secondary">
+                                                    <thead className="bg-gray-50 dark:bg-[#16161f] text-xs uppercase font-semibold text-gray-500 dark:text-text-secondary sticky top-0">
+                                                        <tr>
+                                                            <th className="px-6 py-4">Tanggal</th>
+                                                            <th className="px-6 py-4">Kategori</th>
+                                                            <th className="px-6 py-4">Keterangan</th>
+                                                            <th className="px-6 py-4">Dicatat Oleh</th>
+                                                            <th className="px-6 py-4 text-right">Jumlah</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-200 dark:divide-[#282839]">
+                                                        {expenses.length > 0 ? expenses.map((exp) => (
+                                                            <tr key={exp.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                                                                <td className="px-6 py-4">{new Date(exp.created_at).toLocaleDateString('id-ID')}</td>
+                                                                <td className="px-6 py-4">
+                                                                    <span className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-xs font-medium">
+                                                                        {exp.category}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="px-6 py-4 text-xs">{exp.description || '-'}</td>
+                                                                <td className="px-6 py-4">{exp.user_name || 'System'}</td>
+                                                                <td className="px-6 py-4 text-right font-medium text-red-500">{formatRupiah(exp.amount)}</td>
+                                                            </tr>
+                                                        )) : (
+                                                            <tr>
+                                                                <td colSpan={5} className="px-6 py-8 text-center text-gray-500">Tidak ada data pengeluaran</td>
+                                                            </tr>
+                                                        )}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+
+                                {/* Add Expense Modal */}
+                                {isAddingExpense && (
+                                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                                        <div className="bg-white dark:bg-surface-dark rounded-xl shadow-xl w-full max-w-md p-6 animate-in fade-in zoom-in duration-200">
+                                            <div className="flex justify-between items-center mb-4">
+                                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Catat Pengeluaran</h3>
+                                                <button onClick={() => setIsAddingExpense(false)} className="text-gray-500 hover:text-gray-700 dark:text-text-secondary">
+                                                    <span className="material-symbols-outlined">close</span>
+                                                </button>
+                                            </div>
+                                            <form onSubmit={handleAddExpense} className="space-y-4">
+                                                <div>
+                                                    <label className="block text-xs font-medium text-gray-700 dark:text-text-secondary mb-1">Kategori</label>
+                                                    <select
+                                                        value={newExpense.category}
+                                                        onChange={e => setNewExpense({ ...newExpense, category: e.target.value })}
+                                                        className="w-full px-3 py-2 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-[#282839] rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-900 dark:text-white"
+                                                    >
+                                                        {expenseCategories.map(cat => (
+                                                            <option key={cat} value={cat}>{cat}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-medium text-gray-700 dark:text-text-secondary mb-1">Jumlah (Rp)</label>
+                                                    <input
+                                                        type="number"
+                                                        value={newExpense.amount}
+                                                        onChange={e => setNewExpense({ ...newExpense, amount: e.target.value })}
+                                                        placeholder="0"
+                                                        required
+                                                        min="0"
+                                                        className="w-full px-3 py-2 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-[#282839] rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-900 dark:text-white"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-medium text-gray-700 dark:text-text-secondary mb-1">Keterangan</label>
+                                                    <textarea
+                                                        value={newExpense.description}
+                                                        onChange={e => setNewExpense({ ...newExpense, description: e.target.value })}
+                                                        placeholder="Contoh: Beli sabun cuci piring"
+                                                        rows={3}
+                                                        className="w-full px-3 py-2 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-[#282839] rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-900 dark:text-white resize-none"
+                                                    />
+                                                </div>
+                                                <div className="flex justify-end gap-3 pt-4">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setIsAddingExpense(false)}
+                                                        className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-text-secondary hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-colors"
+                                                    >
+                                                        Batal
+                                                    </button>
+                                                    <button
+                                                        type="submit"
+                                                        className="px-4 py-2 text-sm font-bold text-white bg-primary hover:bg-primary-dark rounded-lg transition-colors shadow-lg shadow-primary/25"
+                                                    >
+                                                        Simpan
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                             )}
                         </>
                     )}
                 </div>
-            </main>
+            </main >
 
             <EmployeeTransactionsModal
                 isOpen={!!selectedEmployee}
@@ -725,7 +961,7 @@ const ReportsPage = () => {
                 employeeName={selectedEmployee?.name || ''}
                 dateRange={dateRange}
             />
-        </div>
+        </div >
     );
 };
 

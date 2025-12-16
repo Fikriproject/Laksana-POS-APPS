@@ -180,3 +180,17 @@ INSERT INTO products (id, sku, name, price, stock_quantity, category_id, is_acti
 INSERT INTO suppliers (id, name, contact_person, phone, email) VALUES
 ('s1bc802f-508b-4a57-8974-9892c5890001', 'Bean Suppliers Co.', 'John Smith', '+1234567890', 'john@beansuppliers.com'),
 ('s1bc802f-508b-4a57-8974-9892c5890002', 'TechDistro Inc.', 'Jane Doe', '+0987654321', 'jane@techdistro.com');
+
+-- Expenses table
+CREATE TABLE expenses (
+    id CHAR(36) PRIMARY KEY,
+    user_id CHAR(36) NOT NULL,
+    category ENUM('Tanah sewa', 'Arisan', 'Belanja', 'Tamu', 'Infaq', 'Lainnya') NOT NULL,
+    amount DECIMAL(10, 2) NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+CREATE INDEX idx_expenses_date ON expenses(created_at);
+CREATE INDEX idx_expenses_category ON expenses(category);
