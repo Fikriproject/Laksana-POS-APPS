@@ -160,4 +160,72 @@ class ReportService
         
         return $stmt->fetch();
     }
+
+    public function getEmployeeTransactions(string $employeeId, string $startDate, string $endDate): array
+    {
+        // 1. Fetch Orders
+        $stmt = $this->db->prepare(
+            "SELECT 
+                o.id, o.created_at as transaction_date, o.order_number, 
+                o.total_amount, o.subtotal, o.tax_amount,
+                o.discount_amount, o.payment_method
+             FROM orders o
+             WHERE o.user_id = :employee_id 
+                AND o.created_at BETWEEN :start_date AND :end_date
+                AND o.status = 'completed'
+             ORDER BY o.created_at DESC"
+        );
+        $stmt->execute([
+            'employee_id' => $employeeId,
+            'start_date' => $startDate,
+            'end_date' => $endDate
+        ]);
+        $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if (empty($orders)) {
+            return [];
+        }
+
+        // 2. Fetch Items for these orders
+        $orderIds = array_column($orders, 'id');
+        $placeholders = implode(',', array_fill(0, count($orderIds), '?'));
+        
+        $stmtItems = $this->db->prepare(
+            "SELECT 
+                oi.order_id, oi.quantity, oi.unit_price as price, oi.subtotal,
+                p.name as product_name
+             FROM order_items oi
+             JOIN products p ON oi.product_id = p.id
+             WHERE oi.order_id IN ($placeholders)"
+        );
+        $stmtItems->execute($orderIds);
+        $allItems = $stmtItems->fetchAll(PDO::FETCH_ASSOC);
+
+        // Group items by order_id
+        $itemsByOrder = [];
+        foreach ($allItems as $item) {
+            $itemsByOrder[$item['order_id']][] = [
+                'product_name' => $item['product_name'],
+                'quantity' => (int)$item['quantity'],
+                'price' => (float)$item['price'],
+                'subtotal' => (float)$item['subtotal']
+            ];
+        }
+
+        // Attach items to orders
+        $result = [];
+        foreach ($orders as $order) {
+            $order['total_amount'] = (float)$order['total_amount'];
+            $order['subtotal'] = (float)$order['subtotal'];
+            $order['tax_amount'] = (float)$order['tax_amount'];
+            // Fill missing columns with defaults since not in DB
+            $order['payment_amount'] = (float)$order['total_amount']; 
+            $order['change_amount'] = 0;
+            $order['discount_amount'] = (float)$order['discount_amount'];
+            $order['items'] = $itemsByOrder[$order['id']] ?? [];
+            $result[] = $order;
+        }
+
+        return $result;
+    }
 }

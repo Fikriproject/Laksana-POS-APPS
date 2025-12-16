@@ -67,6 +67,14 @@ return function ($method, $path, $reportService, $user) {
         $status = $reportService->getInventoryStatus();
         Response::success($status);
     }
+
+    // GET /api/reports/employees/:id/transactions
+    if ($method === 'GET' && preg_match('#^/employees/([^/]+)/transactions$#', $path, $matches)) {
+        RoleMiddleware::requireAdmin($user);
+        $employeeId = $matches[1];
+        $transactions = $reportService->getEmployeeTransactions($employeeId, $startDate, $endDate);
+        Response::success($transactions);
+    }
     
     Response::error('Rute tidak ditemukan', 404);
 };

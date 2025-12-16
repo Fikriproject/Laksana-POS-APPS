@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import api from '../services/api';
 import { formatRupiah } from '../utils/format';
@@ -8,6 +8,7 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     PieChart, Pie, Cell, LineChart, Line, Legend
 } from 'recharts';
+import EmployeeTransactionsModal from '../components/EmployeeTransactionsModal';
 
 // --- Interfaces ---
 
@@ -88,6 +89,7 @@ const ReportsPage = () => {
     const [employeeStats, setEmployeeStats] = useState<EmployeePerformance[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const [selectedEmployee, setSelectedEmployee] = useState<{ id: string; name: string } | null>(null);
 
     // Race condition handling
     const requestRef = useRef<number>(0);
@@ -468,7 +470,7 @@ const ReportsPage = () => {
                                                                 dataKey="revenue"
                                                                 nameKey="category"
                                                             >
-                                                                {salesByCategory.map((entry, index) => (
+                                                                {salesByCategory.map((_, index) => (
                                                                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                                                 ))}
                                                             </Pie>
@@ -591,6 +593,7 @@ const ReportsPage = () => {
                                                         <th className="px-6 py-4 text-right">Rata-rata Transaksi</th>
                                                         <th className="px-6 py-4 text-right">Total Penjualan</th>
                                                         <th className="px-6 py-4">Kinerja</th>
+                                                        <th className="px-6 py-4 text-center">Detail</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-slate-200 dark:divide-[#282839]">
@@ -617,6 +620,15 @@ const ReportsPage = () => {
                                                                         }}
                                                                     />
                                                                 </div>
+                                                            </td>
+                                                            <td className="px-6 py-4 text-center">
+                                                                <button
+                                                                    onClick={() => setSelectedEmployee({ id: emp.id, name: emp.full_name })}
+                                                                    className="p-1.5 text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                                                                    title="Lihat Detail Transaksi"
+                                                                >
+                                                                    <span className="material-symbols-outlined text-[20px]">visibility</span>
+                                                                </button>
                                                             </td>
                                                         </tr>
                                                     ))}
@@ -705,6 +717,14 @@ const ReportsPage = () => {
                     )}
                 </div>
             </main>
+
+            <EmployeeTransactionsModal
+                isOpen={!!selectedEmployee}
+                onClose={() => setSelectedEmployee(null)}
+                employeeId={selectedEmployee?.id || ''}
+                employeeName={selectedEmployee?.name || ''}
+                dateRange={dateRange}
+            />
         </div>
     );
 };
