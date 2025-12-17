@@ -166,7 +166,7 @@ const ProductsPage = () => {
         }
     };
 
-    const toggleActive = async (id: string, currentStatus: boolean | number) => {
+    const toggleActive = async (id: string) => {
         try {
             await api.patch(`/products/${id}/status`);
             // Update local state immediately for better UX
@@ -420,7 +420,7 @@ const ProductsPage = () => {
                                                             <input
                                                                 type="checkbox"
                                                                 checked={!!product.is_active}
-                                                                onChange={() => toggleActive(product.id, product.is_active as boolean)}
+                                                                onChange={() => toggleActive(product.id)}
                                                                 className="sr-only peer"
                                                             />
                                                             <div className="w-9 h-5 bg-gray-200 dark:bg-[#282839] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary" />
