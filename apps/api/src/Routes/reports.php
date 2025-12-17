@@ -76,5 +76,12 @@ return function ($method, $path, $reportService, $user) {
         Response::success($transactions);
     }
     
+    // GET /api/reports/sales/daily-financials
+    if ($method === 'GET' && $path === '/sales/daily-financials') {
+        RoleMiddleware::requireAdminOrManager($user);
+        $financials = $reportService->getDailyFinancials($startDate, $endDate);
+        Response::success($financials);
+    }
+
     Response::error('Rute tidak ditemukan', 404);
 };

@@ -228,4 +228,75 @@ class ReportService
 
         return $result;
     }
+
+    public function getDailyFinancials(string $startDate, string $endDate): array
+    {
+        // 1. Get Daily Revenue
+        $stmtRevenue = $this->db->prepare(
+            "SELECT 
+                DATE_FORMAT(created_at, '%Y-%m-%d') as date,
+                COALESCE(SUM(total_amount), 0) as revenue
+             FROM orders
+             WHERE created_at BETWEEN :start_date AND :end_date AND status = 'completed'
+             GROUP BY date"
+        );
+        $stmtRevenue->execute(['start_date' => $startDate, 'end_date' => $endDate]);
+        $revenueData = $stmtRevenue->fetchAll(PDO::FETCH_ASSOC); // [ ['date'=>'...', 'revenue'=>...], ... ]
+
+        // 2. Get Daily Expenses
+        $stmtExpense = $this->db->prepare(
+            "SELECT 
+                DATE_FORMAT(created_at, '%Y-%m-%d') as date,
+                COALESCE(SUM(amount), 0) as expense
+             FROM expenses
+             WHERE created_at BETWEEN :start_date AND :end_date
+             GROUP BY date"
+        );
+        $stmtExpense->execute(['start_date' => $startDate, 'end_date' => $endDate]);
+        $expenseData = $stmtExpense->fetchAll(PDO::FETCH_ASSOC);
+
+        // 3. Merge Data
+        $merged = [];
+        
+        // Helper to find index in merged array
+        $findDate = function($date) use (&$merged) {
+            foreach ($merged as $key => $item) {
+                if ($item['date'] === $date) return $key;
+            }
+            return false;
+        };
+
+        foreach ($revenueData as $r) {
+            $merged[] = [
+                'date' => $r['date'],
+                'revenue' => (float)$r['revenue'],
+                'expense' => 0
+            ];
+        }
+
+        foreach ($expenseData as $e) {
+            $key = $findDate($e['date']);
+            if ($key !== false) {
+                $merged[$key]['expense'] = (float)$e['expense'];
+            } else {
+                $merged[] = [
+                    'date' => $e['date'],
+                    'revenue' => 0,
+                    'expense' => (float)$e['expense']
+                ];
+            }
+        }
+
+        // 4. Sort by Date DESC (newest first)
+        usort($merged, function($a, $b) {
+            return strtotime($b['date']) - strtotime($a['date']);
+        });
+
+        // 5. Calculate Net Profit
+        foreach ($merged as &$item) {
+            $item['net_profit'] = $item['revenue'] - $item['expense'];
+        }
+
+        return $merged;
+    }
 }

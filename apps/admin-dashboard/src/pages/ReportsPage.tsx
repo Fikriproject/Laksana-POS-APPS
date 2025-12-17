@@ -82,6 +82,13 @@ interface ExpenseSummary {
     [key: string]: any;
 }
 
+interface DailyFinancial {
+    date: string;
+    revenue: number;
+    expense: number;
+    net_profit: number;
+}
+
 // --- Component ---
 
 const ReportsPage = () => {
@@ -106,6 +113,7 @@ const ReportsPage = () => {
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [selectedEmployee, setSelectedEmployee] = useState<{ id: string; name: string } | null>(null);
+    const [dailyFinancials, setDailyFinancials] = useState<DailyFinancial[]>([]);
 
     // Expense State
     const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -149,11 +157,12 @@ const ReportsPage = () => {
         try {
             const params = { start_date: dateRange.start, end_date: `${dateRange.end} 23:59:59` };
 
-            const [summaryRes, byDateRes, byCatRes, topProdRes] = await Promise.all([
+            const [summaryRes, byDateRes, byCatRes, topProdRes, dailyFinRes] = await Promise.all([
                 api.get('/reports/sales/summary', { params }),
                 api.get('/reports/sales/by-date', { params: { ...params, group_by: filterType === 'today' ? 'hour' : 'day' } }),
                 api.get('/reports/sales/by-category', { params }),
-                api.get('/reports/products/top-selling', { params: { ...params, limit: 5 } })
+                api.get('/reports/products/top-selling', { params: { ...params, limit: 5 } }),
+                api.get('/reports/sales/daily-financials', { params })
             ]);
 
             if (requestId !== requestRef.current) return;
@@ -184,6 +193,12 @@ const ReportsPage = () => {
                 price: Number(item.price),
                 total_sold: Number(item.total_sold),
                 total_revenue: Number(item.total_revenue)
+            })));
+            setDailyFinancials(dailyFinRes.data.data.map((item: any) => ({
+                date: item.date,
+                revenue: Number(item.revenue),
+                expense: Number(item.expense),
+                net_profit: Number(item.net_profit)
             })));
         } catch (error) {
             if (requestId === requestRef.current) {
@@ -331,35 +346,81 @@ const ReportsPage = () => {
     }, [activeTab, dateRange]);
 
     // --- Export ---
+    // --- Export ---
     const handleExport = () => {
-        const escapeCSV = (val: any) => `"${String(val).replace(/"/g, '""')}"`;
+        const escapeCSV = (val: any) => {
+            if (val === null || val === undefined) return '""';
+            return `"${String(val).replace(/"/g, '""')}"`;
+        };
+
         let csvContent = "";
         let fileName = "laporan.csv";
+        const title = activeTab === 'sales' ? "Laporan Penjualan & Keuangan"
+            : activeTab === 'inventory' ? "Laporan Status Inventaris"
+                : activeTab === 'employees' ? "Laporan Kinerja Karyawan"
+                    : "Laporan";
 
         // Add BOM for Excel UTF-8 compatibility
         const BOM = "\uFEFF";
         csvContent += BOM;
 
-        if (activeTab === 'sales' && salesByDate.length > 0) {
-            csvContent += "Tanggal,Transaksi,Pendapatan\n";
-            salesByDate.forEach(row => {
-                csvContent += `${escapeCSV(row.date)},${row.transactions},${row.revenue}\n`;
-            });
-            fileName = "laporan_penjualan.csv";
+        // Metadata Header - Using semicolon delimiter
+        csvContent += `${title}\n`;
+        csvContent += `Periode;${dateRange.start} s.d ${dateRange.end}\n`;
+        csvContent += `Tanggal Cetak;${new Date().toLocaleString('id-ID')}\n\n`;
+
+        if (activeTab === 'sales') {
+            // Use dailyFinancials if available for nicer export, or fall back to salesByDate
+            if (dailyFinancials.length > 0) {
+                csvContent += "Tanggal;Pendapatan;Pengeluaran;Laba Bersih\n";
+                dailyFinancials.forEach(row => {
+                    csvContent += `${escapeCSV(new Date(row.date).toLocaleDateString('id-ID'))};${row.revenue};${row.expense};${row.net_profit}\n`;
+                });
+                // Add Total Row
+                const totalRev = dailyFinancials.reduce((acc, c) => acc + c.revenue, 0);
+                const totalExp = dailyFinancials.reduce((acc, c) => acc + c.expense, 0);
+                const totalNet = dailyFinancials.reduce((acc, c) => acc + c.net_profit, 0);
+                csvContent += `TOTAL;${totalRev};${totalExp};${totalNet}\n`;
+            } else if (salesByDate.length > 0) {
+                csvContent += "Tanggal;Transaksi;Pendapatan\n";
+                salesByDate.forEach(row => {
+                    csvContent += `${escapeCSV(row.date)};${row.transactions};${row.revenue}\n`;
+                });
+            }
+            fileName = "laporan_penjualan_harian.csv";
+
         } else if (activeTab === 'inventory' && inventoryStatus) {
-            csvContent += "Metrik,Nilai\n";
-            csvContent += `Total Produk,${inventoryStatus.total_products}\n`;
-            csvContent += `Produk Aktif,${inventoryStatus.active_products}\n`;
-            csvContent += `Stok Tipis,${inventoryStatus.low_stock_products}\n`;
-            csvContent += `Stok Habis,${inventoryStatus.out_of_stock_products}\n`;
-            csvContent += `Nilai Inventaris,${inventoryStatus.total_inventory_value}\n`;
+            csvContent += "Metrik;Nilai\n";
+            csvContent += `Total Produk;${inventoryStatus.total_products}\n`;
+            csvContent += `Produk Aktif;${inventoryStatus.active_products}\n`;
+            csvContent += `Stok Tipis;${inventoryStatus.low_stock_products}\n`;
+            csvContent += `Stok Habis;${inventoryStatus.out_of_stock_products}\n`;
+            csvContent += `Nilai Inventaris (Rp);${inventoryStatus.total_inventory_value}\n`;
             fileName = "status_inventaris.csv";
+
         } else if (activeTab === 'employees' && employeeStats.length > 0) {
-            csvContent += "Karyawan,ID,Transaksi,Total Penjualan,Rata-rata Penjualan\n";
+            csvContent += "Nama Karyawan;ID Karyawan;Total Transaksi;Total Penjualan;Rata-rata Penjualan\n";
             employeeStats.forEach(row => {
-                csvContent += `${escapeCSV(row.full_name)},${escapeCSV(row.employee_id)},${row.transactions},${row.total_sales},${row.avg_sale}\n`;
+                csvContent += `${escapeCSV(row.full_name)};${escapeCSV(row.employee_id)};${row.transactions};${row.total_sales};${row.avg_sale}\n`;
             });
             fileName = "kinerja_karyawan.csv";
+
+        } else if (activeTab === 'tax' && salesSummary) {
+            csvContent += "Metrik;Nilai\n";
+            csvContent += `Total Pajak Terkumpul;${salesSummary.total_tax}\n`;
+            csvContent += `Total Diskon Diberikan;${salesSummary.total_discounts}\n`;
+            csvContent += `Total Pengembalian (Refund);${salesSummary.refunded_orders}\n`;
+
+            // Add expense summary if available
+            if (expenseSummary.length > 0) {
+                csvContent += "\n\nRincian Pengeluaran per Kategori\n";
+                csvContent += "Kategori;Total\n";
+                expenseSummary.forEach(exp => {
+                    csvContent += `${escapeCSV(exp.category)};${exp.total}\n`;
+                });
+            }
+            fileName = "laporan_pajak_pengeluaran.csv";
+
         } else {
             alert("Tidak ada data untuk diekspor pada tampilan saat ini.");
             return;
@@ -598,6 +659,65 @@ const ReportsPage = () => {
                                                         </tr>
                                                     ))}
                                                 </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    {/* Daily Financial Breakdown */}
+                                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-xl overflow-hidden shadow-sm transition-colors mt-6">
+                                        <div className="p-6 border-b border-slate-200 dark:border-[#282839]">
+                                            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Rincian Keuangan Harian</h3>
+                                        </div>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left text-sm text-gray-500 dark:text-text-secondary">
+                                                <thead className="bg-gray-50 dark:bg-[#16161f] text-xs uppercase font-semibold text-gray-500 dark:text-text-secondary">
+                                                    <tr>
+                                                        <th className="px-6 py-4">Tanggal</th>
+                                                        <th className="px-6 py-4 text-right">Pendapatan</th>
+                                                        <th className="px-6 py-4 text-right">Pengeluaran</th>
+                                                        <th className="px-6 py-4 text-right">Laba Bersih</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-200 dark:divide-[#282839]">
+                                                    {dailyFinancials.length > 0 ? dailyFinancials.map((item, idx) => (
+                                                        <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                                                            <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
+                                                                {new Date(item.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                                            </td>
+                                                            <td className="px-6 py-4 text-right text-green-600 font-medium">
+                                                                {formatRupiah(item.revenue)}
+                                                            </td>
+                                                            <td className="px-6 py-4 text-right text-red-500 font-medium">
+                                                                {formatRupiah(item.expense)}
+                                                            </td>
+                                                            <td className={`px-6 py-4 text-right font-bold ${item.net_profit >= 0 ? 'text-primary' : 'text-orange-500'}`}>
+                                                                {formatRupiah(item.net_profit)}
+                                                            </td>
+                                                        </tr>
+                                                    )) : (
+                                                        <tr>
+                                                            <td colSpan={4} className="px-6 py-8 text-center text-gray-400 dark:text-text-secondary">
+                                                                Tidak ada data keuangan untuk periode ini
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                </tbody>
+                                                {dailyFinancials.length > 0 && (
+                                                    <tfoot className="bg-gray-50 dark:bg-[#16161f] font-bold text-gray-900 dark:text-white">
+                                                        <tr>
+                                                            <td className="px-6 py-4">TOTAL</td>
+                                                            <td className="px-6 py-4 text-right text-green-600">
+                                                                {formatRupiah(dailyFinancials.reduce((acc, curr) => acc + curr.revenue, 0))}
+                                                            </td>
+                                                            <td className="px-6 py-4 text-right text-red-500">
+                                                                {formatRupiah(dailyFinancials.reduce((acc, curr) => acc + curr.expense, 0))}
+                                                            </td>
+                                                            <td className="px-6 py-4 text-right text-primary">
+                                                                {formatRupiah(dailyFinancials.reduce((acc, curr) => acc + curr.net_profit, 0))}
+                                                            </td>
+                                                        </tr>
+                                                    </tfoot>
+                                                )}
                                             </table>
                                         </div>
                                     </div>

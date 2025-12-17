@@ -135,22 +135,23 @@ const ProductsPage = () => {
     const handleExportCSV = () => {
         if (productList.length === 0) return;
 
-        const headers = ['ID', 'Name', 'SKU', 'Category', 'Price', 'Stock', 'Status', 'Image URL'];
-        const csvContent = [
-            headers.join(','),
-            ...productList.map(p => [
-                p.id,
-                `"${p.name.replace(/"/g, '""')}"`, // Escape quotes
-                p.sku,
-                p.category_name || '',
-                p.purchase_price,
-                p.price,
-                p.stock_quantity,
-                p.stock_quantity,
-                p.is_active ? 'Active' : 'Inactive',
-                p.image_url
-            ].join(','))
-        ].join('\n');
+        const headers = ['ID', 'Nama Produk', 'SKU', 'Kategori', 'Harga Beli', 'Harga Jual', 'Stok', 'Status', 'URL Gambar'];
+
+        // Add BOM for Excel UTF-8 compatibility
+        const BOM = "\uFEFF";
+        let csvContent = BOM + headers.join(';') + '\n';
+
+        csvContent += productList.map(p => [
+            p.id,
+            `"${p.name.replace(/"/g, '""')}"`, // Escape quotes
+            p.sku,
+            p.category_name || '',
+            p.purchase_price,
+            p.price,
+            p.stock_quantity,
+            p.is_active ? 'Aktif' : 'Nonaktif',
+            p.image_url
+        ].join(';')).join('\n');
 
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
