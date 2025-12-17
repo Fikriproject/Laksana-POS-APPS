@@ -27,7 +27,7 @@ class ProductService
         $total = $this->productModel->count();
         
         return [
-            'products' => $products,
+            'products' => $this->transformImageUrls($products),
             'pagination' => [
                 'current_page' => $page,
                 'per_page' => $perPage,
@@ -39,17 +39,26 @@ class ProductService
 
     public function getById(string $id): ?array
     {
-        return $this->productModel->findById($id);
+        $product = $this->productModel->findById($id);
+        if ($product) {
+            return $this->transformImageUrls([$product])[0];
+        }
+        return null;
     }
 
     public function getBySku(string $sku): ?array
     {
-        return $this->productModel->findBySku($sku);
+        $product = $this->productModel->findBySku($sku);
+        if ($product) {
+            return $this->transformImageUrls([$product])[0];
+        }
+        return null;
     }
 
     public function search(string $query): array
     {
-        return $this->productModel->search($query);
+        $products = $this->productModel->search($query);
+        return $this->transformImageUrls($products);
     }
 
     public function create(array $data): string
@@ -79,12 +88,14 @@ class ProductService
 
     public function getLowStock(): array
     {
-        return $this->productModel->getLowStock();
+        $products = $this->productModel->getLowStock();
+        return $this->transformImageUrls($products);
     }
 
     public function getTopSelling(int $limit = 10, ?string $startDate = null, ?string $endDate = null): array
     {
-        return $this->productModel->getTopSelling($limit, $startDate, $endDate);
+        $products = $this->productModel->getTopSelling($limit, $startDate, $endDate);
+        return $this->transformImageUrls($products);
     }
 
     public function getCategories(): array
@@ -95,6 +106,21 @@ class ProductService
     public function createCategory(array $data): string
     {
         return $this->categoryModel->create($data);
+    }
+
+    private function transformImageUrls(array $products): array
+    {
+        foreach ($products as &$product) {
+            if (!empty($product['image_url'])) {
+                // If URL contains localhost or 127.0.0.1, convert to relative path
+                // This allows the frontend proxy (Vite) to handle the request correctly 
+                // regardless of the device's IP address.
+                if (strpos($product['image_url'], '127.0.0.1') !== false || strpos($product['image_url'], 'localhost') !== false) {
+                    $product['image_url'] = preg_replace('/^https?:\/\/[^\/]+/', '', $product['image_url']);
+                }
+            }
+        }
+        return $products;
     }
 
     private function generateSku(string $name): string
