@@ -22,7 +22,8 @@ class AuthService
         $this->userModel = $userModel;
         $this->shiftModel = $shiftModel;
         $this->jwtSecret = $_ENV['JWT_SECRET'] ?? 'default-secret-key';
-        $this->jwtExpiry = (int) ($_ENV['JWT_EXPIRY'] ?? 3600);
+        // Default expiry extended to 24 hours (86400 seconds) to prevent frequent logouts
+        $this->jwtExpiry = (int) ($_ENV['JWT_EXPIRY'] ?? 86400);
     }
 
     public function loginWithCredentials(string $usernameOrEmployeeId, string $password): ?array
@@ -69,8 +70,22 @@ class AuthService
             }
             
             return $this->sanitizeUser($user);
-        } catch (\Exception $e) {
+        } catch (\Firebase\JWT\ExpiredException $e) {
+            // Token expired -> Return null (401)
             return null;
+        } catch (\Firebase\JWT\SignatureInvalidException $e) {
+            // Invalid signature -> Return null (401)
+            return null;
+        } catch (\PDOException $e) {
+            // Database Error -> Re-throw to cause 500 (NOT 401)
+            throw $e;
+        } catch (\Exception $e) {
+            // Check if it's a JWT exception logic that isn't caught by above
+            if (strpos(get_class($e), 'Firebase\JWT') !== false) {
+                 return null;
+            }
+            // Unknown error -> Throw to cause 500
+            throw $e;
         }
     }
 
