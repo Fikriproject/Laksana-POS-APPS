@@ -37,7 +37,7 @@ class Product extends Model
         
         if ($activeOnly !== null) {
             $where .= ' AND p.is_active = :is_active';
-            $params['is_active'] = $activeOnly ? 1 : 0; // MySQL uses 1/0 for boolean
+            $params['is_active'] = $activeOnly ? 'true' : 'false'; // Postgres uses strings 'true'/'false' or boolean type
         }
         
         $stmt = $this->db->prepare(
@@ -88,7 +88,7 @@ class Product extends Model
             "SELECT p.*, c.name as category_name 
              FROM {$this->table} p 
              LEFT JOIN categories c ON p.category_id = c.id 
-             WHERE p.stock_quantity <= p.low_stock_threshold AND p.is_active = 1
+             WHERE p.stock_quantity <= p.low_stock_threshold AND p.is_active = true
              ORDER BY p.stock_quantity ASC 
              LIMIT :limit"
         );
