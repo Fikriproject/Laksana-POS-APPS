@@ -1,0 +1,29 @@
+PHPUnit 11.5.46 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.2.27
+Configuration: C:\Users\ACER\Documents\Kasir Laksana\apps\api\phpunit.xml
+
+E.                                                                  2 / 2 (100%)
+
+Time: 00:00.084, Memory: 10.00 MB
+
+There was 1 error:
+
+1) Tests\Services\OrderServiceTest::testCreateOrderSuccessfully
+TypeError: App\Services\OrderService::saveReceipt(): Argument #1 ($order) must be of type array, null given, called in C:\Users\ACER\Documents\Kasir Laksana\apps\api\src\Services\OrderService.php on line 130
+
+C:\Users\ACER\Documents\Kasir Laksana\apps\api\src\Services\OrderService.php:146
+C:\Users\ACER\Documents\Kasir Laksana\apps\api\src\Services\OrderService.php:130
+C:\Users\ACER\Documents\Kasir Laksana\apps\api\tests\Services\OrderServiceTest.php:95
+
+--
+
+There was 1 risky test:
+
+1) Tests\Services\OrderServiceTest::testCreateOrderSuccessfully
+Test code or tested code did not close its own output buffers
+
+C:\Users\ACER\Documents\Kasir Laksana\apps\api\tests\Services\OrderServiceTest.php:51
+
+ERRORS!
+Tests: 2, Assertions: 2, Errors: 1, Risky: 1.

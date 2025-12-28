@@ -79,7 +79,8 @@ return function ($method, $path, $reportService, $user) {
     // GET /api/reports/sales/daily-financials
     if ($method === 'GET' && $path === '/sales/daily-financials') {
         RoleMiddleware::requireAdminOrManager($user);
-        $financials = $reportService->getDailyFinancials($startDate, $endDate);
+        $groupBy = $_GET['group_by'] ?? 'day';
+        $financials = $reportService->getDailyFinancials($startDate, $endDate, $groupBy);
         Response::success($financials);
     }
 

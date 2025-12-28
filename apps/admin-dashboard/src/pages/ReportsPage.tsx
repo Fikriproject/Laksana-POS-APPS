@@ -102,6 +102,7 @@ const ReportsPage = () => {
         end: new Date().toISOString().split('T')[0] // Today
     });
     const [filterType, setFilterType] = useState<'today' | 'week' | 'month' | 'custom'>('month');
+    const [financialGroupBy, setFinancialGroupBy] = useState<'day' | 'week' | 'month' | 'year'>('day');
 
     // Data State
     const [salesSummary, setSalesSummary] = useState<SalesSummary | null>(null);
@@ -162,7 +163,7 @@ const ReportsPage = () => {
                 api.get('/reports/sales/by-date', { params: { ...params, group_by: filterType === 'today' ? 'hour' : 'day' } }),
                 api.get('/reports/sales/by-category', { params }),
                 api.get('/reports/products/top-selling', { params: { ...params, limit: 5 } }),
-                api.get('/reports/sales/daily-financials', { params })
+                api.get('/reports/sales/daily-financials', { params: { ...params, group_by: financialGroupBy } })
             ]);
 
             if (requestId !== requestRef.current) return;
@@ -331,7 +332,7 @@ const ReportsPage = () => {
             fetchSalesData();
             fetchExpensesData();
         }
-    }, [activeTab, dateRange, filterType]);
+    }, [activeTab, dateRange, filterType, financialGroupBy]);
 
     useEffect(() => {
         if (activeTab === 'inventory') {
@@ -665,14 +666,30 @@ const ReportsPage = () => {
 
                                     {/* Daily Financial Breakdown */}
                                     <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-xl overflow-hidden shadow-sm transition-colors mt-6">
-                                        <div className="p-6 border-b border-slate-200 dark:border-[#282839]">
-                                            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Rincian Keuangan Harian</h3>
+                                        <div className="p-6 border-b border-slate-200 dark:border-[#282839] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Rincian Keuangan</h3>
+                                            <div className="flex bg-gray-100 dark:bg-[#16161f] p-1 rounded-lg">
+                                                {[
+                                                    { id: 'day', label: 'Harian' },
+                                                    { id: 'week', label: 'Mingguan' },
+                                                    { id: 'month', label: 'Bulanan' },
+                                                    { id: 'year', label: 'Tahunan' }
+                                                ].map((t) => (
+                                                    <button
+                                                        key={t.id}
+                                                        onClick={() => setFinancialGroupBy(t.id as any)}
+                                                        className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${financialGroupBy === t.id ? 'bg-white dark:bg-surface-dark text-primary shadow-sm' : 'text-gray-500 dark:text-text-secondary hover:text-gray-900 dark:hover:text-white'}`}
+                                                    >
+                                                        {t.label}
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
                                         <div className="overflow-x-auto">
                                             <table className="w-full text-left text-sm text-gray-500 dark:text-text-secondary">
                                                 <thead className="bg-gray-50 dark:bg-[#16161f] text-xs uppercase font-semibold text-gray-500 dark:text-text-secondary">
                                                     <tr>
-                                                        <th className="px-6 py-4">Tanggal</th>
+                                                        <th className="px-6 py-4">Periode</th>
                                                         <th className="px-6 py-4 text-right">Pendapatan</th>
                                                         <th className="px-6 py-4 text-right">Pengeluaran</th>
                                                         <th className="px-6 py-4 text-right">Laba Bersih</th>
@@ -682,7 +699,10 @@ const ReportsPage = () => {
                                                     {dailyFinancials.length > 0 ? dailyFinancials.map((item, idx) => (
                                                         <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                                                             <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
-                                                                {new Date(item.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                                                {financialGroupBy === 'day' && new Date(item.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                                                {financialGroupBy === 'month' && new Date(item.date + '-01').toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
+                                                                {financialGroupBy === 'year' && item.date}
+                                                                {financialGroupBy === 'week' && `Minggu ke-${item.date.split('-')[1]} (${item.date.split('-')[0]})`}
                                                             </td>
                                                             <td className="px-6 py-4 text-right text-green-600 font-medium">
                                                                 {formatRupiah(item.revenue)}

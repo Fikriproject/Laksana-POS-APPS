@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import toast from 'react-hot-toast';
 
 const LoginPage = () => {
     const [loginMode, setLoginMode] = useState<'admin' | 'cashier'>('admin');
@@ -18,6 +19,25 @@ const LoginPage = () => {
 
     // @ts-ignore
     const from = location.state?.from?.pathname || '/';
+
+    const handleShutdown = async () => {
+        const isConfirmed = window.confirm('Apakah Anda yakin ingin MENUTUP APLIKASI SEPENUHNYA?\nServer akan dimatikan.');
+        if (!isConfirmed) return;
+
+        try {
+            toast.loading('Mematikan aplikasi...');
+            await api.post('/system/shutdown');
+            toast.dismiss();
+            toast.success('Aplikasi ditutup.');
+            setTimeout(() => {
+                window.close();
+                document.body.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100vh;background:#000;color:#fff;flex-direction:column;gap:20px;"><h1>Aplikasi Telah Ditutup</h1><p>Silakan tutup browser ini.</p></div>';
+            }, 1000);
+        } catch (error) {
+            console.error(error);
+            toast.error('Gagal mematikan server via API.');
+        }
+    };
 
     const handlePinInput = (digit: string) => {
         if (pin.length < 4) {
@@ -98,6 +118,14 @@ const LoginPage = () => {
                                     <span className="material-symbols-outlined text-[24px] text-white">point_of_sale</span>
                                 </div>
                                 <h2 className="text-2xl font-bold tracking-tight">Kasir Laksana</h2>
+
+                                <button
+                                    onClick={handleShutdown}
+                                    className="ml-auto p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-full transition-colors"
+                                    title="Matikan Aplikasi"
+                                >
+                                    <span className="material-symbols-outlined">power_settings_new</span>
+                                </button>
                             </div>
                             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Selamat Datang</h1>
                             <p className="text-gray-500 dark:text-text-secondary text-sm">Silakan masukkan detail Anda untuk masuk.</p>

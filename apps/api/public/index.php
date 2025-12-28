@@ -134,6 +134,10 @@ if (strpos($path, '/auth') === 0) {
     $routePath = substr($path, strlen('/expenses'));
     $handler = require __DIR__ . '/../src/Routes/expenses.php';
     $handler($method, $routePath, $user);
+} elseif (strpos($path, '/system') === 0) {
+    $routePath = substr($path, strlen('/system'));
+    $handler = require __DIR__ . '/../src/Routes/system.php';
+    $handler($method, $routePath, $user);
 } else {
     App\Utils\Response::error('Endpoint tidak ditemukan: ' . $path, 404);
 }

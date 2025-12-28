@@ -1,0 +1,18 @@
+PHPUnit 11.5.46 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.2.27
+Configuration: C:\Users\ACER\Documents\Kasir Laksana\apps\api\phpunit.xml
+
+E.                                                                  2 / 2 (100%)
+
+Time: 00:00.081, Memory: 10.00 MB
+
+There was 1 error:
+
+1) Tests\Services\OrderServiceTest::testCreateOrderSuccessfully
+PHPUnit\Framework\MockObject\MethodCannotBeConfiguredException: Trying to configure method "log" which cannot be configured because it does not exist, has not been specified, is final, or is static
+
+C:\Users\ACER\Documents\Kasir Laksana\apps\api\tests\Services\OrderServiceTest.php:93
+
+ERRORS!
+Tests: 2, Assertions: 2, Errors: 1.

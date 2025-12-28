@@ -229,24 +229,35 @@ class ReportService
         return $result;
     }
 
-    public function getDailyFinancials(string $startDate, string $endDate): array
+    public function getDailyFinancials(string $startDate, string $endDate, string $groupBy = 'day'): array
     {
-        // 1. Get Daily Revenue
+        // MySQL DATE_FORMAT based on group
+        $dateFormat = match($groupBy) {
+            'year' => "%Y",
+            'month' => "%Y-%m",
+            'week' => "%x-%v", // Year-Week
+            default => "%Y-%m-%d"
+        };
+        
+        $sqlDateFormat = "DATE_FORMAT(o.created_at, '{$dateFormat}')";
+        $expenseDateFormat = "DATE_FORMAT(created_at, '{$dateFormat}')";
+
+        // 1. Get Revenue
         $stmtRevenue = $this->db->prepare(
             "SELECT 
-                DATE_FORMAT(created_at, '%Y-%m-%d') as date,
+                {$sqlDateFormat} as date,
                 COALESCE(SUM(total_amount), 0) as revenue
-             FROM orders
+             FROM orders o
              WHERE created_at BETWEEN :start_date AND :end_date AND status = 'completed'
              GROUP BY date"
         );
         $stmtRevenue->execute(['start_date' => $startDate, 'end_date' => $endDate]);
-        $revenueData = $stmtRevenue->fetchAll(PDO::FETCH_ASSOC); // [ ['date'=>'...', 'revenue'=>...], ... ]
+        $revenueData = $stmtRevenue->fetchAll(PDO::FETCH_ASSOC);
 
-        // 2. Get Daily Expenses
+        // 2. Get Expenses
         $stmtExpense = $this->db->prepare(
             "SELECT 
-                DATE_FORMAT(created_at, '%Y-%m-%d') as date,
+                {$expenseDateFormat} as date,
                 COALESCE(SUM(amount), 0) as expense
              FROM expenses
              WHERE created_at BETWEEN :start_date AND :end_date
@@ -258,7 +269,6 @@ class ReportService
         // 3. Merge Data
         $merged = [];
         
-        // Helper to find index in merged array
         $findDate = function($date) use (&$merged) {
             foreach ($merged as $key => $item) {
                 if ($item['date'] === $date) return $key;
@@ -287,9 +297,9 @@ class ReportService
             }
         }
 
-        // 4. Sort by Date DESC (newest first)
+        // 4. Sort by Date DESC
         usort($merged, function($a, $b) {
-            return strtotime($b['date']) - strtotime($a['date']);
+            return strcmp($b['date'], $a['date']); // String check works for ISO-like formats
         });
 
         // 5. Calculate Net Profit

@@ -1,0 +1,1254 @@
+
+[1m[46m RUN [49m[22m [36mv4.0.16 [39m[90mC:/Users/ACER/Documents/Kasir Laksana/apps/admin-dashboard[39m
+
+stderr | src/pages/__tests__/POSTerminal.test.tsx > POSTerminal > renders POS terminal with products
+Failed to fetch POS data TypeError: categoriesRes.data.data.map is not a function
+    at fetchData (C:/Users/ACER/Documents/Kasir Laksana/apps/admin-dashboard/src/pages/POSTerminal.tsx:76:67)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+
+stderr | src/pages/__tests__/POSTerminal.test.tsx > POSTerminal > adds product to cart
+Failed to fetch POS data TypeError: categoriesRes.data.data.map is not a function
+    at fetchData (C:/Users/ACER/Documents/Kasir Laksana/apps/admin-dashboard/src/pages/POSTerminal.tsx:76:67)
+
+stderr | src/pages/__tests__/POSTerminal.test.tsx > POSTerminal > updates item quantity in cart
+Failed to fetch POS data TypeError: categoriesRes.data.data.map is not a function
+    at fetchData (C:/Users/ACER/Documents/Kasir Laksana/apps/admin-dashboard/src/pages/POSTerminal.tsx:76:67)
+
+stderr | src/pages/__tests__/POSTerminal.test.tsx > POSTerminal > processes checkout successfully
+Failed to fetch POS data TypeError: categoriesRes.data.data.map is not a function
+    at fetchData (C:/Users/ACER/Documents/Kasir Laksana/apps/admin-dashboard/src/pages/POSTerminal.tsx:76:67)
+
+ [31mΓ¥»[39m src/pages/__tests__/POSTerminal.test.tsx [2m([22m[2m4 tests[22m[2m | [22m[31m4 failed[39m[2m)[22m[33m 4147[2mms[22m[39m
+[31m     [31m├ù[31m renders POS terminal with products[39m[33m 1061[2mms[22m[39m
+[31m     [31m├ù[31m adds product to cart[39m[33m 1029[2mms[22m[39m
+[31m     [31m├ù[31m updates item quantity in cart[39m[33m 1029[2mms[22m[39m
+[31m     [31m├ù[31m processes checkout successfully[39m[33m 1025[2mms[22m[39m
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ» Failed Tests 4 ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»
+
+ FAIL  src/pages/__tests__/POSTerminal.test.tsx > POSTerminal > renders POS terminal with products
+TestingLibraryElementError: Unable to find an element with the text: Kopi Hitam. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="flex h-screen w-full bg-background-light dark:bg-background-dark font-display text-gray-900 dark:text-white overflow-hidden print:hidden"
+    >
+      <div
+        class="print:hidden h-full"
+      >
+        <aside
+          class="
+                fixed inset-y-0 left-0 z-50 w-64 h-full flex flex-col 
+                bg-surface-light dark:bg-[#151520] border-r border-slate-200 dark:border-[#282839]
+                transition-transform duration-300 ease-in-out
+                -translate-x-full
+                lg:translate-x-0 lg:static lg:flex-shrink-0
+                h-full
+            "
+        >
+          <div
+            class="p-6 flex items-center justify-between"
+          >
+            <div
+              class="flex items-center gap-3"
+            >
+              <div
+                class="w-8 h-8 rounded bg-primary flex items-center justify-center text-white"
+              >
+                <span
+                  class="material-symbols-outlined"
+                  style="font-size: 20px;"
+                >
+                  point_of_sale
+                </span>
+              </div>
+              <div>
+                <h1
+                  class="text-base font-bold leading-none"
+                >
+                  Kasir Laksana
+                </h1>
+                <p
+                  class="text-text-secondary text-xs mt-1"
+                >
+                  Manajemen v1.0
+                </p>
+              </div>
+            </div>
+            <button
+              class="lg:hidden text-slate-500 hover:text-white"
+            >
+              <span
+                class="material-symbols-outlined"
+              >
+                close
+              </span>
+            </button>
+          </div>
+          <nav
+            class="flex-1 px-4 py-4 flex flex-col gap-2 overflow-y-auto"
+          />
+          <div
+            class="p-4 border-t border-slate-200 dark:border-[#282839]"
+          >
+            <button
+              class="w-full text-left"
+            >
+              <div
+                class="flex items-center gap-3 px-3 py-3 rounded-lg transition-colors text-slate-500 dark:text-text-secondary hover:bg-red-500/10 hover:text-red-500"
+              >
+                <span
+                  class="material-symbols-outlined"
+                >
+                  logout
+                </span>
+                <span
+                  class="text-sm font-medium"
+                >
+                  Keluar
+                </span>
+              </div>
+            </button>
+          </div>
+        </aside>
+      </div>
+      <div
+        class="flex-1 flex flex-col h-full overflow-hidden relative"
+      >
+        <header
+          class="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-[#282839] px-6 py-3 bg-white dark:bg-surface-dark shrink-0 print:hidden transition-colors"
+        >
+          <div
+            class="flex items-center gap-8"
+          >
+            <div
+              class="flex items-center gap-3 text-gray-900 dark:text-white"
+            >
+              <button
+                class="lg:hidden p-2 -ml-2 text-gray-500 dark:text-text-secondary hover:text-primary transition-colors"
+              >
+                <span
+                  class="material-symbols-outlined"
+                >
+                  menu
+                </span>
+              </button>
+              <div
+                class="size-8 flex items-center justify-center bg-primary rounded-lg text-white"
+              >
+                <span
+                  class="material-symbols-outlined"
+                >
+                  point_of_sale
+                </span>
+              </div>
+              <h2
+                class="text-gray-900 dark:text-white text-xl font-bold leading-tight tracking-tight"
+              >
+                POS Terminal
+              </h2>
+            </div>
+            <label
+              class="flex items-center flex-1 mx-4 max-w-lg h-10"
+            >
+              <div
+                class="flex w-full flex-1 items-stretch rounded-lg h-full bg-gray-100 dark:bg-background-dark border border-slate-200 dark:border-[#282839] overflow-hidden group focus-within:border-primary/50 transition-colors"
+              >
+                <div
+                  class="text-gray-400 dark:text-[#9d9db9] flex border-none items-center justify-center pl-4"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                    style="font-size: 20px;"
+                  >
+                    search
+                  </span>
+                </div>
+                <input
+                  class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-900 dark:text-white focus:outline-0 focus:ring-0 border-none bg-transparent focus:border-none h-full placeholder:text-gray-400 dark:placeholder:text-[#9d9db9] px-3 text-sm font-normal leading-normal"
+                  placeholder="Search by name, SKU or barcode..."
+                  value=""
+                />
+              </div>
+            </label>
+          </div>
+          <div
+            class="flex items-center justify-end gap-6"
+          >...
+
+Ignored nodes: comments, script, style
+<html>
+  <head />
+  <body>
+    <div>
+      <div
+        class="flex h-screen w-full bg-background-light dark:bg-background-dark font-display text-gray-900 dark:text-white overflow-hidden print:hidden"
+      >
+        <div
+          class="print:hidden h-full"
+        >
+          <aside
+            class="
+                fixed inset-y-0 left-0 z-50 w-64 h-full flex flex-col 
+                bg-surface-light dark:bg-[#151520] border-r border-slate-200 dark:border-[#282839]
+                transition-transform duration-300 ease-in-out
+                -translate-x-full
+                lg:translate-x-0 lg:static lg:flex-shrink-0
+                h-full
+            "
+          >
+            <div
+              class="p-6 flex items-center justify-between"
+            >
+              <div
+                class="flex items-center gap-3"
+              >
+                <div
+                  class="w-8 h-8 rounded bg-primary flex items-center justify-center text-white"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                    style="font-size: 20px;"
+                  >
+                    point_of_sale
+                  </span>
+                </div>
+                <div>
+                  <h1
+                    class="text-base font-bold leading-none"
+                  >
+                    Kasir Laksana
+                  </h1>
+                  <p
+                    class="text-text-secondary text-xs mt-1"
+                  >
+                    Manajemen v1.0
+                  </p>
+                </div>
+              </div>
+              <button
+                class="lg:hidden text-slate-500 hover:text-white"
+              >
+                <span
+                  class="material-symbols-outlined"
+                >
+                  close
+                </span>
+              </button>
+            </div>
+            <nav
+              class="flex-1 px-4 py-4 flex flex-col gap-2 overflow-y-auto"
+            />
+            <div
+              class="p-4 border-t border-slate-200 dark:border-[#282839]"
+            >
+              <button
+                class="w-full text-left"
+              >
+                <div
+                  class="flex items-center gap-3 px-3 py-3 rounded-lg transition-colors text-slate-500 dark:text-text-secondary hover:bg-red-500/10 hover:text-red-500"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                  >
+                    logout
+                  </span>
+                  <span
+                    class="text-sm font-medium"
+                  >
+                    Keluar
+                  </span>
+                </div>
+              </button>
+            </div>
+          </aside>
+        </div>
+        <div
+          class="flex-1 flex flex-col h-full overflow-hidden relative"
+        >
+          <header
+            class="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-[#282839] px-6 py-3 bg-white dark:bg-surface-dark shrink-0 print:hidden transition-colors"
+          >
+            <div
+              class="flex items-center gap-8"
+            >
+              <div
+                class="flex items-center gap-3 text-gray-900 dark:text-white"
+              >
+                <button
+                  class="lg:hidden p-2 -ml-2 text-gray-500 dark:text-text-secondary hover:text-primary transition-colors"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                  >
+                    menu
+                  </span>
+                </button>
+                <div
+                  class="size-8 flex items-center justify-center bg-primary rounded-lg text-white"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                  >
+                    point_of_sale
+                  </span>
+                </div>
+                <h2
+                  class="text-gray-900 dark:text-white text-xl font-bold leading-tight tracking-tight"
+                >
+                  POS Terminal
+                </h2>
+              </div>
+              <label
+                class="flex items-center flex-1 mx-4 max-w-lg h-10"
+              >
+                <div
+                  class="flex w-full flex-1 items-stretch rounded-lg h-full bg-gray-100 dark:bg-background-dark border border-slate-200 dark:border-[#282839] overflow-hidden group focus-within:border-primary/50 transition-colors"
+                >
+                  <div
+                    class="text-gray-400 dark:text-[#9d9db9] flex border-none items-center justify-center pl-4"
+                  >
+                    <span
+                      class="material-symbols-outlined"
+                      style="font-size: 20px;"
+                    >
+                      search
+                    </span>
+                  </div>
+                  <input
+                    class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-900 dark:text-white focus:outline-0 focus:ring-0 border-none bg-transparent focus:border-none h-full placeholder:text-gray-400 dark:placeholder:text-[#9d9db9] px-3 text-sm font-normal leading-normal"
+                    placeholder="Search by name, SKU or ba...
+ Γ¥» Proxy.waitForWrapper ../../node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ Γ¥» src/pages/__tests__/POSTerminal.test.tsx:68:15
+     66|         );
+     67| 
+     68|         await waitFor(() => {
+       |               ^
+     69|             expect(screen.getByText('Kopi Hitam')).toBeInTheDocument();
+     70|             expect(screen.getByText('Roti Bakar')).toBeInTheDocument();
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[1/4]ΓÄ»
+
+ FAIL  src/pages/__tests__/POSTerminal.test.tsx > POSTerminal > adds product to cart
+TestingLibraryElementError: Unable to find an element with the text: Kopi Hitam. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="flex h-screen w-full bg-background-light dark:bg-background-dark font-display text-gray-900 dark:text-white overflow-hidden print:hidden"
+    >
+      <div
+        class="print:hidden h-full"
+      >
+        <aside
+          class="
+                fixed inset-y-0 left-0 z-50 w-64 h-full flex flex-col 
+                bg-surface-light dark:bg-[#151520] border-r border-slate-200 dark:border-[#282839]
+                transition-transform duration-300 ease-in-out
+                -translate-x-full
+                lg:translate-x-0 lg:static lg:flex-shrink-0
+                h-full
+            "
+        >
+          <div
+            class="p-6 flex items-center justify-between"
+          >
+            <div
+              class="flex items-center gap-3"
+            >
+              <div
+                class="w-8 h-8 rounded bg-primary flex items-center justify-center text-white"
+              >
+                <span
+                  class="material-symbols-outlined"
+                  style="font-size: 20px;"
+                >
+                  point_of_sale
+                </span>
+              </div>
+              <div>
+                <h1
+                  class="text-base font-bold leading-none"
+                >
+                  Kasir Laksana
+                </h1>
+                <p
+                  class="text-text-secondary text-xs mt-1"
+                >
+                  Manajemen v1.0
+                </p>
+              </div>
+            </div>
+            <button
+              class="lg:hidden text-slate-500 hover:text-white"
+            >
+              <span
+                class="material-symbols-outlined"
+              >
+                close
+              </span>
+            </button>
+          </div>
+          <nav
+            class="flex-1 px-4 py-4 flex flex-col gap-2 overflow-y-auto"
+          />
+          <div
+            class="p-4 border-t border-slate-200 dark:border-[#282839]"
+          >
+            <button
+              class="w-full text-left"
+            >
+              <div
+                class="flex items-center gap-3 px-3 py-3 rounded-lg transition-colors text-slate-500 dark:text-text-secondary hover:bg-red-500/10 hover:text-red-500"
+              >
+                <span
+                  class="material-symbols-outlined"
+                >
+                  logout
+                </span>
+                <span
+                  class="text-sm font-medium"
+                >
+                  Keluar
+                </span>
+              </div>
+            </button>
+          </div>
+        </aside>
+      </div>
+      <div
+        class="flex-1 flex flex-col h-full overflow-hidden relative"
+      >
+        <header
+          class="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-[#282839] px-6 py-3 bg-white dark:bg-surface-dark shrink-0 print:hidden transition-colors"
+        >
+          <div
+            class="flex items-center gap-8"
+          >
+            <div
+              class="flex items-center gap-3 text-gray-900 dark:text-white"
+            >
+              <button
+                class="lg:hidden p-2 -ml-2 text-gray-500 dark:text-text-secondary hover:text-primary transition-colors"
+              >
+                <span
+                  class="material-symbols-outlined"
+                >
+                  menu
+                </span>
+              </button>
+              <div
+                class="size-8 flex items-center justify-center bg-primary rounded-lg text-white"
+              >
+                <span
+                  class="material-symbols-outlined"
+                >
+                  point_of_sale
+                </span>
+              </div>
+              <h2
+                class="text-gray-900 dark:text-white text-xl font-bold leading-tight tracking-tight"
+              >
+                POS Terminal
+              </h2>
+            </div>
+            <label
+              class="flex items-center flex-1 mx-4 max-w-lg h-10"
+            >
+              <div
+                class="flex w-full flex-1 items-stretch rounded-lg h-full bg-gray-100 dark:bg-background-dark border border-slate-200 dark:border-[#282839] overflow-hidden group focus-within:border-primary/50 transition-colors"
+              >
+                <div
+                  class="text-gray-400 dark:text-[#9d9db9] flex border-none items-center justify-center pl-4"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                    style="font-size: 20px;"
+                  >
+                    search
+                  </span>
+                </div>
+                <input
+                  class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-900 dark:text-white focus:outline-0 focus:ring-0 border-none bg-transparent focus:border-none h-full placeholder:text-gray-400 dark:placeholder:text-[#9d9db9] px-3 text-sm font-normal leading-normal"
+                  placeholder="Search by name, SKU or barcode..."
+                  value=""
+                />
+              </div>
+            </label>
+          </div>
+          <div
+            class="flex items-center justify-end gap-6"
+          >...
+
+Ignored nodes: comments, script, style
+<html>
+  <head />
+  <body>
+    <div>
+      <div
+        class="flex h-screen w-full bg-background-light dark:bg-background-dark font-display text-gray-900 dark:text-white overflow-hidden print:hidden"
+      >
+        <div
+          class="print:hidden h-full"
+        >
+          <aside
+            class="
+                fixed inset-y-0 left-0 z-50 w-64 h-full flex flex-col 
+                bg-surface-light dark:bg-[#151520] border-r border-slate-200 dark:border-[#282839]
+                transition-transform duration-300 ease-in-out
+                -translate-x-full
+                lg:translate-x-0 lg:static lg:flex-shrink-0
+                h-full
+            "
+          >
+            <div
+              class="p-6 flex items-center justify-between"
+            >
+              <div
+                class="flex items-center gap-3"
+              >
+                <div
+                  class="w-8 h-8 rounded bg-primary flex items-center justify-center text-white"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                    style="font-size: 20px;"
+                  >
+                    point_of_sale
+                  </span>
+                </div>
+                <div>
+                  <h1
+                    class="text-base font-bold leading-none"
+                  >
+                    Kasir Laksana
+                  </h1>
+                  <p
+                    class="text-text-secondary text-xs mt-1"
+                  >
+                    Manajemen v1.0
+                  </p>
+                </div>
+              </div>
+              <button
+                class="lg:hidden text-slate-500 hover:text-white"
+              >
+                <span
+                  class="material-symbols-outlined"
+                >
+                  close
+                </span>
+              </button>
+            </div>
+            <nav
+              class="flex-1 px-4 py-4 flex flex-col gap-2 overflow-y-auto"
+            />
+            <div
+              class="p-4 border-t border-slate-200 dark:border-[#282839]"
+            >
+              <button
+                class="w-full text-left"
+              >
+                <div
+                  class="flex items-center gap-3 px-3 py-3 rounded-lg transition-colors text-slate-500 dark:text-text-secondary hover:bg-red-500/10 hover:text-red-500"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                  >
+                    logout
+                  </span>
+                  <span
+                    class="text-sm font-medium"
+                  >
+                    Keluar
+                  </span>
+                </div>
+              </button>
+            </div>
+          </aside>
+        </div>
+        <div
+          class="flex-1 flex flex-col h-full overflow-hidden relative"
+        >
+          <header
+            class="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-[#282839] px-6 py-3 bg-white dark:bg-surface-dark shrink-0 print:hidden transition-colors"
+          >
+            <div
+              class="flex items-center gap-8"
+            >
+              <div
+                class="flex items-center gap-3 text-gray-900 dark:text-white"
+              >
+                <button
+                  class="lg:hidden p-2 -ml-2 text-gray-500 dark:text-text-secondary hover:text-primary transition-colors"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                  >
+                    menu
+                  </span>
+                </button>
+                <div
+                  class="size-8 flex items-center justify-center bg-primary rounded-lg text-white"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                  >
+                    point_of_sale
+                  </span>
+                </div>
+                <h2
+                  class="text-gray-900 dark:text-white text-xl font-bold leading-tight tracking-tight"
+                >
+                  POS Terminal
+                </h2>
+              </div>
+              <label
+                class="flex items-center flex-1 mx-4 max-w-lg h-10"
+              >
+                <div
+                  class="flex w-full flex-1 items-stretch rounded-lg h-full bg-gray-100 dark:bg-background-dark border border-slate-200 dark:border-[#282839] overflow-hidden group focus-within:border-primary/50 transition-colors"
+                >
+                  <div
+                    class="text-gray-400 dark:text-[#9d9db9] flex border-none items-center justify-center pl-4"
+                  >
+                    <span
+                      class="material-symbols-outlined"
+                      style="font-size: 20px;"
+                    >
+                      search
+                    </span>
+                  </div>
+                  <input
+                    class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-900 dark:text-white focus:outline-0 focus:ring-0 border-none bg-transparent focus:border-none h-full placeholder:text-gray-400 dark:placeholder:text-[#9d9db9] px-3 text-sm font-normal leading-normal"
+                    placeholder="Search by name, SKU or ba...
+ Γ¥» Proxy.waitForWrapper ../../node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ Γ¥» src/pages/__tests__/POSTerminal.test.tsx:81:15
+     79|             </MemoryRouter>
+     80|         );
+     81|         await waitFor(() => screen.getByText('Kopi Hitam'));
+       |               ^
+     82| 
+     83|         // Click on product card
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[2/4]ΓÄ»
+
+ FAIL  src/pages/__tests__/POSTerminal.test.tsx > POSTerminal > updates item quantity in cart
+TestingLibraryElementError: Unable to find an element with the text: Kopi Hitam. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="flex h-screen w-full bg-background-light dark:bg-background-dark font-display text-gray-900 dark:text-white overflow-hidden print:hidden"
+    >
+      <div
+        class="print:hidden h-full"
+      >
+        <aside
+          class="
+                fixed inset-y-0 left-0 z-50 w-64 h-full flex flex-col 
+                bg-surface-light dark:bg-[#151520] border-r border-slate-200 dark:border-[#282839]
+                transition-transform duration-300 ease-in-out
+                -translate-x-full
+                lg:translate-x-0 lg:static lg:flex-shrink-0
+                h-full
+            "
+        >
+          <div
+            class="p-6 flex items-center justify-between"
+          >
+            <div
+              class="flex items-center gap-3"
+            >
+              <div
+                class="w-8 h-8 rounded bg-primary flex items-center justify-center text-white"
+              >
+                <span
+                  class="material-symbols-outlined"
+                  style="font-size: 20px;"
+                >
+                  point_of_sale
+                </span>
+              </div>
+              <div>
+                <h1
+                  class="text-base font-bold leading-none"
+                >
+                  Kasir Laksana
+                </h1>
+                <p
+                  class="text-text-secondary text-xs mt-1"
+                >
+                  Manajemen v1.0
+                </p>
+              </div>
+            </div>
+            <button
+              class="lg:hidden text-slate-500 hover:text-white"
+            >
+              <span
+                class="material-symbols-outlined"
+              >
+                close
+              </span>
+            </button>
+          </div>
+          <nav
+            class="flex-1 px-4 py-4 flex flex-col gap-2 overflow-y-auto"
+          />
+          <div
+            class="p-4 border-t border-slate-200 dark:border-[#282839]"
+          >
+            <button
+              class="w-full text-left"
+            >
+              <div
+                class="flex items-center gap-3 px-3 py-3 rounded-lg transition-colors text-slate-500 dark:text-text-secondary hover:bg-red-500/10 hover:text-red-500"
+              >
+                <span
+                  class="material-symbols-outlined"
+                >
+                  logout
+                </span>
+                <span
+                  class="text-sm font-medium"
+                >
+                  Keluar
+                </span>
+              </div>
+            </button>
+          </div>
+        </aside>
+      </div>
+      <div
+        class="flex-1 flex flex-col h-full overflow-hidden relative"
+      >
+        <header
+          class="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-[#282839] px-6 py-3 bg-white dark:bg-surface-dark shrink-0 print:hidden transition-colors"
+        >
+          <div
+            class="flex items-center gap-8"
+          >
+            <div
+              class="flex items-center gap-3 text-gray-900 dark:text-white"
+            >
+              <button
+                class="lg:hidden p-2 -ml-2 text-gray-500 dark:text-text-secondary hover:text-primary transition-colors"
+              >
+                <span
+                  class="material-symbols-outlined"
+                >
+                  menu
+                </span>
+              </button>
+              <div
+                class="size-8 flex items-center justify-center bg-primary rounded-lg text-white"
+              >
+                <span
+                  class="material-symbols-outlined"
+                >
+                  point_of_sale
+                </span>
+              </div>
+              <h2
+                class="text-gray-900 dark:text-white text-xl font-bold leading-tight tracking-tight"
+              >
+                POS Terminal
+              </h2>
+            </div>
+            <label
+              class="flex items-center flex-1 mx-4 max-w-lg h-10"
+            >
+              <div
+                class="flex w-full flex-1 items-stretch rounded-lg h-full bg-gray-100 dark:bg-background-dark border border-slate-200 dark:border-[#282839] overflow-hidden group focus-within:border-primary/50 transition-colors"
+              >
+                <div
+                  class="text-gray-400 dark:text-[#9d9db9] flex border-none items-center justify-center pl-4"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                    style="font-size: 20px;"
+                  >
+                    search
+                  </span>
+                </div>
+                <input
+                  class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-900 dark:text-white focus:outline-0 focus:ring-0 border-none bg-transparent focus:border-none h-full placeholder:text-gray-400 dark:placeholder:text-[#9d9db9] px-3 text-sm font-normal leading-normal"
+                  placeholder="Search by name, SKU or barcode..."
+                  value=""
+                />
+              </div>
+            </label>
+          </div>
+          <div
+            class="flex items-center justify-end gap-6"
+          >...
+
+Ignored nodes: comments, script, style
+<html>
+  <head />
+  <body>
+    <div>
+      <div
+        class="flex h-screen w-full bg-background-light dark:bg-background-dark font-display text-gray-900 dark:text-white overflow-hidden print:hidden"
+      >
+        <div
+          class="print:hidden h-full"
+        >
+          <aside
+            class="
+                fixed inset-y-0 left-0 z-50 w-64 h-full flex flex-col 
+                bg-surface-light dark:bg-[#151520] border-r border-slate-200 dark:border-[#282839]
+                transition-transform duration-300 ease-in-out
+                -translate-x-full
+                lg:translate-x-0 lg:static lg:flex-shrink-0
+                h-full
+            "
+          >
+            <div
+              class="p-6 flex items-center justify-between"
+            >
+              <div
+                class="flex items-center gap-3"
+              >
+                <div
+                  class="w-8 h-8 rounded bg-primary flex items-center justify-center text-white"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                    style="font-size: 20px;"
+                  >
+                    point_of_sale
+                  </span>
+                </div>
+                <div>
+                  <h1
+                    class="text-base font-bold leading-none"
+                  >
+                    Kasir Laksana
+                  </h1>
+                  <p
+                    class="text-text-secondary text-xs mt-1"
+                  >
+                    Manajemen v1.0
+                  </p>
+                </div>
+              </div>
+              <button
+                class="lg:hidden text-slate-500 hover:text-white"
+              >
+                <span
+                  class="material-symbols-outlined"
+                >
+                  close
+                </span>
+              </button>
+            </div>
+            <nav
+              class="flex-1 px-4 py-4 flex flex-col gap-2 overflow-y-auto"
+            />
+            <div
+              class="p-4 border-t border-slate-200 dark:border-[#282839]"
+            >
+              <button
+                class="w-full text-left"
+              >
+                <div
+                  class="flex items-center gap-3 px-3 py-3 rounded-lg transition-colors text-slate-500 dark:text-text-secondary hover:bg-red-500/10 hover:text-red-500"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                  >
+                    logout
+                  </span>
+                  <span
+                    class="text-sm font-medium"
+                  >
+                    Keluar
+                  </span>
+                </div>
+              </button>
+            </div>
+          </aside>
+        </div>
+        <div
+          class="flex-1 flex flex-col h-full overflow-hidden relative"
+        >
+          <header
+            class="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-[#282839] px-6 py-3 bg-white dark:bg-surface-dark shrink-0 print:hidden transition-colors"
+          >
+            <div
+              class="flex items-center gap-8"
+            >
+              <div
+                class="flex items-center gap-3 text-gray-900 dark:text-white"
+              >
+                <button
+                  class="lg:hidden p-2 -ml-2 text-gray-500 dark:text-text-secondary hover:text-primary transition-colors"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                  >
+                    menu
+                  </span>
+                </button>
+                <div
+                  class="size-8 flex items-center justify-center bg-primary rounded-lg text-white"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                  >
+                    point_of_sale
+                  </span>
+                </div>
+                <h2
+                  class="text-gray-900 dark:text-white text-xl font-bold leading-tight tracking-tight"
+                >
+                  POS Terminal
+                </h2>
+              </div>
+              <label
+                class="flex items-center flex-1 mx-4 max-w-lg h-10"
+              >
+                <div
+                  class="flex w-full flex-1 items-stretch rounded-lg h-full bg-gray-100 dark:bg-background-dark border border-slate-200 dark:border-[#282839] overflow-hidden group focus-within:border-primary/50 transition-colors"
+                >
+                  <div
+                    class="text-gray-400 dark:text-[#9d9db9] flex border-none items-center justify-center pl-4"
+                  >
+                    <span
+                      class="material-symbols-outlined"
+                      style="font-size: 20px;"
+                    >
+                      search
+                    </span>
+                  </div>
+                  <input
+                    class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-900 dark:text-white focus:outline-0 focus:ring-0 border-none bg-transparent focus:border-none h-full placeholder:text-gray-400 dark:placeholder:text-[#9d9db9] px-3 text-sm font-normal leading-normal"
+                    placeholder="Search by name, SKU or ba...
+ Γ¥» Proxy.waitForWrapper ../../node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ Γ¥» src/pages/__tests__/POSTerminal.test.tsx:99:15
+     97|             </MemoryRouter>
+     98|         );
+     99|         await waitFor(() => screen.getByText('Kopi Hitam'));
+       |               ^
+    100| 
+    101|         fireEvent.click(screen.getByText('Kopi Hitam'));
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[3/4]ΓÄ»
+
+ FAIL  src/pages/__tests__/POSTerminal.test.tsx > POSTerminal > processes checkout successfully
+TestingLibraryElementError: Unable to find an element with the text: Kopi Hitam. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="flex h-screen w-full bg-background-light dark:bg-background-dark font-display text-gray-900 dark:text-white overflow-hidden print:hidden"
+    >
+      <div
+        class="print:hidden h-full"
+      >
+        <aside
+          class="
+                fixed inset-y-0 left-0 z-50 w-64 h-full flex flex-col 
+                bg-surface-light dark:bg-[#151520] border-r border-slate-200 dark:border-[#282839]
+                transition-transform duration-300 ease-in-out
+                -translate-x-full
+                lg:translate-x-0 lg:static lg:flex-shrink-0
+                h-full
+            "
+        >
+          <div
+            class="p-6 flex items-center justify-between"
+          >
+            <div
+              class="flex items-center gap-3"
+            >
+              <div
+                class="w-8 h-8 rounded bg-primary flex items-center justify-center text-white"
+              >
+                <span
+                  class="material-symbols-outlined"
+                  style="font-size: 20px;"
+                >
+                  point_of_sale
+                </span>
+              </div>
+              <div>
+                <h1
+                  class="text-base font-bold leading-none"
+                >
+                  Kasir Laksana
+                </h1>
+                <p
+                  class="text-text-secondary text-xs mt-1"
+                >
+                  Manajemen v1.0
+                </p>
+              </div>
+            </div>
+            <button
+              class="lg:hidden text-slate-500 hover:text-white"
+            >
+              <span
+                class="material-symbols-outlined"
+              >
+                close
+              </span>
+            </button>
+          </div>
+          <nav
+            class="flex-1 px-4 py-4 flex flex-col gap-2 overflow-y-auto"
+          />
+          <div
+            class="p-4 border-t border-slate-200 dark:border-[#282839]"
+          >
+            <button
+              class="w-full text-left"
+            >
+              <div
+                class="flex items-center gap-3 px-3 py-3 rounded-lg transition-colors text-slate-500 dark:text-text-secondary hover:bg-red-500/10 hover:text-red-500"
+              >
+                <span
+                  class="material-symbols-outlined"
+                >
+                  logout
+                </span>
+                <span
+                  class="text-sm font-medium"
+                >
+                  Keluar
+                </span>
+              </div>
+            </button>
+          </div>
+        </aside>
+      </div>
+      <div
+        class="flex-1 flex flex-col h-full overflow-hidden relative"
+      >
+        <header
+          class="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-[#282839] px-6 py-3 bg-white dark:bg-surface-dark shrink-0 print:hidden transition-colors"
+        >
+          <div
+            class="flex items-center gap-8"
+          >
+            <div
+              class="flex items-center gap-3 text-gray-900 dark:text-white"
+            >
+              <button
+                class="lg:hidden p-2 -ml-2 text-gray-500 dark:text-text-secondary hover:text-primary transition-colors"
+              >
+                <span
+                  class="material-symbols-outlined"
+                >
+                  menu
+                </span>
+              </button>
+              <div
+                class="size-8 flex items-center justify-center bg-primary rounded-lg text-white"
+              >
+                <span
+                  class="material-symbols-outlined"
+                >
+                  point_of_sale
+                </span>
+              </div>
+              <h2
+                class="text-gray-900 dark:text-white text-xl font-bold leading-tight tracking-tight"
+              >
+                POS Terminal
+              </h2>
+            </div>
+            <label
+              class="flex items-center flex-1 mx-4 max-w-lg h-10"
+            >
+              <div
+                class="flex w-full flex-1 items-stretch rounded-lg h-full bg-gray-100 dark:bg-background-dark border border-slate-200 dark:border-[#282839] overflow-hidden group focus-within:border-primary/50 transition-colors"
+              >
+                <div
+                  class="text-gray-400 dark:text-[#9d9db9] flex border-none items-center justify-center pl-4"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                    style="font-size: 20px;"
+                  >
+                    search
+                  </span>
+                </div>
+                <input
+                  class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-900 dark:text-white focus:outline-0 focus:ring-0 border-none bg-transparent focus:border-none h-full placeholder:text-gray-400 dark:placeholder:text-[#9d9db9] px-3 text-sm font-normal leading-normal"
+                  placeholder="Search by name, SKU or barcode..."
+                  value=""
+                />
+              </div>
+            </label>
+          </div>
+          <div
+            class="flex items-center justify-end gap-6"
+          >...
+
+Ignored nodes: comments, script, style
+<html>
+  <head />
+  <body>
+    <div>
+      <div
+        class="flex h-screen w-full bg-background-light dark:bg-background-dark font-display text-gray-900 dark:text-white overflow-hidden print:hidden"
+      >
+        <div
+          class="print:hidden h-full"
+        >
+          <aside
+            class="
+                fixed inset-y-0 left-0 z-50 w-64 h-full flex flex-col 
+                bg-surface-light dark:bg-[#151520] border-r border-slate-200 dark:border-[#282839]
+                transition-transform duration-300 ease-in-out
+                -translate-x-full
+                lg:translate-x-0 lg:static lg:flex-shrink-0
+                h-full
+            "
+          >
+            <div
+              class="p-6 flex items-center justify-between"
+            >
+              <div
+                class="flex items-center gap-3"
+              >
+                <div
+                  class="w-8 h-8 rounded bg-primary flex items-center justify-center text-white"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                    style="font-size: 20px;"
+                  >
+                    point_of_sale
+                  </span>
+                </div>
+                <div>
+                  <h1
+                    class="text-base font-bold leading-none"
+                  >
+                    Kasir Laksana
+                  </h1>
+                  <p
+                    class="text-text-secondary text-xs mt-1"
+                  >
+                    Manajemen v1.0
+                  </p>
+                </div>
+              </div>
+              <button
+                class="lg:hidden text-slate-500 hover:text-white"
+              >
+                <span
+                  class="material-symbols-outlined"
+                >
+                  close
+                </span>
+              </button>
+            </div>
+            <nav
+              class="flex-1 px-4 py-4 flex flex-col gap-2 overflow-y-auto"
+            />
+            <div
+              class="p-4 border-t border-slate-200 dark:border-[#282839]"
+            >
+              <button
+                class="w-full text-left"
+              >
+                <div
+                  class="flex items-center gap-3 px-3 py-3 rounded-lg transition-colors text-slate-500 dark:text-text-secondary hover:bg-red-500/10 hover:text-red-500"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                  >
+                    logout
+                  </span>
+                  <span
+                    class="text-sm font-medium"
+                  >
+                    Keluar
+                  </span>
+                </div>
+              </button>
+            </div>
+          </aside>
+        </div>
+        <div
+          class="flex-1 flex flex-col h-full overflow-hidden relative"
+        >
+          <header
+            class="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-[#282839] px-6 py-3 bg-white dark:bg-surface-dark shrink-0 print:hidden transition-colors"
+          >
+            <div
+              class="flex items-center gap-8"
+            >
+              <div
+                class="flex items-center gap-3 text-gray-900 dark:text-white"
+              >
+                <button
+                  class="lg:hidden p-2 -ml-2 text-gray-500 dark:text-text-secondary hover:text-primary transition-colors"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                  >
+                    menu
+                  </span>
+                </button>
+                <div
+                  class="size-8 flex items-center justify-center bg-primary rounded-lg text-white"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                  >
+                    point_of_sale
+                  </span>
+                </div>
+                <h2
+                  class="text-gray-900 dark:text-white text-xl font-bold leading-tight tracking-tight"
+                >
+                  POS Terminal
+                </h2>
+              </div>
+              <label
+                class="flex items-center flex-1 mx-4 max-w-lg h-10"
+              >
+                <div
+                  class="flex w-full flex-1 items-stretch rounded-lg h-full bg-gray-100 dark:bg-background-dark border border-slate-200 dark:border-[#282839] overflow-hidden group focus-within:border-primary/50 transition-colors"
+                >
+                  <div
+                    class="text-gray-400 dark:text-[#9d9db9] flex border-none items-center justify-center pl-4"
+                  >
+                    <span
+                      class="material-symbols-outlined"
+                      style="font-size: 20px;"
+                    >
+                      search
+                    </span>
+                  </div>
+                  <input
+                    class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-900 dark:text-white focus:outline-0 focus:ring-0 border-none bg-transparent focus:border-none h-full placeholder:text-gray-400 dark:placeholder:text-[#9d9db9] px-3 text-sm font-normal leading-normal"
+                    placeholder="Search by name, SKU or ba...
+ Γ¥» Proxy.waitForWrapper ../../node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ Γ¥» src/pages/__tests__/POSTerminal.test.tsx:121:15
+    119|             </MemoryRouter>
+    120|         );
+    121|         await waitFor(() => screen.getByText('Kopi Hitam'));
+       |               ^
+    122| 
+    123|         // 1. Add item
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[4/4]ΓÄ»
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m4 failed[39m[22m[90m (4)[39m
+[2m   Start at [22m 21:47:03
+[2m   Duration [22m 8.25s[2m (transform 353ms, setup 823ms, import 798ms, tests 4.15s, environment 1.94s)[22m
+
