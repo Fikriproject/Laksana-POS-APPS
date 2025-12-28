@@ -37,14 +37,7 @@ class ReportService
 
     public function getSalesByDate(string $startDate, string $endDate, string $groupBy = 'day'): array
     {
-        // MySQL DATE_FORMAT instead of TO_CHAR
-        $dateFormat = match($groupBy) {
-            'hour' => "DATE_FORMAT(created_at, '%Y-%m-%d %H:00')",
-            'day' => "DATE_FORMAT(created_at, '%Y-%m-%d')",
-            'week' => "DATE_FORMAT(created_at, '%Y-%u')", // Week of year
-            'month' => "DATE_FORMAT(created_at, '%Y-%m')",
-            default => "DATE_FORMAT(created_at, '%Y-%m-%d')"
-        };
+        $dateFormat = $this->getDateFormat($groupBy);
         
         $stmt = $this->db->prepare(
             "SELECT 
@@ -61,8 +54,38 @@ class ReportService
         return $stmt->fetchAll();
     }
 
+    private function getDateFormat(string $groupBy, string $column = 'created_at'): string 
+    {
+        $driver = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME);
+        
+        if ($driver === 'pgsql') {
+            return match($groupBy) {
+                'hour' => "TO_CHAR({$column}, 'YYYY-MM-DD HH24:00')",
+                'day' => "TO_CHAR({$column}, 'YYYY-MM-DD')",
+                'week' => "TO_CHAR({$column}, 'IYYY-IW')", // ISO Year-Week
+                'month' => "TO_CHAR({$column}, 'YYYY-MM')",
+                'year' => "TO_CHAR({$column}, 'YYYY')",
+                default => "TO_CHAR({$column}, 'YYYY-MM-DD')"
+            };
+        }
+
+        // Default to MySQL
+        return match($groupBy) {
+            'hour' => "DATE_FORMAT({$column}, '%Y-%m-%d %H:00')",
+            'day' => "DATE_FORMAT({$column}, '%Y-%m-%d')",
+            'week' => "DATE_FORMAT({$column}, '%x-%v')", // Year-Week standard
+            'month' => "DATE_FORMAT({$column}, '%Y-%m')",
+            'year' => "DATE_FORMAT({$column}, '%Y')",
+            default => "DATE_FORMAT({$column}, '%Y-%m-%d')"
+        };
+    }
+
     public function getSalesByCategory(string $startDate, string $endDate): array
     {
+        $driver = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME);
+        // Postgres requires strict Group By
+        $groupBy = "GROUP BY c.id, c.name";
+        
         $stmt = $this->db->prepare(
             "SELECT 
                 c.name as category,
@@ -74,7 +97,7 @@ class ReportService
              JOIN products p ON oi.product_id = p.id
              LEFT JOIN categories c ON p.category_id = c.id
              WHERE o.created_at BETWEEN :start_date AND :end_date AND o.status = 'completed'
-             GROUP BY c.id, c.name
+             {$groupBy}
              ORDER BY revenue DESC"
         );
         $stmt->execute(['start_date' => $startDate, 'end_date' => $endDate]);
@@ -126,6 +149,9 @@ class ReportService
 
     public function getEmployeePerformance(string $startDate, string $endDate): array
     {
+        $driver = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME);
+        
+        // Postgres handles this but ensure GROUP BY is complete
         $stmt = $this->db->prepare(
             "SELECT 
                 u.id, u.full_name, u.employee_id, u.avatar_url,
@@ -147,10 +173,11 @@ class ReportService
 
     public function getInventoryStatus(): array
     {
+        // COUNT(CASE WHEN ...) is standard SQL
         $stmt = $this->db->prepare(
             "SELECT 
                 COUNT(*) as total_products,
-                COUNT(CASE WHEN is_active = 1 THEN 1 END) as active_products,
+                COUNT(CASE WHEN is_active = 1 OR is_active = true THEN 1 END) as active_products,
                 COUNT(CASE WHEN stock_quantity <= low_stock_threshold THEN 1 END) as low_stock_products,
                 COUNT(CASE WHEN stock_quantity = 0 THEN 1 END) as out_of_stock_products,
                 COALESCE(SUM(stock_quantity * price), 0) as total_inventory_value
@@ -231,16 +258,8 @@ class ReportService
 
     public function getDailyFinancials(string $startDate, string $endDate, string $groupBy = 'day'): array
     {
-        // MySQL DATE_FORMAT based on group
-        $dateFormat = match($groupBy) {
-            'year' => "%Y",
-            'month' => "%Y-%m",
-            'week' => "%x-%v", // Year-Week
-            default => "%Y-%m-%d"
-        };
-        
-        $sqlDateFormat = "DATE_FORMAT(o.created_at, '{$dateFormat}')";
-        $expenseDateFormat = "DATE_FORMAT(created_at, '{$dateFormat}')";
+        $sqlDateFormat = $this->getDateFormat($groupBy, 'o.created_at');
+        $expenseDateFormat = $this->getDateFormat($groupBy, 'created_at');
 
         // 1. Get Revenue
         $stmtRevenue = $this->db->prepare(

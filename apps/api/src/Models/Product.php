@@ -62,12 +62,15 @@ class Product extends Model
     public function search(string $query, int $limit = 20): array
     {
         $searchTerm = "%{$query}%";
-        // MySQL LIKE is case-insensitive by default with most collations
+        // Check driver for Case Insensitivity
+        $driver = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME);
+        $operator = $driver === 'pgsql' ? 'ILIKE' : 'LIKE';
+
         $stmt = $this->db->prepare(
             "SELECT p.*, c.name as category_name 
              FROM {$this->table} p 
              LEFT JOIN categories c ON p.category_id = c.id 
-             WHERE (p.name LIKE :name_query OR p.sku LIKE :sku_query)
+             WHERE (p.name {$operator} :name_query OR p.sku {$operator} :sku_query)
              ORDER BY p.name 
              LIMIT :limit"
         );

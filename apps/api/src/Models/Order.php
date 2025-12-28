@@ -84,12 +84,14 @@ class Order extends Model
     {
         $date = date('Ymd');
         $today = date('Y-m-d');
+        
+        // Use DATE() function for cross-db compatibility (MySQL & Postgres)
         $stmt = $this->db->prepare(
             "SELECT COUNT(*) + 1 as next_number 
              FROM {$this->table} 
-             WHERE created_at LIKE :today"
+             WHERE DATE(created_at) = :today"
         );
-        $stmt->execute(['today' => "$today%"]);
+        $stmt->execute(['today' => $today]);
         $result = $stmt->fetch();
         
         return sprintf('#%s-%04d', $date, $result['next_number']);
@@ -107,6 +109,8 @@ class Order extends Model
     public function getTodaySummary(): array
     {
         $today = date('Y-m-d');
+        
+        // Use DATE(created_at) = :today for compatibility
         $stmt = $this->db->prepare(
             "SELECT 
                 COUNT(*) as total_transactions,
@@ -118,15 +122,15 @@ class Order extends Model
                     (SELECT SUM(oi.purchase_price * oi.quantity)
                      FROM order_items oi
                      JOIN orders o2 ON oi.order_id = o2.id
-                     WHERE o2.created_at LIKE :today_sub AND o2.status = 'completed')
+                     WHERE DATE(o2.created_at) = :today_sub AND o2.status = 'completed')
                 , 0) as total_cogs,
                 COALESCE(AVG(total_amount), 0) as avg_order_value,
                 COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_orders,
                 COUNT(CASE WHEN status = 'refunded' THEN 1 END) as refunded_orders
              FROM {$this->table}
-             WHERE created_at LIKE :today_main"
+             WHERE DATE(created_at) = :today_main"
         );
-        $stmt->execute(['today_sub' => "$today%", 'today_main' => "$today%"]);
+        $stmt->execute(['today_sub' => $today, 'today_main' => $today]);
         
         return $stmt->fetch();
     }
