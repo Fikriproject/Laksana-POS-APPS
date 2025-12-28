@@ -89,7 +89,7 @@ class Order extends Model
         $stmt = $this->db->prepare(
             "SELECT COUNT(*) + 1 as next_number 
              FROM {$this->table} 
-             WHERE DATE(created_at) = :today"
+             WHERE CAST(created_at AS DATE) = :today"
         );
         $stmt->execute(['today' => $today]);
         $result = $stmt->fetch();
@@ -122,13 +122,13 @@ class Order extends Model
                     (SELECT SUM(oi.purchase_price * oi.quantity)
                      FROM order_items oi
                      JOIN orders o2 ON oi.order_id = o2.id
-                     WHERE DATE(o2.created_at) = :today_sub AND o2.status = 'completed')
+                     WHERE CAST(o2.created_at AS DATE) = :today_sub AND o2.status = 'completed')
                 , 0) as total_cogs,
                 COALESCE(AVG(total_amount), 0) as avg_order_value,
                 COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_orders,
                 COUNT(CASE WHEN status = 'refunded' THEN 1 END) as refunded_orders
              FROM {$this->table}
-             WHERE DATE(created_at) = :today_main"
+             WHERE CAST(created_at AS DATE) = :today_main"
         );
         $stmt->execute(['today_sub' => $today, 'today_main' => $today]);
         
