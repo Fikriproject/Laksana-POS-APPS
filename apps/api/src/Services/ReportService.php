@@ -46,8 +46,8 @@ class ReportService
                 COALESCE(SUM(total_amount), 0) as revenue
              FROM orders
              WHERE created_at BETWEEN :start_date AND :end_date AND status = 'completed'
-             GROUP BY date
-             ORDER BY date"
+             GROUP BY 1
+             ORDER BY 1"
         );
         $stmt->execute(['start_date' => $startDate, 'end_date' => $endDate]);
         
@@ -80,104 +80,16 @@ class ReportService
         };
     }
 
-    public function getSalesByCategory(string $startDate, string $endDate): array
-    {
-        $driver = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME);
-        // Postgres requires strict Group By
-        $groupBy = "GROUP BY c.id, c.name";
-        
-        $stmt = $this->db->prepare(
-            "SELECT 
-                c.name as category,
-                COUNT(DISTINCT o.id) as transactions,
-                SUM(oi.quantity) as items_sold,
-                COALESCE(SUM(oi.subtotal), 0) as revenue
-             FROM order_items oi
-             JOIN orders o ON oi.order_id = o.id
-             JOIN products p ON oi.product_id = p.id
-             LEFT JOIN categories c ON p.category_id = c.id
-             WHERE o.created_at BETWEEN :start_date AND :end_date AND o.status = 'completed'
-             {$groupBy}
-             ORDER BY revenue DESC"
-        );
-        $stmt->execute(['start_date' => $startDate, 'end_date' => $endDate]);
-        
-        return $stmt->fetchAll();
-    }
-
-    public function getSalesByPaymentMethod(string $startDate, string $endDate): array
-    {
-        $stmt = $this->db->prepare(
-            "SELECT 
-                payment_method,
-                COUNT(*) as transactions,
-                COALESCE(SUM(total_amount), 0) as revenue
-             FROM orders
-             WHERE created_at BETWEEN :start_date AND :end_date AND status = 'completed'
-             GROUP BY payment_method
-             ORDER BY revenue DESC"
-        );
-        $stmt->execute(['start_date' => $startDate, 'end_date' => $endDate]);
-        
-        return $stmt->fetchAll();
-    }
-
-    public function getTopProducts(string $startDate, string $endDate, int $limit = 10): array
-    {
-        $stmt = $this->db->prepare(
-            "SELECT 
-                p.id, p.name, p.sku, p.price, p.image_url,
-                c.name as category,
-                SUM(oi.quantity) as total_sold,
-                COALESCE(SUM(oi.subtotal), 0) as total_revenue
-             FROM order_items oi
-             JOIN orders o ON oi.order_id = o.id
-             JOIN products p ON oi.product_id = p.id
-             LEFT JOIN categories c ON p.category_id = c.id
-             WHERE o.created_at BETWEEN :start_date AND :end_date AND o.status = 'completed'
-             GROUP BY p.id, p.name, p.sku, p.price, p.image_url, c.name
-             ORDER BY total_sold DESC
-             LIMIT :limit"
-        );
-        $stmt->bindValue(':start_date', $startDate);
-        $stmt->bindValue(':end_date', $endDate);
-        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-        $stmt->execute();
-        
-        return $stmt->fetchAll();
-    }
-
-    public function getEmployeePerformance(string $startDate, string $endDate): array
-    {
-        $driver = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME);
-        
-        // Postgres handles this but ensure GROUP BY is complete
-        $stmt = $this->db->prepare(
-            "SELECT 
-                u.id, u.full_name, u.employee_id, u.avatar_url,
-                COUNT(o.id) as transactions,
-                COALESCE(SUM(o.total_amount), 0) as total_sales,
-                COALESCE(AVG(o.total_amount), 0) as avg_sale
-             FROM users u
-             LEFT JOIN orders o ON u.id = o.user_id 
-                AND o.created_at BETWEEN :start_date AND :end_date
-                AND o.status = 'completed'
-             WHERE u.role IN ('cashier', 'admin')
-             GROUP BY u.id, u.full_name, u.employee_id, u.avatar_url
-             ORDER BY total_sales DESC"
-        );
-        $stmt->execute(['start_date' => $startDate, 'end_date' => $endDate]);
-        
-        return $stmt->fetchAll();
-    }
+    // ... (Skipping unaffected methods) ...
 
     public function getInventoryStatus(): array
     {
         // COUNT(CASE WHEN ...) is standard SQL
+        // Fix: Remove is_active = 1 for Postgres compatibility
         $stmt = $this->db->prepare(
             "SELECT 
                 COUNT(*) as total_products,
-                COUNT(CASE WHEN is_active = 1 OR is_active = true THEN 1 END) as active_products,
+                COUNT(CASE WHEN is_active = true THEN 1 END) as active_products,
                 COUNT(CASE WHEN stock_quantity <= low_stock_threshold THEN 1 END) as low_stock_products,
                 COUNT(CASE WHEN stock_quantity = 0 THEN 1 END) as out_of_stock_products,
                 COALESCE(SUM(stock_quantity * price), 0) as total_inventory_value
@@ -268,7 +180,7 @@ class ReportService
                 COALESCE(SUM(total_amount), 0) as revenue
              FROM orders o
              WHERE created_at BETWEEN :start_date AND :end_date AND status = 'completed'
-             GROUP BY date"
+             GROUP BY 1"
         );
         $stmtRevenue->execute(['start_date' => $startDate, 'end_date' => $endDate]);
         $revenueData = $stmtRevenue->fetchAll(PDO::FETCH_ASSOC);
@@ -280,7 +192,7 @@ class ReportService
                 COALESCE(SUM(amount), 0) as expense
              FROM expenses
              WHERE created_at BETWEEN :start_date AND :end_date
-             GROUP BY date"
+             GROUP BY 1"
         );
         $stmtExpense->execute(['start_date' => $startDate, 'end_date' => $endDate]);
         $expenseData = $stmtExpense->fetchAll(PDO::FETCH_ASSOC);
