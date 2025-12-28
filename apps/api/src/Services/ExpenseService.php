@@ -16,44 +16,41 @@ class ExpenseService
 
     public function createExpense(array $data)
     {
-        $id = $this->generateUuid();
+        // Fix: Use SERIAL (auto-increment) for ID, do not generate UUID.
+        // Fix: 'title' and 'date' are required in schema but might be missing from input
         
-        $createdAt = date('Y-m-d H:i:s');
-        if (isset($data['date'])) {
-            try {
-                $dateObj = new \DateTime($data['date']);
-                $createdAt = $dateObj->format('Y-m-d H:i:s');
-            } catch (\Exception $e) {
-                // Keep default
-            }
+        $title = $data['title'] ?? ($data['category'] . ' - ' . date('d/m/Y'));
+        $date = $data['date'] ?? date('Y-m-d');
+
+        // Ensure date format is Y-m-d
+        try {
+            $dateObj = new \DateTime($date);
+            $formattedDate = $dateObj->format('Y-m-d');
+        } catch (\Exception $e) {
+            $formattedDate = date('Y-m-d');
         }
 
         $stmt = $this->db->prepare(
-            "INSERT INTO expenses (id, user_id, category, amount, description, created_at) 
-             VALUES (:id, :user_id, :category, :amount, :description, :created_at)"
+            "INSERT INTO expenses (user_id, title, category, amount, description, date, created_at) 
+             VALUES (:user_id, :title, :category, :amount, :description, :date, NOW())
+             RETURNING id"
         );
+        
         $stmt->execute([
-            'id' => $id,
             'user_id' => $data['user_id'],
+            'title' => $title,
             'category' => $data['category'],
             'amount' => $data['amount'],
             'description' => $data['description'] ?? null,
-            'created_at' => $createdAt
+            'date' => $formattedDate
         ]);
-        return ['id' => $id, 'message' => 'Expense created successfully'];
+        
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        return ['id' => $result['id'], 'message' => 'Expense created successfully'];
     }
 
-    private function generateUuid(): string 
-    {
-        return sprintf(
-            '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-            mt_rand(0, 0xffff), mt_rand(0, 0xffff),
-            mt_rand(0, 0xffff),
-            mt_rand(0, 0x0fff) | 0x4000,
-            mt_rand(0, 0x3fff) | 0x8000,
-            mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
-        );
-    }
+    // Removed unused generateUuid method
 
     public function getExpenses(string $startDate, string $endDate)
     {
