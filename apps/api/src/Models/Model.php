@@ -43,15 +43,8 @@ abstract class Model
 
     public function create(array $data): string
     {
-        // Auto-generate UUID for ID if not provided and not using AUTO_INCREMENT
-        if ($this->primaryKey === 'id' && !isset($data['id'])) {
-            // Check if we assume UUID. If table uses INT AUTO_INCREMENT, this will fail or be wrong.
-            // A simple heuristic: if it's not 'categories' (which we know is INT), generate UUID.
-            // Better: Check if we expect a UUID. For this project, only 'categories' is INT.
-            if ($this->table !== 'categories') {
-                $data['id'] = $this->generateUuid();
-            }
-        }
+        // Auto-ID generation removed. We use PostgreSQL SERIAL (Auto Increment) for all tables.
+        // if ($this->primaryKey === 'id' && !isset($data['id'])) { ... }
 
         $columns = implode(', ', array_keys($data));
         $placeholders = ':' . implode(', :', array_keys($data));
