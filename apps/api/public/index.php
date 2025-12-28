@@ -17,6 +17,12 @@ $dotenv->safeLoad();
 // Set CORS headers
 Cors::headers();
 
+// Handle Preflight OPTIONS request immediately
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit(0);
+}
+
 // Error handling
 set_exception_handler(function ($e) {
     $debug = $_ENV['API_DEBUG'] ?? false;
@@ -66,9 +72,9 @@ $path = preg_replace('/^\/api/', '', $path);
 
 // Get authenticated user (if applicable)
 $user = null;
-$publicRoutes = ['/auth/login', '/auth/login/pin'];
+$publicRoutes = ['/auth/login', '/auth/login/pin', '/health', '/'];
 
-if (!in_array($path, $publicRoutes) && $method !== 'OPTIONS') {
+if (!in_array($path, $publicRoutes)) {
     try {
         $user = $authMiddleware->handle();
     } catch (\Exception $e) {
@@ -77,19 +83,9 @@ if (!in_array($path, $publicRoutes) && $method !== 'OPTIONS') {
 }
 
 // Route to appropriate handler
-// Route to appropriate handler
 // Routes
-// $path is already stripped of /api prefix from line 65
+// $path is already stripped of /api prefix 
 $method = $_SERVER['REQUEST_METHOD'];
-
-// Add CORS headers
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, PATCH, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
-
-if ($method === 'OPTIONS') {
-    exit(0);
-}
 
 error_log("Router Debug - Path: " . $path . " Method: " . $method);
 
