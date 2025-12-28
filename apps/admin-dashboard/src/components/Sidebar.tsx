@@ -45,7 +45,7 @@ const Sidebar = ({ className = '', isOpen = false, onClose }: SidebarProps) => {
     const location = useLocation();
 
     // Helper to determine if link is active
-    const isActive = (path: string) => location.pathname === path;
+    // Removed unused isActive helper
 
     const handleShutdown = async () => {
         const isConfirmed = window.confirm('Apakah Anda yakin ingin MENUTUP APLIKASI SEPENUHNYA?\nServer akan dimatikan.');
