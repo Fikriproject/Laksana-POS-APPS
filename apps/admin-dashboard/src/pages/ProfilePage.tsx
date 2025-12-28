@@ -60,11 +60,11 @@ const ProfilePage = () => {
     };
 
     const handleDeleteUser = async (id: string) => {
-        if (!confirm('Apakah Anda yakin ingin menonaktifkan pengguna ini?')) return;
+        if (!confirm('Apakah Anda yakin ingin menghapus pengguna ini?')) return;
         try {
             await api.delete(`/users/${id}`);
             fetchUsers();
-            alert('User berhasil dinonaktifkan');
+            alert('User berhasil dihapus');
         } catch (error: any) {
             alert(error.response?.data?.message || 'Gagal menghapus user');
         }
@@ -243,10 +243,10 @@ const ProfilePage = () => {
                                                                         {u.id !== user?.id && u.is_active && (
                                                                             <button
                                                                                 onClick={() => handleDeleteUser(u.id)}
-                                                                                className="p-1 text-red-500 hover:text-red-400 transition-colors"
-                                                                                title="Nonaktifkan"
+                                                                                className="p-1 text-red-500 hover:text-red-700 transition-colors"
+                                                                                title="Hapus User"
                                                                             >
-                                                                                <span className="material-symbols-outlined text-[20px]">block</span>
+                                                                                <span className="material-symbols-outlined text-[20px]">delete</span>
                                                                             </button>
                                                                         )}
                                                                     </div>
