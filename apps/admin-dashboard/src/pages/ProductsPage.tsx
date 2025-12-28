@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import api from '../services/api';
 import { formatRupiah } from '../utils/format';
 import { DashboardContextType } from '../layouts/DashboardLayout';
+import { supabase } from '../services/supabase';
 
 interface Product {
     id: string;
@@ -109,23 +110,32 @@ const ProductsPage = () => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        const formData = new FormData();
-        formData.append('image', file);
-
         setUploading(true);
         try {
-            const response = await api.post('/upload', formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                }
-            });
+            // 1. Generate unique filename
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+            const filePath = `${fileName}`;
 
-            if (response.data.data?.url) {
-                setFormData(prev => ({ ...prev, image_url: response.data.data.url }));
+            // 2. Upload to Supabase Storage
+            const { error: uploadError } = await supabase.storage
+                .from('products')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            // 3. Get Public URL
+            const { data } = supabase.storage
+                .from('products')
+                .getPublicUrl(filePath);
+
+            if (data?.publicUrl) {
+                setFormData(prev => ({ ...prev, image_url: data.publicUrl }));
+                toast.success('Gambar berhasil diupload!');
             }
         } catch (error: any) {
             console.error('Upload failed:', error);
-            const errorMessage = error.response?.data?.message || 'Failed to upload image';
+            const errorMessage = error.message || 'Gagal mengupload gambar';
             toast.error(errorMessage);
         } finally {
             setUploading(false);
