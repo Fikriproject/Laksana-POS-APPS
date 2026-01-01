@@ -40,7 +40,8 @@ body {
   html,
   body {
     height: auto !important;
-    overflow: visible !important;
+    overflow: hidden !important;
+    /* Hide scrollbars from ghost content */
     background-color: white !important;
     width: 100%;
   }
@@ -58,7 +59,8 @@ body {
 
   /* Position the receipt at the very top left, ignoring original layout flow */
   #printable-receipt {
-    position: absolute;
+    position: fixed;
+    /* Fixed helps anchor to the page viewport/sheet origin better than absolute in some nested contexts */
     left: 0;
     top: 0;
     width: 100%;

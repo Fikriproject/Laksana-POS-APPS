@@ -11,9 +11,9 @@ class Supplier extends Model
 
     public function findAllActive(): array
     {
-        // MySQL Boolean 1/0
+        // Postgres Boolean true/false
         $stmt = $this->db->prepare(
-            "SELECT * FROM {$this->table} WHERE is_active = 1 ORDER BY name"
+            "SELECT * FROM {$this->table} WHERE is_active = true ORDER BY name"
         );
         $stmt->execute();
         
@@ -23,10 +23,13 @@ class Supplier extends Model
     public function search(string $query): array
     {
         $searchTerm = "%{$query}%";
-        // MySQL LIKE
+        // Postgres ILIKE for case-insensitive search
+        $driver = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME);
+        $operator = $driver === 'pgsql' ? 'ILIKE' : 'LIKE';
+
         $stmt = $this->db->prepare(
             "SELECT * FROM {$this->table} 
-             WHERE name LIKE :query AND is_active = 1
+             WHERE name {$operator} :query AND is_active = true
              ORDER BY name
              LIMIT 20"
         );
