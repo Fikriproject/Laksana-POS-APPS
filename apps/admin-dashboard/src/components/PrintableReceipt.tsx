@@ -42,9 +42,8 @@ const PrintableReceipt: React.FC<PrintableReceiptProps> = ({ order, className = 
         <div id="printable-receipt" className={`hidden print:block print:w-full print:bg-white text-black font-mono p-8 bg-white ${className}`}>
             <div className="max-w-[80mm] mx-auto">
                 <div className="text-center mb-4">
-                    <h2 className="font-bold text-xl uppercase">Kasir Laksana</h2>
-                    <p className="text-sm">Jl. Contoh No. 123, Kota</p>
-                    <p className="text-sm">Telp: 0812-3456-7890</p>
+                    <h2 className="font-bold text-xl uppercase">Toko Plastik & Bahan Kue Laksana</h2>
+                    <p className="text-sm">Dukupuntang Cirebon</p>
                 </div>
 
                 <div className="border-b border-dashed border-black my-2"></div>
@@ -54,7 +53,7 @@ const PrintableReceipt: React.FC<PrintableReceiptProps> = ({ order, className = 
                         <span>No:</span>
                         <span>{order.order_number}</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between text-xs">
                         <span>Tgl:</span>
                         <span>{new Date(order.created_at).toLocaleString('id-ID')}</span>
                     </div>
@@ -66,7 +65,7 @@ const PrintableReceipt: React.FC<PrintableReceiptProps> = ({ order, className = 
 
                 <div className="border-b border-dashed border-black my-2"></div>
 
-                <div className="text-sm space-y-2">
+                <div className="text-xs space-y-2">
                     {(order.items || []).map((item, index) => (
                         <div key={index}>
                             <div className="font-bold">{item.product_name}</div>
@@ -89,15 +88,15 @@ const PrintableReceipt: React.FC<PrintableReceiptProps> = ({ order, className = 
                         <span>{formatRupiah(Number(order.subtotal))}</span>
                     </div>
                     {Number(order.discount_amount) > 0 && (
-                        <div className="flex justify-between text-red-600">
+                        <div className="flex justify-between font-bold">
                             <span>Diskon</span>
                             <span>-{formatRupiah(Number(order.discount_amount))}</span>
                         </div>
                     )}
-                    <div className="flex justify-between">
+                    {/* <div className="flex justify-between">
                         <span>Pajak</span>
                         <span>{formatRupiah(Number(order.tax_amount))}</span>
-                    </div>
+                    </div> */}
                     <div className="flex justify-between font-bold text-lg mt-2">
                         <span>TOTAL</span>
                         <span>{formatRupiah(Number(order.total_amount))}</span>

@@ -3,7 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import { useConfirm } from '../context/ConfirmContext';
 import toast from 'react-hot-toast';
 import api from '../services/api';
-import { formatRupiah } from '../utils/format';
+import { formatRupiah, formatNumber, parseFormattedNumber } from '../utils/format';
 import { DashboardContextType } from '../layouts/DashboardLayout';
 
 interface Product {
@@ -485,22 +485,24 @@ const ProductsPage = () => {
                                     <div>
                                         <label className="block text-sm font-medium text-gray-500 dark:text-[#9d9db9] mb-1">Harga Beli</label>
                                         <input
-                                            type="number"
+                                            type="text"
+                                            inputMode="numeric"
                                             required
-                                            min="0"
-                                            value={formData.purchase_price}
-                                            onChange={e => setFormData({ ...formData, purchase_price: e.target.value })}
+                                            value={formData.purchase_price ? formatNumber(formData.purchase_price) : ''}
+                                            onChange={e => setFormData({ ...formData, purchase_price: parseFormattedNumber(e.target.value).toString() })}
+                                            placeholder="0"
                                             className="w-full bg-gray-50 dark:bg-[#111118] border border-slate-200 dark:border-[#282839] rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-primary transition-colors"
                                         />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-500 dark:text-[#9d9db9] mb-1">Harga Jual</label>
                                         <input
-                                            type="number"
+                                            type="text"
+                                            inputMode="numeric"
                                             required
-                                            min="0"
-                                            value={formData.price}
-                                            onChange={e => setFormData({ ...formData, price: e.target.value })}
+                                            value={formData.price ? formatNumber(formData.price) : ''}
+                                            onChange={e => setFormData({ ...formData, price: parseFormattedNumber(e.target.value).toString() })}
+                                            placeholder="0"
                                             className="w-full bg-gray-50 dark:bg-[#111118] border border-slate-200 dark:border-[#282839] rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-primary transition-colors"
                                         />
                                     </div>

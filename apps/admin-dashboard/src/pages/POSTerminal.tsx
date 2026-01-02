@@ -4,7 +4,7 @@ import { useConfirm } from '../context/ConfirmContext';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import Sidebar from '../components/Sidebar';
-import { formatRupiah } from '../utils/format';
+import { formatRupiah, formatNumber, parseFormattedNumber } from '../utils/format';
 import ThemeToggle from '../components/ThemeToggle';
 import PrintableReceipt from '../components/PrintableReceipt';
 
@@ -502,123 +502,125 @@ const POSTerminal = () => {
                                 )}
                             </div>
 
-                            {/* Order Summary Footer */}
-                            <div className="p-6 bg-gray-50 dark:bg-[#151520] border-t border-slate-200 dark:border-[#282839] space-y-4 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] dark:shadow-[0_-10px_40px_rgba(0,0,0,0.5)] z-10 transition-colors">
-                                {/* Discount & Tax Controls */}
-                                <div className="grid grid-cols-2 gap-4">
+                            {/* Order Summary Footer - Compact Horizontal Layout */}
+                            <div className="p-4 bg-gray-50 dark:bg-[#151520] border-t border-slate-200 dark:border-[#282839] shadow-[0_-10px_40px_rgba(0,0,0,0.05)] dark:shadow-[0_-10px_40px_rgba(0,0,0,0.5)] z-10 transition-colors">
+                                {/* Top Row: Discount, Tax, Cash Input - All Horizontal */}
+                                <div className="grid grid-cols-3 gap-2 mb-3">
+                                    {/* Discount */}
                                     <div className="space-y-1">
-                                        <label className="text-xs text-gray-500 dark:text-[#9d9db9] font-medium">Diskon</label>
-                                        <div className="flex gap-2">
-                                            <div className="relative flex-1">
-                                                <input
-                                                    type="number"
-                                                    value={discountValue}
-                                                    onChange={(e) => setDiscountValue(Number(e.target.value))}
-                                                    className="w-full bg-white dark:bg-[#111118] border border-slate-200 dark:border-[#282839] rounded-lg px-2 py-1 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary transition-colors"
-                                                />
-                                            </div>
-                                            <div className="flex bg-white dark:bg-[#111118] rounded-lg border border-slate-200 dark:border-[#282839] p-0.5">
+                                        <label className="text-[10px] text-gray-500 dark:text-[#9d9db9] font-medium uppercase">Diskon</label>
+                                        <div className="flex gap-1">
+                                            <input
+                                                type="text"
+                                                inputMode="numeric"
+                                                value={discountType === 'fixed' ? (discountValue ? formatNumber(discountValue) : '') : (discountValue || '')}
+                                                onChange={(e) => {
+                                                    if (discountType === 'fixed') {
+                                                        setDiscountValue(parseFormattedNumber(e.target.value));
+                                                    } else {
+                                                        const val = e.target.value.replace(/[^0-9]/g, '');
+                                                        setDiscountValue(val ? parseInt(val, 10) : 0);
+                                                    }
+                                                }}
+                                                placeholder="0"
+                                                className="w-full bg-white dark:bg-[#111118] border border-slate-200 dark:border-[#282839] rounded px-2 py-1.5 text-xs text-gray-900 dark:text-white focus:outline-none focus:border-primary transition-colors"
+                                            />
+                                            <div className="flex bg-white dark:bg-[#111118] rounded border border-slate-200 dark:border-[#282839] p-0.5">
                                                 <button
                                                     onClick={() => setDiscountType('percent')}
-                                                    className={`px-2 py-0.5 rounded text-xs font-bold ${discountType === 'percent' ? 'bg-primary text-white' : 'text-gray-500 dark:text-[#9d9db9]'}`}
+                                                    className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${discountType === 'percent' ? 'bg-primary text-white' : 'text-gray-500 dark:text-[#9d9db9]'}`}
                                                 >
                                                     %
                                                 </button>
                                                 <button
                                                     onClick={() => setDiscountType('fixed')}
-                                                    className={`px-2 py-0.5 rounded text-xs font-bold ${discountType === 'fixed' ? 'bg-primary text-white' : 'text-gray-500 dark:text-[#9d9db9]'}`}
+                                                    className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${discountType === 'fixed' ? 'bg-primary text-white' : 'text-gray-500 dark:text-[#9d9db9]'}`}
                                                 >
                                                     Rp
                                                 </button>
                                             </div>
                                         </div>
                                     </div>
+                                    {/* Tax */}
                                     <div className="space-y-1">
-                                        <label className="text-xs text-gray-500 dark:text-[#9d9db9] font-medium">Pajak (%)</label>
-                                        <div className="flex items-center gap-2">
-                                            <input
-                                                type="number"
-                                                value={taxRate}
-                                                onChange={(e) => setTaxRate(Number(e.target.value))}
-                                                className="w-full bg-white dark:bg-[#111118] border border-slate-200 dark:border-[#282839] rounded-lg px-2 py-1 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary transition-colors"
-                                            />
-                                        </div>
+                                        <label className="text-[10px] text-gray-500 dark:text-[#9d9db9] font-medium uppercase">Pajak %</label>
+                                        <input
+                                            type="text"
+                                            inputMode="numeric"
+                                            value={taxRate || ''}
+                                            onChange={(e) => {
+                                                const val = e.target.value.replace(/[^0-9]/g, '');
+                                                setTaxRate(val ? parseInt(val, 10) : 0);
+                                            }}
+                                            placeholder="0"
+                                            className="w-full bg-white dark:bg-[#111118] border border-slate-200 dark:border-[#282839] rounded px-2 py-1.5 text-xs text-gray-900 dark:text-white focus:outline-none focus:border-primary transition-colors"
+                                        />
+                                    </div>
+                                    {/* Cash Received */}
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] text-gray-500 dark:text-[#9d9db9] font-medium uppercase">Bayar (Rp)</label>
+                                        <input
+                                            type="text"
+                                            inputMode="numeric"
+                                            value={formatNumber(cashReceived)}
+                                            onChange={(e) => setCashReceived(parseFormattedNumber(e.target.value))}
+                                            placeholder="0"
+                                            className={`w-full bg-white dark:bg-[#111118] border rounded px-2 py-1.5 text-xs font-bold text-gray-900 dark:text-white focus:outline-none focus:border-primary ${cashReceived > 0 && cashReceived < total ? 'border-red-500' : 'border-slate-200 dark:border-[#282839]'}`}
+                                        />
                                     </div>
                                 </div>
 
-                                <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-[#282839]/50">
-                                    <div className="flex justify-between text-sm text-gray-500 dark:text-[#9d9db9]">
-                                        <span>Subtotal</span>
-                                        <span>{formatRupiah(subtotal)}</span>
+                                {/* Middle Row: Summary (inline) */}
+                                <div className="flex items-center justify-between gap-2 py-2 border-t border-b border-slate-200 dark:border-[#282839]/50 text-xs mb-3">
+                                    <div className="flex gap-3 text-gray-500 dark:text-[#9d9db9]">
+                                        <span>Sub: {formatRupiah(subtotal)}</span>
+                                        {discountAmount > 0 && (
+                                            <span className="text-red-500">-{formatRupiah(discountAmount)}</span>
+                                        )}
+                                        <span>Tax: {formatRupiah(taxAmount)}</span>
                                     </div>
-                                    {discountAmount > 0 && (
-                                        <div className="flex justify-between text-sm text-red-500">
-                                            <span>Diskon {discountType === 'percent' ? `(${discountValue}%)` : ''}</span>
-                                            <span>-{formatRupiah(discountAmount)}</span>
-                                        </div>
-                                    )}
-                                    <div className="flex justify-between text-sm text-gray-500 dark:text-[#9d9db9]">
-                                        <span>Pajak ({taxRate}%)</span>
-                                        <span>{formatRupiah(taxAmount)}</span>
-                                    </div>
-                                    <div className="flex justify-between text-lg font-bold text-gray-900 dark:text-white pt-2 border-t border-slate-200 dark:border-[#282839]">
-                                        <span>Total</span>
-                                        <span>{formatRupiah(total)}</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-base font-bold text-gray-900 dark:text-white">Total: {formatRupiah(total)}</span>
+                                        {cashReceived > total && (
+                                            <span className="text-emerald-600 dark:text-emerald-500 font-bold">
+                                                Kembali: {formatRupiah(cashReceived - total)}
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
 
-                                {/* Payment Amount Input */}
-                                <div className="space-y-1">
-                                    <label className="text-xs text-gray-500 dark:text-[#9d9db9] font-medium">Uang Diterima (Rp)</label>
-                                    <input
-                                        type="number"
-                                        value={cashReceived || ''}
-                                        onChange={(e) => setCashReceived(parseFloat(e.target.value))}
-                                        placeholder="0"
-                                        className={`w-full bg-white dark:bg-[#111118] border rounded-lg px-3 py-2 text-lg font-bold text-gray-900 dark:text-white focus:outline-none focus:border-primary ${cashReceived > 0 && cashReceived < total ? 'border-red-500' : 'border-slate-200 dark:border-[#282839]'}`}
-                                    />
-                                    {cashReceived > total && (
-                                        <div className="flex justify-between text-sm text-emerald-600 dark:text-emerald-500 font-bold mt-1">
-                                            <span>Kembalian</span>
-                                            <span>{formatRupiah(cashReceived - total)}</span>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-3 mt-4 print:hidden">
+                                {/* Bottom Row: Action Buttons */}
+                                <div className="flex gap-2 print:hidden">
                                     <button
                                         onClick={handlePrint}
-                                        className="h-12 rounded-xl border border-slate-200 dark:border-[#282839] bg-white dark:bg-[#1c1c27] text-gray-900 dark:text-white font-bold hover:bg-gray-50 dark:hover:bg-[#282839] transition-colors flex items-center justify-center gap-2"
+                                        className="h-10 px-3 rounded-lg border border-slate-200 dark:border-[#282839] bg-white dark:bg-[#1c1c27] text-gray-900 dark:text-white font-bold hover:bg-gray-50 dark:hover:bg-[#282839] transition-colors flex items-center justify-center gap-1"
                                     >
-                                        <span className="material-symbols-outlined text-[20px]">print</span>
-                                        <span className="hidden sm:inline">Print</span>
+                                        <span className="material-symbols-outlined text-[18px]">print</span>
                                     </button>
                                     <button
                                         onClick={handleSave}
-                                        className="h-12 rounded-xl border border-slate-200 dark:border-[#282839] bg-white dark:bg-[#1c1c27] text-gray-900 dark:text-white font-bold hover:bg-gray-50 dark:hover:bg-[#282839] transition-colors flex items-center justify-center gap-2"
+                                        className="h-10 px-3 rounded-lg border border-slate-200 dark:border-[#282839] bg-white dark:bg-[#1c1c27] text-gray-900 dark:text-white font-bold hover:bg-gray-50 dark:hover:bg-[#282839] transition-colors flex items-center justify-center gap-1"
                                     >
-                                        <span className="material-symbols-outlined text-[20px]">save</span>
-                                        <span className="hidden sm:inline">Save</span>
+                                        <span className="material-symbols-outlined text-[18px]">save</span>
+                                    </button>
+                                    <button
+                                        disabled={cart.length === 0 || processingOrder}
+                                        onClick={handlePlaceOrder}
+                                        className="flex-1 h-10 bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 text-white font-bold rounded-lg shadow-lg shadow-primary/25 transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {processingOrder ? (
+                                            <>
+                                                <span className="material-symbols-outlined animate-spin text-[18px]">refresh</span>
+                                                <span className="text-sm">Proses...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span className="text-sm">Bayar</span>
+                                                <span className="material-symbols-outlined text-[18px]">payments</span>
+                                            </>
+                                        )}
                                     </button>
                                 </div>
-
-                                <button
-                                    disabled={cart.length === 0 || processingOrder}
-                                    onClick={handlePlaceOrder}
-                                    className="w-full h-14 bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 text-white font-bold text-lg rounded-xl shadow-lg shadow-primary/25 transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    {processingOrder ? (
-                                        <>
-                                            <span className="material-symbols-outlined animate-spin">refresh</span>
-                                            Memproses...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <span>Bayar Sekarang</span>
-                                            <span className="material-symbols-outlined">payments</span>
-                                        </>
-                                    )}
-                                </button>
                             </div>
                         </aside>
                     </div >

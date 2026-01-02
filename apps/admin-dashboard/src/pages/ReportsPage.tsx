@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import api from '../services/api';
-import { formatRupiah } from '../utils/format';
+import { formatRupiah, formatNumber, parseFormattedNumber } from '../utils/format';
 import { useTheme } from '../context/ThemeContext';
 import { DashboardContextType } from '../layouts/DashboardLayout';
 import {
@@ -1029,12 +1029,12 @@ const ReportsPage = () => {
                                                 <div>
                                                     <label className="block text-xs font-medium text-gray-700 dark:text-text-secondary mb-1">Jumlah (Rp)</label>
                                                     <input
-                                                        type="number"
-                                                        value={newExpense.amount}
-                                                        onChange={e => setNewExpense({ ...newExpense, amount: e.target.value })}
+                                                        type="text"
+                                                        inputMode="numeric"
+                                                        value={newExpense.amount ? formatNumber(newExpense.amount) : ''}
+                                                        onChange={e => setNewExpense({ ...newExpense, amount: parseFormattedNumber(e.target.value).toString() })}
                                                         placeholder="0"
                                                         required
-                                                        min="0"
                                                         className="w-full px-3 py-2 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-[#282839] rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-900 dark:text-white"
                                                     />
                                                 </div>
