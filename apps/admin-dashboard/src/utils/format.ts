@@ -13,7 +13,9 @@ export const formatRupiah = (value: number): string => {
  */
 export const formatNumber = (value: number | string): string => {
     if (value === '' || value === null || value === undefined) return '';
-    const num = typeof value === 'string' ? parseFloat(value.replace(/\./g, '')) : value;
+    // Fix: Do NOT replace dots here. Value is expected to be a raw number string (e.g., "10000" or "10000.00").
+    // Replacing dots in "10000.00" turns it into "1000000" (one million), which caused the bug.
+    const num = typeof value === 'string' ? parseFloat(value) : value;
     if (isNaN(num)) return '';
     return new Intl.NumberFormat('id-ID').format(num);
 };

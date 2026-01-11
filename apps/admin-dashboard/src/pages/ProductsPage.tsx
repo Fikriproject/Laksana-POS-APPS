@@ -12,6 +12,8 @@ interface Product {
     sku: string;
     category_name: string;
     price: number;
+    price_grosir?: number;
+    price_reseller?: number;
     purchase_price: number;
     stock_quantity: number;
     low_stock_threshold: number;
@@ -38,6 +40,8 @@ const ProductsPage = () => {
     const [formData, setFormData] = useState({
         name: '',
         price: '',
+        price_grosir: '',
+        price_reseller: '',
         purchase_price: '',
         stock_quantity: '',
         category_id: '',
@@ -205,6 +209,8 @@ const ProductsPage = () => {
         setFormData({
             name: '',
             price: '',
+            price_grosir: '',
+            price_reseller: '',
             purchase_price: '',
             stock_quantity: '',
             category_id: categories.length > 0 ? categories[0].id : '',
@@ -219,6 +225,8 @@ const ProductsPage = () => {
         setFormData({
             name: product.name,
             price: product.price.toString(),
+            price_grosir: (product.price_grosir || product.price).toString(),
+            price_reseller: (product.price_reseller || product.price).toString(),
             purchase_price: (product.purchase_price || 0).toString(),
             stock_quantity: product.stock_quantity.toString(),
             category_id: product.category_id ? product.category_id.toString() : '',
@@ -234,6 +242,8 @@ const ProductsPage = () => {
             const payload = {
                 ...formData,
                 price: parseFloat(formData.price),
+                price_grosir: parseFloat(formData.price_grosir),
+                price_reseller: parseFloat(formData.price_reseller),
                 purchase_price: parseFloat(formData.purchase_price),
                 stock_quantity: parseInt(formData.stock_quantity),
                 category_id: formData.category_id ? parseInt(formData.category_id) : null
@@ -494,8 +504,10 @@ const ProductsPage = () => {
                                             className="w-full bg-gray-50 dark:bg-[#111118] border border-slate-200 dark:border-[#282839] rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-primary transition-colors"
                                         />
                                     </div>
+                                </div>
+                                <div className="grid grid-cols-3 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-500 dark:text-[#9d9db9] mb-1">Harga Jual</label>
+                                        <label className="block text-sm font-medium text-gray-500 dark:text-[#9d9db9] mb-1">Harga Jual (Ecer)</label>
                                         <input
                                             type="text"
                                             inputMode="numeric"
@@ -503,6 +515,28 @@ const ProductsPage = () => {
                                             value={formData.price ? formatNumber(formData.price) : ''}
                                             onChange={e => setFormData({ ...formData, price: parseFormattedNumber(e.target.value).toString() })}
                                             placeholder="0"
+                                            className="w-full bg-gray-50 dark:bg-[#111118] border border-slate-200 dark:border-[#282839] rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-primary transition-colors"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-500 dark:text-[#9d9db9] mb-1">Harga Grosir</label>
+                                        <input
+                                            type="text"
+                                            inputMode="numeric"
+                                            value={formData.price_grosir ? formatNumber(formData.price_grosir) : ''}
+                                            onChange={e => setFormData({ ...formData, price_grosir: parseFormattedNumber(e.target.value).toString() })}
+                                            placeholder="Optional"
+                                            className="w-full bg-gray-50 dark:bg-[#111118] border border-slate-200 dark:border-[#282839] rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-primary transition-colors"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-500 dark:text-[#9d9db9] mb-1">Harga Reseller</label>
+                                        <input
+                                            type="text"
+                                            inputMode="numeric"
+                                            value={formData.price_reseller ? formatNumber(formData.price_reseller) : ''}
+                                            onChange={e => setFormData({ ...formData, price_reseller: parseFormattedNumber(e.target.value).toString() })}
+                                            placeholder="Optional"
                                             className="w-full bg-gray-50 dark:bg-[#111118] border border-slate-200 dark:border-[#282839] rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-primary transition-colors"
                                         />
                                     </div>

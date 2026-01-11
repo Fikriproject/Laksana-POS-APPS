@@ -119,6 +119,13 @@ return function ($method, $path, $productService, $user) {
         
         $validator = new Validator($data);
         $validator->required('name')->required('price')->numeric('price');
+        // Validate new price levels if present
+        if (isset($data['price_grosir'])) {
+            $validator->numeric('price_grosir');
+        }
+        if (isset($data['price_reseller'])) {
+            $validator->numeric('price_reseller');
+        }
         $validator->validate();
         
         $productId = $productService->create($data);

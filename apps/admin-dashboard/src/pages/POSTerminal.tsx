@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useConfirm } from '../context/ConfirmContext';
 import toast from 'react-hot-toast';
@@ -13,6 +13,8 @@ interface Product {
     name: string;
     category_name: string;
     price: number;
+    price_grosir?: number;
+    price_reseller?: number;
     image_url: string;
     stock_quantity: number;
     category_id?: number | string;
@@ -28,6 +30,7 @@ interface Category {
 
 interface CartItem extends Product {
     quantity: number;
+    retail_price: number;
 }
 
 
@@ -52,6 +55,8 @@ const POSTerminal = () => {
     const [discountType, setDiscountType] = useState<'percent' | 'fixed'>('percent');
     const [discountValue, setDiscountValue] = useState<number>(0);
     const [cashReceived, setCashReceived] = useState<number>(0);
+
+    const [priceLevel, setPriceLevel] = useState<'retail' | 'wholesale' | 'reseller'>('retail');
 
     const { confirm } = useConfirm();
 
@@ -93,8 +98,41 @@ const POSTerminal = () => {
         fetchData();
     }, []);
 
+    // Price Level Change Effect
+    const isFirstRender = useRef(true);
+    useEffect(() => {
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            return;
+        }
+
+        const label = priceLevel === 'retail' ? 'Ecer' : priceLevel === 'wholesale' ? 'Grosir' : 'Reseller';
+        toast.success(`Mode Harga: ${label} Aktif`, {
+            icon: '🏷️',
+            position: 'top-center',
+            duration: 2000,
+            style: {
+                background: '#333',
+                color: '#fff',
+            }
+        });
+
+        setCart(currentCart => currentCart.map(item => {
+            let newPrice = item.retail_price; // Default to retail
+            if (priceLevel === 'wholesale' && item.price_grosir) newPrice = item.price_grosir;
+            if (priceLevel === 'reseller' && item.price_reseller) newPrice = item.price_reseller;
+
+            return { ...item, price: newPrice };
+        }));
+    }, [priceLevel]);
+
     const addToCart = (product: Product) => {
         if (product.stock_quantity <= 0) return;
+
+        // Determine active price based on current level
+        let activePrice = product.price;
+        if (priceLevel === 'wholesale' && product.price_grosir) activePrice = product.price_grosir;
+        if (priceLevel === 'reseller' && product.price_reseller) activePrice = product.price_reseller;
 
         const existingItem = cart.find(item => item.id === product.id);
         if (existingItem) {
@@ -105,7 +143,12 @@ const POSTerminal = () => {
                 item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
             ));
         } else {
-            setCart([...cart, { ...product, quantity: 1 }]);
+            setCart([...cart, {
+                ...product,
+                quantity: 1,
+                retail_price: product.price,
+                price: activePrice
+            }]);
         }
     };
 
@@ -346,6 +389,28 @@ const POSTerminal = () => {
                             </label>
                         </div>
                         <div className="flex items-center justify-end gap-6">
+                            {/* Price Level Selector */}
+                            <div className="flex items-center bg-gray-100 dark:bg-background-dark rounded-lg p-1 border border-slate-200 dark:border-[#282839]">
+                                <button
+                                    onClick={() => setPriceLevel('retail')}
+                                    className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${priceLevel === 'retail' ? 'bg-primary text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:text-[#9d9db9] dark:hover:text-white'}`}
+                                >
+                                    Ecer
+                                </button>
+                                <button
+                                    onClick={() => setPriceLevel('wholesale')}
+                                    className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${priceLevel === 'wholesale' ? 'bg-purple-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:text-[#9d9db9] dark:hover:text-white'}`}
+                                >
+                                    Grosir
+                                </button>
+                                <button
+                                    onClick={() => setPriceLevel('reseller')}
+                                    className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${priceLevel === 'reseller' ? 'bg-orange-500 text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:text-[#9d9db9] dark:hover:text-white'}`}
+                                >
+                                    Reseller
+                                </button>
+                            </div>
+
                             <div className="flex items-center gap-4">
                                 <ThemeToggle />
                                 <button className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-sm font-medium text-gray-500 dark:text-[#9d9db9] hover:text-primary dark:hover:text-white">
@@ -396,36 +461,43 @@ const POSTerminal = () => {
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                                        {filteredProducts.map((product) => (
-                                            <div
-                                                key={product.id}
-                                                onClick={() => addToCart(product)}
-                                                className={`group relative flex flex-col bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl overflow-hidden hover:border-primary/50 transition-all hover:shadow-xl hover:-translate-y-1 cursor-pointer ${product.stock_quantity <= 0 ? 'opacity-50 pointer-events-none' : ''}`}
-                                            >
-                                                <div className="aspect-[4/3] w-full overflow-hidden bg-gray-200 dark:bg-[#111118] relative">
-                                                    <div
-                                                        className="absolute inset-0 bg-center bg-cover transition-transform duration-500 group-hover:scale-110"
-                                                        style={{ backgroundImage: `url("${product.image_url || 'https://via.placeholder.com/300'}")` }}
-                                                    />
-                                                    {/* Price Badge */}
-                                                    <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white text-xs font-bold px-2 py-1 rounded-lg border border-white/10">
-                                                        {formatRupiah(product.price)}
-                                                    </div>
-                                                    {product.stock_quantity <= 0 && (
-                                                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center font-bold text-white uppercase tracking-widest">
-                                                            Out of Stock
+                                        {filteredProducts.map((product) => {
+                                            // Determine display price based on current level
+                                            let displayPrice = product.price;
+                                            if (priceLevel === 'wholesale' && product.price_grosir) displayPrice = product.price_grosir;
+                                            if (priceLevel === 'reseller' && product.price_reseller) displayPrice = product.price_reseller;
+
+                                            return (
+                                                <div
+                                                    key={product.id}
+                                                    onClick={() => addToCart(product)}
+                                                    className={`group relative flex flex-col bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl overflow-hidden hover:border-primary/50 transition-all hover:shadow-xl hover:-translate-y-1 cursor-pointer ${product.stock_quantity <= 0 ? 'opacity-50 pointer-events-none' : ''}`}
+                                                >
+                                                    <div className="aspect-[4/3] w-full overflow-hidden bg-gray-200 dark:bg-[#111118] relative">
+                                                        <div
+                                                            className="absolute inset-0 bg-center bg-cover transition-transform duration-500 group-hover:scale-110"
+                                                            style={{ backgroundImage: `url("${product.image_url || 'https://via.placeholder.com/300'}")` }}
+                                                        />
+                                                        {/* Price Badge */}
+                                                        <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white text-xs font-bold px-2 py-1 rounded-lg border border-white/10">
+                                                            {formatRupiah(displayPrice)}
                                                         </div>
-                                                    )}
-                                                </div>
-                                                <div className="p-4 flex flex-col flex-1">
-                                                    <div className="text-xs text-gray-500 dark:text-[#9d9db9] mb-1">{product.category_name}</div>
-                                                    <h3 className="text-gray-900 dark:text-white font-bold leading-tight mb-2 line-clamp-2 min-h-[2.5em]">{product.name}</h3>
-                                                    <div className="mt-auto flex items-center justify-between text-xs text-gray-500 dark:text-[#9d9db9]">
-                                                        <span>{product.stock_quantity} in stock</span>
+                                                        {product.stock_quantity <= 0 && (
+                                                            <div className="absolute inset-0 bg-black/60 flex items-center justify-center font-bold text-white uppercase tracking-widest">
+                                                                Out of Stock
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="p-4 flex flex-col flex-1">
+                                                        <div className="text-xs text-gray-500 dark:text-[#9d9db9] mb-1">{product.category_name}</div>
+                                                        <h3 className="text-gray-900 dark:text-white font-bold leading-tight mb-2 line-clamp-2 min-h-[2.5em]">{product.name}</h3>
+                                                        <div className="mt-auto flex items-center justify-between text-xs text-gray-500 dark:text-[#9d9db9]">
+                                                            <span>{product.stock_quantity} in stock</span>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </div>
