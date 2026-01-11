@@ -69,7 +69,7 @@ const POSTerminal = () => {
         const fetchData = async () => {
             try {
                 const [productsRes, categoriesRes] = await Promise.all([
-                    api.get('/products'),
+                    api.get('/products?per_page=1000'),
                     api.get('/products/categories')
                 ]);
 

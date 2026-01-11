@@ -37,6 +37,12 @@ const ProductsPage = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+    const [perPage, setPerPage] = useState(20);
+
     const [formData, setFormData] = useState({
         name: '',
         price: '',
@@ -49,10 +55,7 @@ const ProductsPage = () => {
         image_url: ''
     });
 
-    useEffect(() => {
-        fetchProducts();
-        fetchCategories();
-    }, [categoryFilter, statusFilter]); // Re-fetch when filters change
+
 
     // ... existing functions (fetchCategories, fetchProducts, etc.) ...
     const fetchCategories = async () => {
@@ -71,6 +74,8 @@ const ProductsPage = () => {
         try {
             // Build query params
             const params = new URLSearchParams();
+            params.append('page', currentPage.toString());
+            params.append('per_page', perPage.toString());
             if (categoryFilter && categoryFilter !== 'all') params.append('category_id', categoryFilter);
             if (statusFilter && statusFilter !== 'all') params.append('active', statusFilter === 'active' ? 'true' : 'false');
 
@@ -80,8 +85,18 @@ const ProductsPage = () => {
             // Handle pagination structure
             if (response.data.data.products) {
                 setProductList(response.data.data.products);
+                // Set pagination data if available
+                if (response.data.data.pagination) {
+                    setTotalPages(response.data.data.pagination.total_pages);
+                    setTotalItems(response.data.data.pagination.total);
+                    // Ensure current page matches server response (logic safety)
+                    // setCurrentPage(response.data.data.pagination.current_page); 
+                }
             } else {
+                // Fallback for non-paginated structure if any
                 setProductList(response.data.data);
+                setTotalPages(1);
+                setTotalItems(Array.isArray(response.data.data) ? response.data.data.length : 0);
             }
         } catch (error) {
             console.error('Error fetching products:', error);
@@ -89,6 +104,12 @@ const ProductsPage = () => {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetchProducts();
+        fetchCategories();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [categoryFilter, statusFilter, currentPage, perPage]); // Re-fetch when filters or page changes
 
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -322,7 +343,10 @@ const ProductsPage = () => {
                                 <div className="relative">
                                     <select
                                         value={categoryFilter}
-                                        onChange={(e) => setCategoryFilter(e.target.value)}
+                                        onChange={(e) => {
+                                            setCategoryFilter(e.target.value);
+                                            setCurrentPage(1); // Reset to page 1
+                                        }}
                                         className="appearance-none h-10 pl-4 pr-10 rounded-lg bg-white dark:bg-[#111118] border border-slate-200 dark:border-[#282839] text-gray-900 dark:text-white text-sm focus:ring-primary focus:border-primary transition-colors"
                                     >
                                         <option value="all">Semua Kategori</option>
@@ -463,7 +487,61 @@ const ProductsPage = () => {
                             {/* Pagination */}
                             <div className="px-6 py-4 border-t border-slate-200 dark:border-[#282839] bg-white dark:bg-[#111118] flex items-center justify-between transition-colors">
                                 <div className="text-xs text-gray-500 dark:text-[#9d9db9]">
-                                    Menampilkan <span className="text-gray-900 dark:text-white font-medium">1-{productList.length}</span> dari <span className="text-gray-900 dark:text-white font-medium">{productList.length}</span> produk
+                                    Menampilkan <span className="text-gray-900 dark:text-white font-medium">
+                                        {productList.length > 0 ? (currentPage - 1) * perPage + 1 : 0}
+                                        -
+                                        {Math.min(currentPage * perPage, totalItems)}
+                                    </span> dari <span className="text-gray-900 dark:text-white font-medium">{totalItems}</span> produk
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                        disabled={currentPage === 1}
+                                        className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#282839] disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-600 dark:text-[#9d9db9]"
+                                    >
+                                        <span className="material-symbols-outlined text-[20px]">chevron_left</span>
+                                    </button>
+
+                                    <div className="flex items-center gap-1">
+                                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                            // Simple logic to show a window of pages around current page
+                                            let pageNum = i + 1;
+                                            if (totalPages > 5) {
+                                                if (currentPage > 3) {
+                                                    pageNum = currentPage - 2 + i;
+                                                }
+                                                if (pageNum > totalPages) {
+                                                    pageNum = totalPages - 4 + i;
+                                                }
+                                            }
+
+                                            // Ensure we don't go out of bounds (simple safety)
+                                            if (pageNum < 1) pageNum = 1;
+                                            if (pageNum > totalPages) return null;
+
+                                            return (
+                                                <button
+                                                    key={pageNum}
+                                                    onClick={() => setCurrentPage(pageNum)}
+                                                    className={`size-8 rounded-lg text-xs font-medium transition-colors ${currentPage === pageNum
+                                                        ? 'bg-primary text-white'
+                                                        : 'hover:bg-gray-100 dark:hover:bg-[#282839] text-gray-600 dark:text-[#9d9db9]'
+                                                        }`}
+                                                >
+                                                    {pageNum}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                        disabled={currentPage === totalPages}
+                                        className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#282839] disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-600 dark:text-[#9d9db9]"
+                                    >
+                                        <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+                                    </button>
                                 </div>
                             </div>
                         </div>
