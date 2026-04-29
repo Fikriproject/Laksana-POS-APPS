@@ -6,8 +6,9 @@ RUN apt-get update && apt-get install -y \
     unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Enable Apache modules
-RUN a2enmod rewrite headers
+# Enable Apache modules (disable conflicting MPMs first)
+RUN a2dismod mpm_event mpm_worker 2>/dev/null || true && \
+    a2enmod mpm_prefork rewrite headers
 
 # Install PHP extensions for MySQL
 RUN docker-php-ext-install pdo pdo_mysql
