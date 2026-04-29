@@ -89,6 +89,8 @@ CREATE TABLE orders (
     tax_amount DECIMAL(10, 2) DEFAULT 0,
     discount_amount DECIMAL(10, 2) DEFAULT 0,
     total_amount DECIMAL(10, 2) NOT NULL,
+    amount_paid DECIMAL(10, 2) DEFAULT 0,
+    change_amount DECIMAL(10, 2) DEFAULT 0,
     payment_method ENUM('cash', 'card', 'e-wallet', 'other') NOT NULL,
     status ENUM('pending', 'completed', 'refunded', 'cancelled') DEFAULT 'completed',
     notes TEXT,
