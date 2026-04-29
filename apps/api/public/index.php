@@ -76,8 +76,13 @@ $method = $_SERVER['REQUEST_METHOD'];
 $uri = $_SERVER['REQUEST_URI'];
 $path = parse_url($uri, PHP_URL_PATH);
 
-// Remove /api prefix and get route group
+// Strip known prefixes: /public, /api-proxy, /api (in any combination)
+$path = preg_replace('/^\/public/', '', $path);
+$path = preg_replace('/^\/api-proxy/', '', $path);
 $path = preg_replace('/^\/api/', '', $path);
+
+// Ensure path starts with /
+if (empty($path)) $path = '/';
 
 // Get authenticated user (if applicable)
 $user = null;
