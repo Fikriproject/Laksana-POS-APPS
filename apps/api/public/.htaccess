@@ -1,8 +1,17 @@
+<IfModule mod_headers.c>
+    # Allow CORS from any origin
+    Header always set Access-Control-Allow-Origin "*"
+    Header always set Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+    Header always set Access-Control-Max-Age "3600"
+</IfModule>
+
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # Some hosts require RewriteBase
-    # RewriteBase /
+    # Handle OPTIONS preflight request directly
+    RewriteCond %{REQUEST_METHOD} OPTIONS
+    RewriteRule ^(.*)$ $1 [R=200,L]
 
     # Redirect Trailing Slashes If Not A Folder...
     RewriteCond %{REQUEST_FILENAME} !-d
@@ -14,7 +23,7 @@
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [QSA,L]
 
-    # Handle Authorization Header
+    # Handle Authorization Header (for JWT)
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 </IfModule>
