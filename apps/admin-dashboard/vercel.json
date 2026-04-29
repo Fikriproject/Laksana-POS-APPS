@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api-proxy/:path*",
-      "destination": "https://kasirlaksana.infinityfreeapp.com/public/:path*"
+      "destination": "https://laksana-pos-apps-production.up.railway.app/public/:path*"
     },
     {
       "source": "/(.*)",

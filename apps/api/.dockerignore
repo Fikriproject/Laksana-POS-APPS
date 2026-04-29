@@ -1,0 +1,17 @@
+# Ignore local environment file (sensitive data)
+.env
+
+# Ignore git files
+.git
+.gitignore
+
+# Ignore node modules if any
+node_modules
+
+# Ignore development files
+tests/
+*.test.php
+
+# Ignore IDE files
+.vscode/
+.idea/
