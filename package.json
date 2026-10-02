@@ -11,6 +11,11 @@
     "migrate:fresh": "php apps/api/migrate.php --fresh",
     "migrate:status": "php apps/api/migrate.php --status"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  },
   "devDependencies": {
     "concurrently": "^9.2.1"
   }

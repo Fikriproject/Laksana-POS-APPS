@@ -17,11 +17,12 @@ echo -e "\n\033[1;33m[1/5] Mengambil update terbaru dari GitHub...\033[0m"
 git pull origin main
 
 echo -e "\n\033[1;33m[2/5] Membangun Frontend (Production Build)...\033[0m"
-cd "$ROOT_DIR/apps/admin-dashboard"
+cd "$ROOT_DIR"
 if command -v pnpm &> /dev/null; then
-    pnpm install --frozen-lockfile || pnpm install
-    pnpm build
+    pnpm install || pnpm install --no-frozen-lockfile
+    pnpm --filter admin-dashboard build
 elif command -v npm &> /dev/null; then
+    cd "$ROOT_DIR/apps/admin-dashboard"
     npm install
     npm run build
 else
