@@ -5,7 +5,11 @@
   "scripts": {
     "dev": "concurrently -n \"FRONT,BACK\" -c \"cyan,magenta\" \"pnpm --filter admin-dashboard dev\" \"php -S 127.0.0.1:8000 -t apps\\api\\public\"",
     "build": "pnpm --filter admin-dashboard build",
-    "preview": "pnpm --filter admin-dashboard preview"
+    "preview": "pnpm --filter admin-dashboard preview",
+    "migrate": "php apps/api/migrate.php",
+    "migrate:seed": "php apps/api/migrate.php --seed",
+    "migrate:fresh": "php apps/api/migrate.php --fresh",
+    "migrate:status": "php apps/api/migrate.php --status"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

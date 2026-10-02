@@ -1,9 +1,8 @@
 -- ==============================================================
--- Laksana POS - Full Complete Database Schema (MySQL / MariaDB)
+-- Laksana POS - Full Complete Database Schema (PostgreSQL)
+-- Compatible with: Supabase, Railway Postgres, Neon, VPS PostgreSQL
 -- Version: 2.0 (All 11 Tables + Latest V2 Columns Included)
 -- ==============================================================
-
-SET FOREIGN_KEY_CHECKS = 0;
 
 -- 1. Users table (Admin, Cashier, Manager)
 CREATE TABLE IF NOT EXISTS users (
@@ -14,22 +13,22 @@ CREATE TABLE IF NOT EXISTS users (
     pin_code VARCHAR(10),
     full_name VARCHAR(100) NOT NULL,
     email VARCHAR(100),
-    role ENUM('admin', 'cashier', 'manager') NOT NULL DEFAULT 'cashier',
+    role VARCHAR(20) NOT NULL DEFAULT 'cashier',
     avatar_url VARCHAR(500),
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
 -- 2. Categories table
 CREATE TABLE IF NOT EXISTS categories (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     name VARCHAR(50) UNIQUE NOT NULL,
     icon VARCHAR(50),
     slug VARCHAR(50) UNIQUE NOT NULL,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- 3. Products table
 CREATE TABLE IF NOT EXISTS products (
@@ -41,13 +40,12 @@ CREATE TABLE IF NOT EXISTS products (
     purchase_price DECIMAL(15, 2) NOT NULL DEFAULT 0,
     stock_quantity INTEGER NOT NULL DEFAULT 0,
     low_stock_threshold INTEGER NOT NULL DEFAULT 10,
-    category_id INT,
+    category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
     image_url VARCHAR(500),
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
 -- 4. Customers table
 CREATE TABLE IF NOT EXISTS customers (
@@ -57,7 +55,7 @@ CREATE TABLE IF NOT EXISTS customers (
     email VARCHAR(100),
     loyalty_points INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- 5. Suppliers table
 CREATE TABLE IF NOT EXISTS suppliers (
@@ -69,27 +67,26 @@ CREATE TABLE IF NOT EXISTS suppliers (
     address TEXT,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- 6. Shifts table
 CREATE TABLE IF NOT EXISTS shifts (
     id CHAR(36) PRIMARY KEY,
-    user_id CHAR(36) NOT NULL,
+    user_id CHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     ended_at TIMESTAMP NULL,
     opening_cash DECIMAL(15, 2) DEFAULT 0,
     closing_cash DECIMAL(15, 2),
-    status ENUM('open', 'closed') DEFAULT 'open',
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    status VARCHAR(20) DEFAULT 'open'
+);
 
 -- 7. Orders table
 CREATE TABLE IF NOT EXISTS orders (
     id CHAR(36) PRIMARY KEY,
     order_number VARCHAR(50) UNIQUE NOT NULL,
-    user_id CHAR(36) NOT NULL,
-    customer_id CHAR(36),
-    shift_id CHAR(36),
+    user_id CHAR(36) NOT NULL REFERENCES users(id),
+    customer_id CHAR(36) REFERENCES customers(id) ON DELETE SET NULL,
+    shift_id CHAR(36) REFERENCES shifts(id) ON DELETE SET NULL,
     subtotal DECIMAL(15, 2) NOT NULL DEFAULT 0,
     tax_amount DECIMAL(15, 2) DEFAULT 0,
     discount_amount DECIMAL(15, 2) DEFAULT 0,
@@ -98,69 +95,58 @@ CREATE TABLE IF NOT EXISTS orders (
     payment_method VARCHAR(50) NOT NULL DEFAULT 'cash',
     status VARCHAR(20) DEFAULT 'completed',
     notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL,
-    FOREIGN KEY (shift_id) REFERENCES shifts(id) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
 -- 8. Order Items table
 CREATE TABLE IF NOT EXISTS order_items (
     id CHAR(36) PRIMARY KEY,
-    order_id CHAR(36) NOT NULL,
-    product_id CHAR(36) NOT NULL,
+    order_id CHAR(36) NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    product_id CHAR(36) NOT NULL REFERENCES products(id),
     product_name VARCHAR(100) NOT NULL,
     unit_price DECIMAL(15, 2) NOT NULL DEFAULT 0,
     purchase_price DECIMAL(15, 2) NOT NULL DEFAULT 0,
     quantity INTEGER NOT NULL DEFAULT 1,
-    subtotal DECIMAL(15, 2) NOT NULL DEFAULT 0,
-    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
-    FOREIGN KEY (product_id) REFERENCES products(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    subtotal DECIMAL(15, 2) NOT NULL DEFAULT 0
+);
 
 -- 9. Inventory Logs table
 CREATE TABLE IF NOT EXISTS inventory_logs (
     id CHAR(36) PRIMARY KEY,
-    product_id CHAR(36) NOT NULL,
-    user_id CHAR(36) NOT NULL,
-    supplier_id CHAR(36),
+    product_id CHAR(36) NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    user_id CHAR(36) NOT NULL REFERENCES users(id),
+    supplier_id CHAR(36) REFERENCES suppliers(id) ON DELETE SET NULL,
     type VARCHAR(50) NOT NULL,
     quantity_change INTEGER NOT NULL,
     quantity_after INTEGER NOT NULL,
     reference_number VARCHAR(50),
     notes TEXT,
     status VARCHAR(20) DEFAULT 'completed',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
 -- 10. Expenses table
 CREATE TABLE IF NOT EXISTS expenses (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id CHAR(36) NOT NULL,
+    id SERIAL PRIMARY KEY,
+    user_id CHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     title VARCHAR(255),
     category VARCHAR(50) NOT NULL,
     amount DECIMAL(15, 2) NOT NULL DEFAULT 0,
     description TEXT,
     date DATE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
 -- 11. Stock Reports table
 CREATE TABLE IF NOT EXISTS stock_reports (
     id CHAR(36) PRIMARY KEY,
-    product_id CHAR(36) NOT NULL,
-    user_id CHAR(36) NOT NULL,
+    product_id CHAR(36) NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    user_id CHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     notes TEXT,
     status VARCHAR(20) DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id);
@@ -182,19 +168,19 @@ CREATE INDEX IF NOT EXISTS idx_expenses_category ON expenses(category);
 CREATE INDEX IF NOT EXISTS idx_stock_reports_status ON stock_reports(status);
 
 -- Default Admin (Password: admin123) and Cashier (PIN: 1234)
-INSERT IGNORE INTO users (id, username, employee_id, password_hash, pin_code, full_name, email, role) 
+INSERT INTO users (id, username, employee_id, password_hash, pin_code, full_name, email, role, is_active) 
 VALUES 
-('c2bc802f-508b-4a57-8974-9892c5890001', 'admin', 'EMP001', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', NULL, 'Administrator', 'admin@pos.local', 'admin'),
-('c2bc802f-508b-4a57-8974-9892c5890002', 'cashier1', 'EMP002', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '1234', 'Alex Morgan', 'alex@pos.local', 'cashier');
+('c2bc802f-508b-4a57-8974-9892c5890001', 'admin', 'EMP001', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', NULL, 'Administrator', 'admin@pos.local', 'admin', true),
+('c2bc802f-508b-4a57-8974-9892c5890002', 'cashier1', 'EMP002', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '1234', 'Alex Morgan', 'alex@pos.local', 'cashier', true)
+ON CONFLICT (id) DO NOTHING;
 
 -- Default Categories
-INSERT IGNORE INTO categories (id, name, icon, slug) VALUES
-(1, 'Hot Drinks', 'coffee', 'hot-drinks'),
-(2, 'Cold Drinks', 'local_cafe', 'cold-drinks'),
-(3, 'Pastries', 'bakery_dining', 'pastries'),
-(4, 'Bakery', 'cake', 'bakery'),
-(5, 'Food', 'lunch_dining', 'food'),
-(6, 'Desserts', 'icecream', 'desserts'),
-(7, 'Snacks', 'fastfood', 'snacks');
-
-SET FOREIGN_KEY_CHECKS = 1;
+INSERT INTO categories (id, name, icon, slug, is_active) VALUES
+(1, 'Hot Drinks', 'coffee', 'hot-drinks', true),
+(2, 'Cold Drinks', 'local_cafe', 'cold-drinks', true),
+(3, 'Pastries', 'bakery_dining', 'pastries', true),
+(4, 'Bakery', 'cake', 'bakery', true),
+(5, 'Food', 'lunch_dining', 'food', true),
+(6, 'Desserts', 'icecream', 'desserts', true),
+(7, 'Snacks', 'fastfood', 'snacks', true)
+ON CONFLICT (id) DO NOTHING;

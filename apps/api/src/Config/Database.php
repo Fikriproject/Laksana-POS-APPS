@@ -22,27 +22,50 @@ class Database
 
     public function __construct()
     {
-        // Support for Supabase Connection String (DATABASE_URL)
-        if (isset($_ENV['DATABASE_URL']) && !empty($_ENV['DATABASE_URL'])) {
-            $url = parse_url($_ENV['DATABASE_URL']);
+        $dbUrl = $_ENV['DATABASE_URL'] ?? getenv('DATABASE_URL');
+
+        // Support for Supabase / Railway / Heroku Connection String (DATABASE_URL)
+        if (!empty($dbUrl)) {
+            $url = parse_url($dbUrl);
             
-            $this->driver = $url['scheme'] === 'postgres' || $url['scheme'] === 'postgresql' ? 'pgsql' : 'mysql';
-            $this->host = $url['host'];
-            $this->port = $url['port'] ?? '5432';
-            $this->dbName = ltrim($url['path'], '/');
-            $this->username = $url['user'];
-            $this->password = $url['pass'];
+            $scheme = strtolower($url['scheme'] ?? '');
+            $this->driver = ($scheme === 'postgres' || $scheme === 'postgresql') ? 'pgsql' : 'mysql';
+            $this->host = $url['host'] ?? 'localhost';
+            $this->port = isset($url['port']) ? (string)$url['port'] : ($this->driver === 'pgsql' ? '5432' : '3306');
+            $this->dbName = isset($url['path']) ? ltrim($url['path'], '/') : 'pos_cashier';
+            $this->username = isset($url['user']) ? urldecode($url['user']) : 'root';
+            $this->password = isset($url['pass']) ? urldecode($url['pass']) : '';
             $this->sslMode = 'require';
         } else {
             // Fallback to individual variables
-            $this->driver = $_ENV['DB_CONNECTION'] ?? 'mysql';
-            $this->host = $_ENV['DB_HOST'] ?? 'localhost';
-            $this->port = $_ENV['DB_PORT'] ?? ($this->driver === 'pgsql' ? '5432' : '3306');
-            $this->dbName = $_ENV['DB_NAME'] ?? 'pos_cashier';
-            $this->username = $_ENV['DB_USER'] ?? 'root';
-            $this->password = $_ENV['DB_PASSWORD'] ?? '';
-            $this->sslMode = $_ENV['DB_SSL_MODE'] ?? 'disable';
+            $this->driver = $_ENV['DB_CONNECTION'] ?? getenv('DB_CONNECTION') ?: 'mysql';
+            $this->host = $_ENV['DB_HOST'] ?? getenv('DB_HOST') ?: 'localhost';
+            $this->port = (string)($_ENV['DB_PORT'] ?? getenv('DB_PORT') ?: ($this->driver === 'pgsql' ? '5432' : '3306'));
+            $this->dbName = $_ENV['DB_NAME'] ?? getenv('DB_NAME') ?: 'pos_cashier';
+            $this->username = $_ENV['DB_USER'] ?? getenv('DB_USER') ?: 'root';
+            $this->password = $_ENV['DB_PASSWORD'] ?? getenv('DB_PASSWORD') ?: '';
+            $this->sslMode = $_ENV['DB_SSL_MODE'] ?? getenv('DB_SSL_MODE') ?: 'disable';
         }
+    }
+
+    public function getDriver(): string
+    {
+        return $this->driver;
+    }
+
+    public function getDbName(): string
+    {
+        return $this->dbName;
+    }
+
+    public function getHost(): string
+    {
+        return $this->host;
+    }
+
+    public function getPort(): string
+    {
+        return $this->port;
     }
 
     public function getConnection(): PDO
@@ -51,6 +74,9 @@ class Database
             try {
                 if ($this->driver === 'pgsql') {
                     $dsn = "pgsql:host={$this->host};port={$this->port};dbname={$this->dbName};";
+                    if (!empty($this->sslMode) && $this->sslMode !== 'disable') {
+                        $dsn .= "sslmode={$this->sslMode};";
+                    }
                 } else {
                     $dsn = "mysql:host={$this->host};port={$this->port};dbname={$this->dbName};charset=utf8mb4";
                 }
