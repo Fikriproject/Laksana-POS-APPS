@@ -5,7 +5,6 @@ import toast from 'react-hot-toast';
 import api from '../services/api';
 import { formatRupiah } from '../utils/format';
 import { DashboardContextType } from '../layouts/DashboardLayout';
-import { supabase } from '../services/supabase';
 
 interface Product {
     id: string;
@@ -112,30 +111,22 @@ const ProductsPage = () => {
 
         setUploading(true);
         try {
-            // 1. Generate unique filename
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
-            const filePath = `${fileName}`;
+            const uploadData = new FormData();
+            uploadData.append('image', file);
 
-            // 2. Upload to Supabase Storage
-            const { error: uploadError } = await supabase.storage
-                .from('products')
-                .upload(filePath, file);
+            const res = await api.post('/upload', uploadData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
 
-            if (uploadError) throw uploadError;
-
-            // 3. Get Public URL
-            const { data } = supabase.storage
-                .from('products')
-                .getPublicUrl(filePath);
-
-            if (data?.publicUrl) {
-                setFormData(prev => ({ ...prev, image_url: data.publicUrl }));
+            if (res.data?.data?.url) {
+                setFormData(prev => ({ ...prev, image_url: res.data.data.url }));
                 toast.success('Gambar berhasil diupload!');
             }
         } catch (error: any) {
             console.error('Upload failed:', error);
-            const errorMessage = error.message || 'Gagal mengupload gambar';
+            const errorMessage = error.response?.data?.message || error.message || 'Gagal mengupload gambar';
             toast.error(errorMessage);
         } finally {
             setUploading(false);
@@ -241,11 +232,15 @@ const ProductsPage = () => {
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+            const price = parseFloat(formData.price);
+            const purchase_price = parseFloat(formData.purchase_price);
+            const stock_quantity = parseInt(formData.stock_quantity);
+
             const payload = {
                 ...formData,
-                price: parseFloat(formData.price),
-                purchase_price: parseFloat(formData.purchase_price),
-                stock_quantity: parseInt(formData.stock_quantity),
+                price: isNaN(price) ? 0 : price,
+                purchase_price: isNaN(purchase_price) ? 0 : purchase_price,
+                stock_quantity: isNaN(stock_quantity) ? 0 : stock_quantity,
                 category_id: formData.category_id ? parseInt(formData.category_id) : null
             };
 
@@ -258,9 +253,10 @@ const ProductsPage = () => {
             setIsModalOpen(false);
             fetchProducts(); // Refresh list
             toast.success(currentProduct ? 'Produk berhasil diperbarui!' : 'Produk berhasil ditambahkan!');
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error saving product:', error);
-            toast.error('Gagal menyimpan produk. Pastikan semua field valid.');
+            const msg = error.response?.data?.message || 'Gagal menyimpan produk. Pastikan semua field valid.';
+            toast.error(msg);
         }
     };
 

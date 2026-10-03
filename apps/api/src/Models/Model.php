@@ -43,8 +43,10 @@ abstract class Model
 
     public function create(array $data): string
     {
-        // Auto-ID generation removed. We use PostgreSQL SERIAL (Auto Increment) for all tables.
-        // if ($this->primaryKey === 'id' && !isset($data['id'])) { ... }
+        // Auto-generate UUID for tables using UUID primary keys (all except auto-increment categories)
+        if ($this->table !== 'categories' && empty($data[$this->primaryKey])) {
+            $data[$this->primaryKey] = $this->generateUuid();
+        }
 
         $columns = implode(', ', array_keys($data));
         $placeholders = ':' . implode(', :', array_keys($data));
@@ -54,11 +56,11 @@ abstract class Model
         );
         $stmt->execute($data);
         
-        if (isset($data['id'])) {
-            return $data['id'];
+        if (isset($data[$this->primaryKey])) {
+            return $data[$this->primaryKey];
         }
         
-        return $this->db->lastInsertId();
+        return (string) $this->db->lastInsertId();
     }
 
     public function update(string $id, array $data): bool

@@ -67,12 +67,41 @@ class ProductService
         if (empty($data['sku'])) {
             $data['sku'] = $this->generateSku($data['name']);
         }
+
+        if (!isset($data['purchase_price']) || $data['purchase_price'] === null || $data['purchase_price'] === '') {
+            $data['purchase_price'] = 0;
+        }
+
+        if (!isset($data['price']) || $data['price'] === null || $data['price'] === '') {
+            $data['price'] = 0;
+        }
+
+        if (!isset($data['stock_quantity']) || $data['stock_quantity'] === null || $data['stock_quantity'] === '') {
+            $data['stock_quantity'] = 0;
+        }
+
+        if (isset($data['category_id']) && empty($data['category_id'])) {
+            $data['category_id'] = null;
+        }
         
         return $this->productModel->create($data);
     }
 
     public function update(string $id, array $data): bool
     {
+        if (isset($data['purchase_price']) && ($data['purchase_price'] === null || $data['purchase_price'] === '')) {
+            $data['purchase_price'] = 0;
+        }
+        if (isset($data['price']) && ($data['price'] === null || $data['price'] === '')) {
+            $data['price'] = 0;
+        }
+        if (isset($data['stock_quantity']) && ($data['stock_quantity'] === null || $data['stock_quantity'] === '')) {
+            $data['stock_quantity'] = 0;
+        }
+        if (array_key_exists('category_id', $data) && empty($data['category_id'])) {
+            $data['category_id'] = null;
+        }
+
         return $this->productModel->update($id, $data);
     }
 
