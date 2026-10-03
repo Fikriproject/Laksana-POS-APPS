@@ -89,6 +89,15 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 error_log("Router Debug - Path: " . $path . " Method: " . $method);
 
+// Health check endpoint
+if ($path === '/health' || $path === '/' || empty($path)) {
+    Response::success([
+        'status' => 'ok',
+        'version' => '1.0.0',
+        'timestamp' => date('c')
+    ], 'POS API is running');
+}
+
 // Router
 if (strpos($path, '/auth') === 0) {
     $routePath = substr($path, strlen('/auth'));
@@ -137,15 +146,3 @@ if (strpos($path, '/auth') === 0) {
 } else {
     App\Utils\Response::error('Endpoint tidak ditemukan: ' . $path, 404);
 }
-
-// Health check endpoint
-if ($path === '/health' || $path === '/') {
-    Response::success([
-        'status' => 'ok',
-        'version' => '1.0.0',
-        'timestamp' => date('c')
-    ], 'POS API is running');
-}
-
-// 404 for unmatched routes
-Response::error('Endpoint not found', 404);

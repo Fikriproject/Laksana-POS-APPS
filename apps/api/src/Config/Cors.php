@@ -9,7 +9,17 @@ class Cors
 {
     public static function headers(): void
     {
-        $origin = $_ENV['CORS_ORIGIN'] ?? '*';
+        $httpOrigin = $_SERVER['HTTP_ORIGIN'] ?? '';
+        $configuredOrigin = $_ENV['CORS_ORIGIN'] ?? '';
+
+        if (!empty($httpOrigin)) {
+            // Izinkan origin penelusur yang sedang mengakses (IP lokal, localhost, domain)
+            $origin = $httpOrigin;
+        } elseif (!empty($configuredOrigin) && $configuredOrigin !== '*') {
+            $origin = $configuredOrigin;
+        } else {
+            $origin = '*';
+        }
         
         header("Access-Control-Allow-Origin: {$origin}");
         header("Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS");
