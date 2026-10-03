@@ -48,8 +48,8 @@ php "$ROOT_DIR/apps/api/migrate.php"
 echo -e "\n\033[1;33m[5/5] Mengatur Permission Folder Uploads & Storage...\033[0m"
 mkdir -p "$ROOT_DIR/apps/api/public/uploads"
 mkdir -p "$ROOT_DIR/apps/api/public/storage/receipts"
-chmod -R 775 "$ROOT_DIR/apps/api/public/uploads"
-chmod -R 775 "$ROOT_DIR/apps/api/public/storage"
+chmod -R 777 "$ROOT_DIR/apps/api/public/uploads"
+chmod -R 777 "$ROOT_DIR/apps/api/public/storage"
 
 # Jika dijalankan dengan sudo, beri akses ke www-data
 if [ "$EUID" -eq 0 ]; then
