@@ -19,10 +19,10 @@ dpkg -i /tmp/cloudflared.deb || apt-get install -f -y
 echo -e "\n[3/3] Memasang Cloudflare Service dengan Token..."
 TOKEN="eyJhIjoiYzA0Nzg0YjZmMGYxN2ZhOTJjZjczN2ZmNmRkNTJiNWYiLCJ0IjoiODE5Y2Y1MTgtZjQ4My00ZjE3LTk3ZmMtMzcyMDFhYWUzMWYwIiwicyI6Ik56Um1OalJtTWprdFlqQTVNQzAwTUdVeExUa3hOV1F0TVRsaU56VmlaVE5sWVRFeCJ9"
 
-# Pasang service jika belum terpasang
-cloudflared service install "$TOKEN" || true
-
-systemctl enable cloudflared
+cloudflared service uninstall 2>/dev/null || true
+cloudflared service install "$TOKEN"
+systemctl daemon-reload
+systemctl enable --now cloudflared
 systemctl restart cloudflared
 
 echo -e "\n========================================================"
