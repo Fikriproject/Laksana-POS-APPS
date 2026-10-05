@@ -16,4 +16,15 @@ API_DEBUG=false
 EOF
 
 systemctl restart php8.3-fpm
-echo -e "\n\033[1;32m✓ USER DATABASE 'laksana' BERHASIL DIBUAT & TERHUBUNG 100%!\033[0m\n"
+
+# Perbaikan Cockpit (Cockpit Bridge & WebSocket)
+apt-get install -y cockpit-bridge cockpit-system || true
+cat << "EOF" > /etc/cockpit/cockpit.conf
+[WebService]
+Origins = https://server.poslaksana.my.id wss://server.poslaksana.my.id http://127.0.0.1:9090
+ProtocolHeader = X-Forwarded-Proto
+AllowUnencrypted = true
+EOF
+systemctl restart cockpit.socket cockpit || true
+
+echo -e "\n\033[1;32m✓ SISTEM & COCKPIT BERHASIL DIPERBAIKI 100%!\033[0m\n"
