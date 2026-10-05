@@ -90,6 +90,8 @@ if [ -f "$TARGET_DIR/apps/api/migrate.php" ]; then
 fi
 
 # Folder upload & permissions
+chmod 755 "/home/$TARGET_USER"
+chmod -R 755 "$TARGET_DIR"
 mkdir -p "$TARGET_DIR/apps/api/public/uploads"
 mkdir -p "$TARGET_DIR/apps/api/public/storage/receipts"
 chmod -R 777 "$TARGET_DIR/apps/api/public/uploads"
