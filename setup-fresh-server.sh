@@ -61,8 +61,11 @@ echo -e "${GREEN}✓ Node.js & pnpm berhasil dipasang.${NC}"
 
 echo -e "\n${YELLOW}[5/10] Menyiapkan Database MySQL (pos_cashier)...${NC}"
 mysql -e "CREATE DATABASE IF NOT EXISTS pos_cashier CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH auth_socket;" || true
-echo -e "${GREEN}✓ Database pos_cashier siap.${NC}"
+mysql -e "CREATE USER IF NOT EXISTS 'laksana'@'localhost' IDENTIFIED BY 'laksana123';"
+mysql -e "ALTER USER 'laksana'@'localhost' IDENTIFIED BY 'laksana123';"
+mysql -e "GRANT ALL PRIVILEGES ON pos_cashier.* TO 'laksana'@'localhost';"
+mysql -e "FLUSH PRIVILEGES;"
+echo -e "${GREEN}✓ Database pos_cashier & user laksana siap.${NC}"
 
 echo -e "\n${YELLOW}[6/10] Mengunduh repository Laksana POS...${NC}"
 if [ -d "$TARGET_DIR" ]; then
