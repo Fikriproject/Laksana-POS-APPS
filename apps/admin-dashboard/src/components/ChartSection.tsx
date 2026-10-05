@@ -27,8 +27,8 @@ const ChartSection = ({ data }: ChartSectionProps) => {
         return date.toLocaleDateString('en-US', { weekday: 'short' });
     };
 
-    const formatTooltip = (value: number) => {
-        return formatRupiah(value);
+    const formatTooltip = (value: any) => {
+        return formatRupiah(Number(value) || 0);
     };
 
     return (
@@ -71,7 +71,7 @@ const ChartSection = ({ data }: ChartSectionProps) => {
                             }}
                             itemStyle={{ color: isDark ? '#fff' : '#6467f2' }}
                             labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
-                            labelFormatter={(label) => new Date(label).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                            labelFormatter={(label: any) => new Date(String(label)).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                         />
                         <Area
                             type="monotone"

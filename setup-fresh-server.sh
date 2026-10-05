@@ -66,9 +66,10 @@ echo -e "${GREEN}✓ Database pos_cashier siap.${NC}"
 
 echo -e "\n${YELLOW}[6/10] Mengunduh repository Laksana POS...${NC}"
 if [ -d "$TARGET_DIR" ]; then
-    echo "Folder $TARGET_DIR sudah ada, melakukan git pull..."
+    echo "Folder $TARGET_DIR sudah ada, melakukan update..."
     cd "$TARGET_DIR"
-    git pull origin main
+    git fetch origin main
+    git reset --hard origin/main
 else
     echo "Melakukan clone dari GitHub..."
     git clone https://github.com/fikriproject/Laksana-POS-APPS.git "$TARGET_DIR"
