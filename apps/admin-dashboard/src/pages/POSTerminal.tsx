@@ -53,6 +53,25 @@ const POSTerminal = () => {
     const [discountValue, setDiscountValue] = useState<number>(0);
     const [cashReceived, setCashReceived] = useState<number>(0);
 
+    // Toggle Product Images in POS (persisted in localStorage)
+    const [showProductImages, setShowProductImages] = useState<boolean>(() => {
+        const saved = localStorage.getItem('pos_show_product_images');
+        return saved !== null ? saved === 'true' : true;
+    });
+
+    const toggleProductImages = () => {
+        setShowProductImages(prev => {
+            const next = !prev;
+            localStorage.setItem('pos_show_product_images', String(next));
+            toast.success(next ? 'Mode Gambar Produk diaktifkan' : 'Mode Gambar dinonaktifkan (Mode Ringkas)', {
+                id: 'pos-image-toggle',
+                icon: next ? '🖼️' : '📝',
+                duration: 2000
+            });
+            return next;
+        });
+    };
+
     const { confirm } = useConfirm();
 
 
@@ -345,8 +364,27 @@ const POSTerminal = () => {
                                 </div>
                             </label>
                         </div>
-                        <div className="flex items-center justify-end gap-6">
-                            <div className="flex items-center gap-4">
+                        <div className="flex items-center justify-end gap-4 sm:gap-6">
+                            <div className="flex items-center gap-2 sm:gap-3">
+                                {/* Toggle Product Images */}
+                                <button
+                                    type="button"
+                                    onClick={toggleProductImages}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
+                                        showProductImages
+                                            ? 'bg-primary/10 border-primary/30 text-primary dark:text-indigo-400 hover:bg-primary/20'
+                                            : 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20'
+                                    }`}
+                                    title={showProductImages ? "Nonaktifkan Gambar (Mode Ringkas / Teks)" : "Aktifkan Gambar Produk"}
+                                >
+                                    <span className="material-symbols-outlined text-[18px]">
+                                        {showProductImages ? 'image' : 'hide_image'}
+                                    </span>
+                                    <span className="hidden sm:inline">
+                                        {showProductImages ? 'Gambar: ON' : 'Gambar: OFF'}
+                                    </span>
+                                </button>
+
                                 <ThemeToggle />
                                 <button className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-sm font-medium text-gray-500 dark:text-[#9d9db9] hover:text-primary dark:hover:text-white">
                                     <span className="material-symbols-outlined">sync</span>
@@ -383,6 +421,45 @@ const POSTerminal = () => {
                                 </div>
                             </div>
 
+                            {/* Sub-header: Count & Mode Toggle */}
+                            <div className="px-6 py-2 flex items-center justify-between border-b border-slate-100 dark:border-white/5 bg-white/40 dark:bg-surface-dark/20 backdrop-blur-sm text-xs">
+                                <div className="flex items-center gap-2 text-gray-500 dark:text-[#9d9db9]">
+                                    <span>Menampilkan <strong className="text-gray-900 dark:text-white font-semibold">{filteredProducts.length}</strong> produk</span>
+                                </div>
+                                <div className="flex items-center gap-1 bg-gray-100 dark:bg-background-dark p-1 rounded-lg border border-slate-200 dark:border-[#282839]">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            if (!showProductImages) toggleProductImages();
+                                        }}
+                                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all font-medium ${
+                                            showProductImages
+                                                ? 'bg-white dark:bg-surface-dark text-gray-900 dark:text-white shadow-sm font-semibold'
+                                                : 'text-gray-500 dark:text-[#9d9db9] hover:text-gray-900 dark:hover:text-white'
+                                        }`}
+                                        title="Tampilkan dengan gambar produk"
+                                    >
+                                        <span className="material-symbols-outlined text-[16px]">grid_view</span>
+                                        <span className="hidden sm:inline">Mode Gambar</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            if (showProductImages) toggleProductImages();
+                                        }}
+                                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all font-medium ${
+                                            !showProductImages
+                                                ? 'bg-white dark:bg-surface-dark text-gray-900 dark:text-white shadow-sm font-semibold'
+                                                : 'text-gray-500 dark:text-[#9d9db9] hover:text-gray-900 dark:hover:text-white'
+                                        }`}
+                                        title="Tampilkan mode ringkas tanpa gambar"
+                                    >
+                                        <span className="material-symbols-outlined text-[16px]">view_agenda</span>
+                                        <span className="hidden sm:inline">Mode Ringkas (Teks)</span>
+                                    </button>
+                                </div>
+                            </div>
+
                             {/* Products Grid */}
                             <div className="flex-1 overflow-y-auto p-6 pb-24 md:pb-6">
                                 {loading ? (
@@ -394,7 +471,8 @@ const POSTerminal = () => {
                                         <span className="material-symbols-outlined text-4xl">inventory_2</span>
                                         <p>No products found</p>
                                     </div>
-                                ) : (
+                                ) : showProductImages ? (
+                                    /* MODE DENGAN GAMBAR (Visual Grid) */
                                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                                         {filteredProducts.map((product) => (
                                             <div
@@ -412,7 +490,7 @@ const POSTerminal = () => {
                                                         {formatRupiah(product.price)}
                                                     </div>
                                                     {product.stock_quantity <= 0 && (
-                                                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center font-bold text-white uppercase tracking-widest">
+                                                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center font-bold text-white uppercase tracking-widest text-xs">
                                                             Out of Stock
                                                         </div>
                                                     )}
@@ -426,6 +504,76 @@ const POSTerminal = () => {
                                                 </div>
                                             </div>
                                         ))}
+                                    </div>
+                                ) : (
+                                    /* MODE TANPA GAMBAR (Compact POS Text Cards) - Ergonomis, Rapi, & Elegan */
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
+                                        {filteredProducts.map((product) => {
+                                            const isOutOfStock = product.stock_quantity <= 0;
+                                            const isLowStock = !isOutOfStock && product.stock_quantity <= 10;
+
+                                            return (
+                                                <div
+                                                    key={product.id}
+                                                    onClick={() => addToCart(product)}
+                                                    className={`group relative flex flex-col justify-between bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-xl p-3.5 hover:border-primary/60 hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer min-h-[140px] select-none ${
+                                                        isOutOfStock ? 'opacity-55 pointer-events-none' : ''
+                                                    }`}
+                                                >
+                                                    {/* Baris Atas: Kategori & Status Stok */}
+                                                    <div className="flex items-center justify-between gap-1.5 mb-2">
+                                                        <span
+                                                            className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-primary/10 text-primary dark:bg-primary/20 dark:text-indigo-300 truncate max-w-[110px]"
+                                                            title={product.category_name || 'Umum'}
+                                                        >
+                                                            {product.category_name || 'Umum'}
+                                                        </span>
+                                                        <span
+                                                            className={`text-[11px] font-semibold px-2 py-0.5 rounded-md whitespace-nowrap shrink-0 ${
+                                                                isOutOfStock
+                                                                    ? 'bg-rose-500/10 text-rose-500 dark:text-rose-400'
+                                                                    : isLowStock
+                                                                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                                                    : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                                            }`}
+                                                        >
+                                                            {isOutOfStock ? 'Habis' : `Stok: ${product.stock_quantity}`}
+                                                        </span>
+                                                    </div>
+
+                                                    {/* Bagian Tengah: Nama Produk & SKU */}
+                                                    <div className="my-auto py-1">
+                                                        <h3 className="text-gray-900 dark:text-white font-bold text-sm leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+                                                            {product.name}
+                                                        </h3>
+                                                        {product.sku && (
+                                                            <span className="text-[10px] font-mono text-gray-400 dark:text-text-secondary mt-1 block truncate">
+                                                                {product.sku}
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Baris Bawah: Harga Prominen & Tombol Tambah Cepat */}
+                                                    <div className="pt-2.5 border-t border-slate-100 dark:border-white/5 flex items-center justify-between mt-2">
+                                                        <div className="text-sm sm:text-[15px] font-extrabold text-primary dark:text-indigo-400">
+                                                            {formatRupiah(product.price)}
+                                                        </div>
+                                                        <div className="size-6 rounded-md bg-gray-100 dark:bg-white/10 group-hover:bg-primary group-hover:text-white flex items-center justify-center text-gray-400 dark:text-gray-300 transition-colors">
+                                                            <span className="material-symbols-outlined text-[16px]">add</span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Overlay Jika Stok Habis */}
+                                                    {isOutOfStock && (
+                                                        <div className="absolute inset-0 bg-white/75 dark:bg-surface-dark/85 backdrop-blur-[1px] rounded-xl flex items-center justify-center">
+                                                            <span className="text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/80 px-2.5 py-1 rounded-md border border-rose-200 dark:border-rose-900/50 shadow-sm">
+                                                                Stok Habis
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </div>
@@ -464,7 +612,13 @@ const POSTerminal = () => {
                                         <div key={item.id} className="flex gap-4 p-3 rounded-xl bg-white dark:bg-[#1c1c27] border border-slate-200 dark:border-[#282839] group hover:border-primary/50 dark:hover:border-[#3b3c54] transition-all relative overflow-hidden shrink-0 shadow-sm dark:shadow-none">
                                             {/* Background slide effect for quantity controls could go here */}
 
-                                            <div className="size-16 rounded-lg bg-gray-200 dark:bg-[#282839] bg-center bg-cover shrink-0" style={{ backgroundImage: `url("${item.image_url || 'https://via.placeholder.com/150'}")` }} />
+                                            {showProductImages ? (
+                                                <div className="size-16 rounded-lg bg-gray-200 dark:bg-[#282839] bg-center bg-cover shrink-0" style={{ backgroundImage: `url("${item.image_url || 'https://via.placeholder.com/150'}")` }} />
+                                            ) : (
+                                                <div className="size-10 rounded-lg bg-primary/10 dark:bg-primary/20 text-primary dark:text-indigo-400 flex items-center justify-center shrink-0 self-center">
+                                                    <span className="material-symbols-outlined text-[20px]">shopping_bag</span>
+                                                </div>
+                                            )}
 
                                             <div className="flex-1 flex flex-col justify-between py-0.5">
                                                 <div className="flex justify-between items-start gap-2">
