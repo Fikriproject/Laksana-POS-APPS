@@ -163,23 +163,23 @@ CREATE TABLE IF NOT EXISTS stock_reports (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Indexes for performance
-CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id);
-CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku);
-CREATE INDEX IF NOT EXISTS idx_products_active ON products(is_active);
-CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id);
-CREATE INDEX IF NOT EXISTS idx_orders_date ON orders(created_at);
-CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
-CREATE INDEX IF NOT EXISTS idx_orders_shift ON orders(shift_id);
-CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);
-CREATE INDEX IF NOT EXISTS idx_order_items_product ON order_items(product_id);
-CREATE INDEX IF NOT EXISTS idx_inventory_logs_product ON inventory_logs(product_id);
-CREATE INDEX IF NOT EXISTS idx_inventory_logs_date ON inventory_logs(created_at);
-CREATE INDEX IF NOT EXISTS idx_inventory_logs_type ON inventory_logs(type);
-CREATE INDEX IF NOT EXISTS idx_shifts_user ON shifts(user_id);
-CREATE INDEX IF NOT EXISTS idx_shifts_status ON shifts(status);
-CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(created_at);
-CREATE INDEX IF NOT EXISTS idx_expenses_category ON expenses(category);
-CREATE INDEX IF NOT EXISTS idx_stock_reports_status ON stock_reports(status);
+CREATE INDEX idx_products_category ON products(category_id);
+CREATE INDEX idx_products_sku ON products(sku);
+CREATE INDEX idx_products_active ON products(is_active);
+CREATE INDEX idx_orders_user ON orders(user_id);
+CREATE INDEX idx_orders_date ON orders(created_at);
+CREATE INDEX idx_orders_status ON orders(status);
+CREATE INDEX idx_orders_shift ON orders(shift_id);
+CREATE INDEX idx_order_items_order ON order_items(order_id);
+CREATE INDEX idx_order_items_product ON order_items(product_id);
+CREATE INDEX idx_inventory_logs_product ON inventory_logs(product_id);
+CREATE INDEX idx_inventory_logs_date ON inventory_logs(created_at);
+CREATE INDEX idx_inventory_logs_type ON inventory_logs(type);
+CREATE INDEX idx_shifts_user ON shifts(user_id);
+CREATE INDEX idx_shifts_status ON shifts(status);
+CREATE INDEX idx_expenses_date ON expenses(created_at);
+CREATE INDEX idx_expenses_category ON expenses(category);
+CREATE INDEX idx_stock_reports_status ON stock_reports(status);
 
 -- Default Admin (Password: admin123) and Cashier (PIN: 1234)
 INSERT IGNORE INTO users (id, username, employee_id, password_hash, pin_code, full_name, email, role) 
@@ -189,12 +189,12 @@ VALUES
 
 -- Default Categories
 INSERT IGNORE INTO categories (id, name, icon, slug) VALUES
-(1, 'Hot Drinks', 'coffee', 'hot-drinks'),
-(2, 'Cold Drinks', 'local_cafe', 'cold-drinks'),
-(3, 'Pastries', 'bakery_dining', 'pastries'),
-(4, 'Bakery', 'cake', 'bakery'),
-(5, 'Food', 'lunch_dining', 'food'),
-(6, 'Desserts', 'icecream', 'desserts'),
-(7, 'Snacks', 'fastfood', 'snacks');
+(1, 'Peci', 'domino', 'peci'),
+(2, 'Jam', 'schedule', 'jam'),
+(3, 'Kertas', 'description', 'kertas'),
+(4, 'ATK', 'edit', 'atk'),
+(5, 'Kalkulator', 'calculate', 'kalkulator'),
+(6, 'Jasa', 'design_services', 'jasa'),
+(7, 'Figura', 'crop_original', 'figura');
 
 SET FOREIGN_KEY_CHECKS = 1;

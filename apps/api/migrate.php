@@ -672,13 +672,13 @@ $catCount = (int) $db->query("SELECT COUNT(*) FROM categories")->fetchColumn();
 if ($catCount === 0) {
     echo " [✓] Menambahkan kategori default...\n";
     $categories = [
-        ['name' => 'Hot Drinks', 'icon' => 'coffee', 'slug' => 'hot-drinks'],
-        ['name' => 'Cold Drinks', 'icon' => 'local_cafe', 'slug' => 'cold-drinks'],
-        ['name' => 'Pastries', 'icon' => 'bakery_dining', 'slug' => 'pastries'],
-        ['name' => 'Bakery', 'icon' => 'cake', 'slug' => 'bakery'],
-        ['name' => 'Food', 'icon' => 'lunch_dining', 'slug' => 'food'],
-        ['name' => 'Desserts', 'icon' => 'icecream', 'slug' => 'desserts'],
-        ['name' => 'Snacks', 'icon' => 'fastfood', 'slug' => 'snacks'],
+        ['name' => 'Peci', 'icon' => 'domino', 'slug' => 'peci'],
+        ['name' => 'Jam', 'icon' => 'schedule', 'slug' => 'jam'],
+        ['name' => 'Kertas', 'icon' => 'description', 'slug' => 'kertas'],
+        ['name' => 'ATK', 'icon' => 'edit', 'slug' => 'atk'],
+        ['name' => 'Kalkulator', 'icon' => 'calculate', 'slug' => 'kalkulator'],
+        ['name' => 'Jasa', 'icon' => 'design_services', 'slug' => 'jasa'],
+        ['name' => 'Figura', 'icon' => 'crop_original', 'slug' => 'figura'],
     ];
 
     $stmtCat = $db->prepare("INSERT INTO categories (name, icon, slug, is_active) VALUES (:name, :icon, :slug, :is_active)");
