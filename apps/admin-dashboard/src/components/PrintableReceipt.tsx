@@ -42,9 +42,9 @@ const PrintableReceipt: React.FC<PrintableReceiptProps> = ({ order, className = 
         <div id="printable-receipt" className={`hidden print:block print:w-full print:bg-white text-black font-mono p-8 bg-white ${className}`}>
             <div className="max-w-[80mm] mx-auto">
                 <div className="text-center mb-4">
-                    <h2 className="font-bold text-xl uppercase">Toko Plastik Dan Bahan Kue Laksana</h2>
+                    <h2 className="font-bold text-xl uppercase">Omega Digital Store</h2>
                     <p className="text-sm">Kramat Dukupuntang</p>
-                    <p className="text-sm">Telp: 0852-3477-1975</p>
+                    <p className="text-sm">Telp: +62 851-8316-7100</p>
                 </div>
 
                 <div className="border-b border-dashed border-black my-2"></div>
