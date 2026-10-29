@@ -59,7 +59,7 @@ class Product extends Model
         return $stmt->fetchAll();
     }
 
-    public function search(string $query, int $limit = 20): array
+    public function search(string $query, int $limit = 100): array
     {
         $searchTerm = "%{$query}%";
         // Check driver for Case Insensitivity

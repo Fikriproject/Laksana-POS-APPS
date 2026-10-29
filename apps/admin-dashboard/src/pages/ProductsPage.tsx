@@ -32,6 +32,14 @@ const ProductsPage = () => {
     const [categoryFilter, setCategoryFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [categories, setCategories] = useState<any[]>([]);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [perPage, setPerPage] = useState(50);
+    const [paginationInfo, setPaginationInfo] = useState({
+        current_page: 1,
+        per_page: 50,
+        total: 0,
+        total_pages: 1
+    });
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
@@ -46,11 +54,19 @@ const ProductsPage = () => {
     });
 
     useEffect(() => {
-        fetchProducts();
         fetchCategories();
-    }, [categoryFilter, statusFilter]); // Re-fetch when filters change
+    }, []);
 
-    // ... existing functions (fetchCategories, fetchProducts, etc.) ...
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [categoryFilter, statusFilter]);
+
+    useEffect(() => {
+        if (!searchQuery.trim()) {
+            fetchProducts();
+        }
+    }, [currentPage, perPage, categoryFilter, statusFilter, searchQuery]);
+
     const fetchCategories = async () => {
         try {
             const response = await api.get('/products/categories');
@@ -67,6 +83,8 @@ const ProductsPage = () => {
         try {
             // Build query params
             const params = new URLSearchParams();
+            params.append('page', currentPage.toString());
+            params.append('per_page', perPage.toString());
             if (categoryFilter && categoryFilter !== 'all') params.append('category_id', categoryFilter);
             if (statusFilter && statusFilter !== 'all') params.append('active', statusFilter === 'active' ? 'true' : 'false');
 
@@ -76,8 +94,17 @@ const ProductsPage = () => {
             // Handle pagination structure
             if (response.data.data.products) {
                 setProductList(response.data.data.products);
+                if (response.data.data.pagination) {
+                    setPaginationInfo(response.data.data.pagination);
+                }
             } else {
                 setProductList(response.data.data);
+                setPaginationInfo({
+                    current_page: 1,
+                    per_page: response.data.data.length,
+                    total: response.data.data.length,
+                    total_pages: 1
+                });
             }
         } catch (error) {
             console.error('Error fetching products:', error);
@@ -88,15 +115,38 @@ const ProductsPage = () => {
 
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!searchQuery.trim()) {
+            fetchProducts();
+            return;
+        }
         setLoading(true);
         try {
-            const response = await api.get(`/products/search?q=${searchQuery}`);
-            if (Array.isArray(response.data.data)) {
-                setProductList(response.data.data);
-            } else if (response.data.data.products) {
-                setProductList(response.data.data.products);
+            const response = await api.get(`/products/search?q=${encodeURIComponent(searchQuery)}`);
+            const data = response.data.data;
+            if (Array.isArray(data)) {
+                setProductList(data);
+                setPaginationInfo({
+                    current_page: 1,
+                    per_page: data.length,
+                    total: data.length,
+                    total_pages: 1
+                });
+            } else if (data && data.products) {
+                setProductList(data.products);
+                setPaginationInfo({
+                    current_page: 1,
+                    per_page: data.products.length,
+                    total: data.products.length,
+                    total_pages: 1
+                });
             } else {
                 setProductList([]);
+                setPaginationInfo({
+                    current_page: 1,
+                    per_page: perPage,
+                    total: 0,
+                    total_pages: 1
+                });
             }
         } catch (error) {
             console.error('Error searching products:', error);
@@ -457,10 +507,72 @@ const ProductsPage = () => {
                                 </table>
                             </div>
                             {/* Pagination */}
-                            <div className="px-6 py-4 border-t border-slate-200 dark:border-[#282839] bg-white dark:bg-[#111118] flex items-center justify-between transition-colors">
-                                <div className="text-xs text-gray-500 dark:text-[#9d9db9]">
-                                    Menampilkan <span className="text-gray-900 dark:text-white font-medium">1-{productList.length}</span> dari <span className="text-gray-900 dark:text-white font-medium">{productList.length}</span> produk
+                            <div className="px-6 py-4 border-t border-slate-200 dark:border-[#282839] bg-white dark:bg-[#111118] flex flex-col sm:flex-row items-center justify-between gap-4 transition-colors">
+                                <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500 dark:text-[#9d9db9]">
+                                    <span>
+                                        Menampilkan <span className="text-gray-900 dark:text-white font-medium">{paginationInfo.total === 0 ? 0 : (currentPage - 1) * perPage + 1}-{Math.min(currentPage * perPage, paginationInfo.total)}</span> dari <span className="text-gray-900 dark:text-white font-medium">{paginationInfo.total}</span> produk
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <span>Tampilkan:</span>
+                                        <select
+                                            value={perPage}
+                                            onChange={(e) => {
+                                                setPerPage(Number(e.target.value));
+                                                setCurrentPage(1);
+                                            }}
+                                            className="bg-gray-100 dark:bg-[#282839] border-none rounded px-2.5 py-1 text-xs text-gray-900 dark:text-white font-medium focus:ring-1 focus:ring-primary cursor-pointer"
+                                        >
+                                            <option value={20}>20 per halaman</option>
+                                            <option value={50}>50 per halaman</option>
+                                            <option value={100}>100 per halaman</option>
+                                            <option value={500}>500 (Tampilkan Semua)</option>
+                                        </select>
+                                    </div>
                                 </div>
+
+                                {paginationInfo.total_pages > 1 && (
+                                    <div className="flex items-center gap-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => setCurrentPage(1)}
+                                            disabled={currentPage <= 1}
+                                            className="p-1.5 rounded-lg border border-slate-200 dark:border-[#282839] text-gray-600 dark:text-[#9d9db9] hover:bg-gray-100 dark:hover:bg-[#1c1c27] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                            title="Halaman Pertama"
+                                        >
+                                            <span className="material-symbols-outlined text-sm">first_page</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                            disabled={currentPage <= 1}
+                                            className="p-1.5 rounded-lg border border-slate-200 dark:border-[#282839] text-gray-600 dark:text-[#9d9db9] hover:bg-gray-100 dark:hover:bg-[#1c1c27] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                            title="Sebelumnya"
+                                        >
+                                            <span className="material-symbols-outlined text-sm">chevron_left</span>
+                                        </button>
+                                        <span className="px-3 py-1 text-xs font-medium text-gray-700 dark:text-[#9d9db9]">
+                                            Halaman <strong className="text-gray-900 dark:text-white">{currentPage}</strong> dari {paginationInfo.total_pages}
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, paginationInfo.total_pages))}
+                                            disabled={currentPage >= paginationInfo.total_pages}
+                                            className="p-1.5 rounded-lg border border-slate-200 dark:border-[#282839] text-gray-600 dark:text-[#9d9db9] hover:bg-gray-100 dark:hover:bg-[#1c1c27] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                            title="Selanjutnya"
+                                        >
+                                            <span className="material-symbols-outlined text-sm">chevron_right</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setCurrentPage(paginationInfo.total_pages)}
+                                            disabled={currentPage >= paginationInfo.total_pages}
+                                            className="p-1.5 rounded-lg border border-slate-200 dark:border-[#282839] text-gray-600 dark:text-[#9d9db9] hover:bg-gray-100 dark:hover:bg-[#1c1c27] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                            title="Halaman Terakhir"
+                                        >
+                                            <span className="material-symbols-outlined text-sm">last_page</span>
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

@@ -83,7 +83,7 @@ const POSTerminal = () => {
         const fetchData = async () => {
             try {
                 const [productsRes, categoriesRes] = await Promise.all([
-                    api.get('/products'),
+                    api.get('/products?per_page=1000&active=true'),
                     api.get('/products/categories')
                 ]);
 
@@ -255,7 +255,7 @@ const POSTerminal = () => {
                 }
             }, 500);
 
-            const res = await api.get('/products');
+            const res = await api.get('/products?per_page=1000&active=true');
             const productsData = res.data.data.products ? res.data.data.products : res.data.data;
             setProducts(productsData);
 

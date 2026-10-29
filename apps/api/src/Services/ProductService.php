@@ -21,10 +21,24 @@ class ProductService
 
     public function getAll(int $page = 1, int $perPage = 20, ?int $categoryId = null, ?bool $activeOnly = null): array
     {
+        $where = '1=1';
+        $params = [];
+        
+        if ($categoryId !== null) {
+            $where .= ' AND category_id = :category_id';
+            $params['category_id'] = $categoryId;
+        }
+        
+        if ($activeOnly !== null) {
+            $where .= ' AND is_active = :is_active';
+            $params['is_active'] = $activeOnly ? 'true' : 'false';
+        }
+
+        $perPage = max(1, min(1000, $perPage));
         $offset = ($page - 1) * $perPage;
         
         $products = $this->productModel->findAllWithCategory($perPage, $offset, $categoryId, $activeOnly);
-        $total = $this->productModel->count();
+        $total = $this->productModel->count($where, $params);
         
         return [
             'products' => $this->transformImageUrls($products),
@@ -32,7 +46,7 @@ class ProductService
                 'current_page' => $page,
                 'per_page' => $perPage,
                 'total' => $total,
-                'total_pages' => ceil($total / $perPage)
+                'total_pages' => $perPage > 0 ? (int) ceil($total / $perPage) : 1
             ]
         ];
     }
