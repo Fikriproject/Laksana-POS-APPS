@@ -80,6 +80,27 @@ DB_PASSWORD=
 | `php apps/api/migrate.php --fresh` | Reset total: Hapus semua tabel lalu buat ulang dari awal (akan meminta konfirmasi `yes`) |
 | `php apps/api/migrate.php --fresh --force` | Reset total langsung tanpa konfirmasi |
 | `php apps/api/migrate.php --status` | Cek status koneksi dan tabel database |
+| `php apps/api/migrate.php --import-products` | Migrasi sekaligus mengimpor 285 produk terbaru |
+| `php apps/api/import_products.php` | Menjalankan import 285 produk terbaru secara langsung |
+| `./import.sh` | Shortcut import produk langsung di server Linux |
+
+---
+
+## 📦 Import Produk Terbaru (285 Produk Baru)
+
+Untuk mengimpor data produk terbaru (Qur'an, Kitab Matan, Rimyuk, Terjemah, Kamus, dll):
+```bash
+# Opsi 1: Menggunakan skrip PHP (Auto-detect MySQL & PostgreSQL)
+php apps/api/import_products.php
+
+# Opsi 2: Menggunakan shortcut bash
+chmod +x import.sh
+./import.sh
+
+# Opsi 3: Menggunakan file SQL langsung (phpMyAdmin / Supabase SQL Editor / MySQL CLI)
+# - MySQL / MariaDB   : apps/api/database/import_products.sql
+# - PostgreSQL        : apps/api/database/import_products_postgres.sql
+```
 
 ---
 

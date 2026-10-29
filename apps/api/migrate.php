@@ -56,22 +56,24 @@ class CliColor {
 }
 
 // Parse arguments
-$options = getopt('hfs', ['help', 'fresh', 'force', 'seed', 'status']);
+$options = getopt('hfs', ['help', 'fresh', 'force', 'seed', 'status', 'import-products']);
 $isHelp = isset($options['h']) || isset($options['help']);
 $isFresh = isset($options['f']) || isset($options['fresh']);
 $isForce = isset($options['force']);
 $isSeed = isset($options['s']) || isset($options['seed']);
 $isStatus = isset($options['status']);
+$isImportProducts = isset($options['import-products']);
 
 if ($isHelp) {
     echo "\n" . CliColor::bold("LAKSANA POS - DATABASE MIGRATION TOOL") . "\n";
     echo "========================================================\n";
     echo "Perintah untuk migrasi database satu langkah:\n\n";
-    echo "  php migrate.php           Migrasi aman (buat tabel & kolom baru tanpa hapus data)\n";
-    echo "  php migrate.php --seed    Migrasi lengkap dan isi data sampel\n";
-    echo "  php migrate.php --fresh   Reset total: hapus semua tabel dan migrasi ulang\n";
-    echo "  php migrate.php --status  Cek status koneksi dan daftar tabel\n";
-    echo "  php migrate.php --help    Tampilkan bantuan ini\n\n";
+    echo "  php migrate.php                    Migrasi aman (buat tabel & kolom baru tanpa hapus data)\n";
+    echo "  php migrate.php --seed             Migrasi lengkap dan isi data sampel\n";
+    echo "  php migrate.php --fresh            Reset total: hapus semua tabel dan migrasi ulang\n";
+    echo "  php migrate.php --status           Cek status koneksi dan daftar tabel\n";
+    echo "  php migrate.php --import-products  Import data produk terbaru dari database/products_data.json\n";
+    echo "  php migrate.php --help             Tampilkan bantuan ini\n\n";
     exit(0);
 }
 
@@ -725,6 +727,58 @@ if ($productCount === 0 && ($isSeed || $isFresh)) {
         ]);
     }
     echo "     - Berhasil menambahkan " . count($sampleProducts) . " produk sampel.\n";
+}
+
+// 9. Optional bulk import products if requested
+if ($isImportProducts) {
+    echo "\n" . CliColor::bold("LANGKAH 5: IMPORT DATA PRODUK TERBARU") . "\n";
+    $jsonPath = __DIR__ . '/database/products_data.json';
+    if (file_exists($jsonPath)) {
+        $importList = json_decode(file_get_contents($jsonPath), true);
+        if (is_array($importList)) {
+            $stmtCheck = $db->prepare("SELECT id FROM products WHERE sku = :sku OR name = :name LIMIT 1");
+            $stmtInsert = $db->prepare("INSERT INTO products (
+                id, sku, name, description, price, purchase_price, 
+                stock_quantity, low_stock_threshold, category_id, image_url, 
+                is_active, created_at, updated_at
+            ) VALUES (
+                :id, :sku, :name, NULL, :price, 0.00, 
+                :stock_quantity, 10, NULL, NULL, 
+                :is_active, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+            )");
+            $stmtUpdate = $db->prepare("UPDATE products SET 
+                price = :price, 
+                stock_quantity = :stock_quantity,
+                updated_at = CURRENT_TIMESTAMP
+                WHERE id = :id");
+
+            $newCount = 0;
+            $upCount = 0;
+            foreach ($importList as $item) {
+                $stmtCheck->execute(['sku' => $item['sku'], 'name' => $item['name']]);
+                $ex = $stmtCheck->fetch(PDO::FETCH_ASSOC);
+                if ($ex) {
+                    $stmtUpdate->execute([
+                        'id' => $ex['id'],
+                        'price' => $item['price'],
+                        'stock_quantity' => $item['stock_quantity']
+                    ]);
+                    $upCount++;
+                } else {
+                    $stmtInsert->execute([
+                        'id' => $item['id'],
+                        'sku' => $item['sku'],
+                        'name' => $item['name'],
+                        'price' => $item['price'],
+                        'stock_quantity' => $item['stock_quantity'],
+                        'is_active' => $isPg ? 'true' : 1
+                    ]);
+                    $newCount++;
+                }
+            }
+            echo " [✓] Berhasil mengimpor " . CliColor::green((string)$newCount) . " produk baru (dan {$upCount} diperbarui).\n";
+        }
+    }
 }
 
 echo "\n" . CliColor::green(CliColor::bold("========================================================")) . "\n";
