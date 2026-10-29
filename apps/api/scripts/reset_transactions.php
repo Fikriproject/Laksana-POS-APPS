@@ -12,14 +12,24 @@ $dotenv->safeLoad();
 $database = new Database();
 $db = $database->getConnection();
 
-echo "⚠️ WARNING: This will delete ALL transaction data (Orders, Expenses, Shifts, Logs)!\n";
-echo "Are you sure you want to proceed? (yes/no): ";
-$handle = fopen("php://stdin", "r");
-$line = trim(fgets($handle));
+$options = getopt('fy', ['force', 'yes']);
+$isForce = isset($options['f']) || isset($options['y']) || isset($options['force']) || isset($options['yes']);
 
-if ($line !== 'yes') {
-    echo "Aborted.\n";
-    exit;
+if (!$isForce) {
+    echo "⚠️  PERINGATAN: Perintah ini akan MENGHAPUS SELURUH riwayat:\n";
+    echo "  - Riwayat Transaksi (Orders & Order Items)\n";
+    echo "  - Riwayat Barang Masuk/Keluar (Inventory Logs)\n";
+    echo "  - Riwayat Shift Kasir (Shifts)\n";
+    echo "  - Riwayat Pengeluaran (Expenses)\n";
+    echo "  - Laporan Stok (Stock Reports)\n\n";
+    echo "Ketik 'yes' untuk melanjutkan: ";
+    $handle = fopen("php://stdin", "r");
+    $line = trim((string) fgets($handle));
+
+    if ($line !== 'yes') {
+        echo "Dibatalkan.\n";
+        exit;
+    }
 }
 
 try {
@@ -37,18 +47,34 @@ try {
 
     foreach ($tables as $table) {
         try {
-            // Check if table exists first (optional but good practice)
             $db->exec("TRUNCATE TABLE $table");
-            echo "✅ Truncated table: $table\n";
+            echo " [✓] Berhasil membersihkan tabel : $table\n";
         } catch (PDOException $e) {
-            echo "⚠️ Could not truncate $table (might not exist): " . $e->getMessage() . "\n";
+            echo " [•] Lewati tabel $table : " . $e->getMessage() . "\n";
         }
     }
 
     // Enable FK checks
     $db->exec("SET FOREIGN_KEY_CHECKS = 1");
+
+    // Clean receipts storage directory
+    $receiptsDir = __DIR__ . '/../public/storage/receipts';
+    if (is_dir($receiptsDir)) {
+        $files = glob($receiptsDir . '/*');
+        $deletedReceipts = 0;
+        foreach ($files as $file) {
+            if (is_file($file)) {
+                unlink($file);
+                $deletedReceipts++;
+            }
+        }
+        if ($deletedReceipts > 0) {
+            echo " [✓] Berhasil menghapus $deletedReceipts file struk lama di storage.\n";
+        }
+    }
     
-    echo "\n🎉 Transaction data reset successfully!\n";
+    echo "\n🎉 SELURUH DATA RIWAYAT TRANSAKSI & HISTORY BARANG BERHASIL DIBERSIHKAN (CLEAR FRESH)!\n";
+    echo "   Data Master Produk, Kategori, dan Akun Kasir/Admin tetap aman.\n\n";
 
 } catch (PDOException $e) {
     echo "❌ Error: " . $e->getMessage() . "\n";
