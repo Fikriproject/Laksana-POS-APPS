@@ -190,6 +190,27 @@ if ($isFresh) {
 // 4. Table Definitions
 $isPg = ($driver === 'pgsql');
 
+if (!$isPg) {
+    try {
+        $db->exec("SET FOREIGN_KEY_CHECKS = 0;");
+    } catch (\Exception $e) {}
+}
+
+$prodCollation = 'utf8mb4_unicode_ci';
+$userCollation = 'utf8mb4_unicode_ci';
+if (!$isPg && tableExists($db, $driver, 'products')) {
+    try {
+        $c = $db->query("SELECT COLLATION_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'products' AND COLUMN_NAME = 'id'")->fetch(PDO::FETCH_ASSOC);
+        if (!empty($c['COLLATION_NAME'])) $prodCollation = $c['COLLATION_NAME'];
+    } catch (\Exception $e) {}
+}
+if (!$isPg && tableExists($db, $driver, 'users')) {
+    try {
+        $c = $db->query("SELECT COLLATION_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'id'")->fetch(PDO::FETCH_ASSOC);
+        if (!empty($c['COLLATION_NAME'])) $userCollation = $c['COLLATION_NAME'];
+    } catch (\Exception $e) {}
+}
+
 $tableDefinitions = [
     'users' => $isPg ? "
         CREATE TABLE IF NOT EXISTS users (
@@ -481,15 +502,15 @@ $tableDefinitions = [
     " : "
         CREATE TABLE IF NOT EXISTS stock_reports (
             id CHAR(36) PRIMARY KEY,
-            product_id CHAR(36) NOT NULL,
-            user_id CHAR(36) NOT NULL,
+            product_id CHAR(36) CHARACTER SET utf8mb4 COLLATE {$prodCollation} NOT NULL,
+            user_id CHAR(36) CHARACTER SET utf8mb4 COLLATE {$userCollation} NOT NULL,
             notes TEXT,
             status VARCHAR(20) DEFAULT 'pending',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            INDEX idx_sr_product (product_id),
+            INDEX idx_sr_user (user_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     "
 ];
 
@@ -497,11 +518,31 @@ $tableDefinitions = [
 echo CliColor::bold("LANGKAH 1: MEMERIKSA & MEMBUAT TABEL") . "\n";
 foreach ($tableDefinitions as $tableName => $sql) {
     $existsBefore = tableExists($db, $driver, $tableName);
-    $db->exec($sql);
-    if (!$existsBefore) {
-        echo " [✓] Tabel " . CliColor::green(str_pad($tableName, 16)) . " : " . CliColor::green("BERHASIL DIBUAT") . "\n";
-    } else {
-        echo " [•] Tabel " . str_pad($tableName, 16) . " : " . CliColor::cyan("SUDAH ADA") . "\n";
+    try {
+        $db->exec($sql);
+        if (!$existsBefore) {
+            echo " [✓] Tabel " . CliColor::green(str_pad($tableName, 16)) . " : " . CliColor::green("BERHASIL DIBUAT") . "\n";
+        } else {
+            echo " [•] Tabel " . str_pad($tableName, 16) . " : " . CliColor::cyan("SUDAH ADA") . "\n";
+        }
+    } catch (\Exception $e) {
+        if ($tableName === 'stock_reports' && !$isPg) {
+            $fallbackSql = "CREATE TABLE IF NOT EXISTS stock_reports (
+                id CHAR(36) PRIMARY KEY,
+                product_id CHAR(36) NOT NULL,
+                user_id CHAR(36) NOT NULL,
+                notes TEXT,
+                status VARCHAR(20) DEFAULT 'pending',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_stock_reports_product (product_id),
+                INDEX idx_stock_reports_user (user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+            $db->exec($fallbackSql);
+            echo " [✓] Tabel " . CliColor::green(str_pad($tableName, 16)) . " : " . CliColor::green("BERHASIL DIBUAT (Compatibility Mode)") . "\n";
+        } else {
+            throw $e;
+        }
     }
 }
 echo "\n";
