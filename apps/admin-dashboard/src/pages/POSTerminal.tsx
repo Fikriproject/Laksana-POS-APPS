@@ -83,7 +83,7 @@ const POSTerminal = () => {
         const fetchData = async () => {
             try {
                 const [productsRes, categoriesRes] = await Promise.all([
-                    api.get('/products?per_page=1000&active=true'),
+                    api.get('/products?per_page=1000'),
                     api.get('/products/categories')
                 ]);
 
@@ -94,12 +94,18 @@ const POSTerminal = () => {
                 // Add 'All' category and map icons if possible
                 const fetchedCategories = categoriesRes.data.data.map((c: any) => ({
                     ...c,
-                    icon: c.name.toLowerCase().includes('drink') ? 'local_bar' :
-                        c.name.toLowerCase().includes('food') ? 'lunch_dining' : 'grid_view'
+                    icon: c.icon || (
+                        c.name.toLowerCase().includes('drink') ? 'local_bar' :
+                        c.name.toLowerCase().includes('food') ? 'lunch_dining' :
+                        c.name.toLowerCase().includes('kitab') || c.name.toLowerCase().includes('quran') || c.name.toLowerCase().includes('buku') ? 'menu_book' : 'grid_view'
+                    )
                 }));
+
+                const hasUncategorized = Array.isArray(productsData) && productsData.some((p: any) => !p.category_id);
 
                 setCategories([
                     { id: 'all', name: 'All', icon: 'grid_view' },
+                    ...(hasUncategorized ? [{ id: 'uncategorized', name: 'Kitab & Lainnya', icon: 'menu_book' }] : []),
                     ...fetchedCategories
                 ]);
             } catch (error) {
@@ -255,7 +261,7 @@ const POSTerminal = () => {
                 }
             }, 500);
 
-            const res = await api.get('/products?per_page=1000&active=true');
+            const res = await api.get('/products?per_page=1000');
             const productsData = res.data.data.products ? res.data.data.products : res.data.data;
             setProducts(productsData);
 
@@ -315,10 +321,13 @@ const POSTerminal = () => {
 
 
     const filteredProducts = products.filter(product => {
-        const matchesCategory = activeCategory === 'all' || product.category_id === activeCategory;
+        const matchesCategory = activeCategory === 'all' || 
+            (activeCategory === 'uncategorized' && !product.category_id) || 
+            product.category_id === activeCategory;
         const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (product.sku && product.sku.toLowerCase().includes(searchTerm.toLowerCase()));
-        return matchesCategory && matchesSearch && product.is_active;
+        const isActive = product.is_active === 1 || product.is_active === '1' || product.is_active === true;
+        return matchesCategory && matchesSearch && isActive;
     });
 
     return (

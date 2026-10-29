@@ -36,8 +36,9 @@ class Product extends Model
         }
         
         if ($activeOnly !== null) {
+            $isPg = ($this->db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql');
             $where .= ' AND p.is_active = :is_active';
-            $params['is_active'] = $activeOnly ? 'true' : 'false'; // Postgres uses strings 'true'/'false' or boolean type
+            $params['is_active'] = $isPg ? ($activeOnly ? 'true' : 'false') : ($activeOnly ? 1 : 0);
         }
         
         $stmt = $this->db->prepare(
@@ -57,6 +58,25 @@ class Product extends Model
         $stmt->execute();
         
         return $stmt->fetchAll();
+    }
+
+    public function countWithFilter(?int $categoryId = null, ?bool $activeOnly = null): int
+    {
+        $where = '1=1';
+        $params = [];
+        
+        if ($categoryId !== null) {
+            $where .= ' AND category_id = :category_id';
+            $params['category_id'] = $categoryId;
+        }
+        
+        if ($activeOnly !== null) {
+            $isPg = ($this->db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql');
+            $where .= ' AND is_active = :is_active';
+            $params['is_active'] = $isPg ? ($activeOnly ? 'true' : 'false') : ($activeOnly ? 1 : 0);
+        }
+        
+        return $this->count($where, $params);
     }
 
     public function search(string $query, int $limit = 100): array
