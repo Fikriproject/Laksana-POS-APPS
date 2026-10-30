@@ -28,7 +28,7 @@ const Header = ({ onMenuClick }: HeaderProps) => {
                 {/* Mobile Menu Button */}
                 <button
                     onClick={onMenuClick}
-                    className="lg:hidden p-2 -ml-2 text-text-secondary hover:text-primary transition-colors"
+                    className="p-2 -ml-2 text-gray-500 dark:text-text-secondary hover:text-primary transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 shrink-0" title="Buka Menu"
                 >
                     <span className="material-symbols-outlined">menu</span>
                 </button>

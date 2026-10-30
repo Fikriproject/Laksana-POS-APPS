@@ -379,7 +379,7 @@ const POSTerminal = () => {
                         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                             <button
                                 onClick={toggleSidebar}
-                                className="lg:hidden p-1.5 -ml-1 text-gray-500 dark:text-text-secondary hover:text-primary transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-white/5"
+                                className="p-1.5 -ml-1 text-gray-500 dark:text-text-secondary hover:text-primary transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 shrink-0"
                                 title="Buka Menu"
                             >
                                 <span className="material-symbols-outlined text-[22px] sm:text-[24px]">menu</span>

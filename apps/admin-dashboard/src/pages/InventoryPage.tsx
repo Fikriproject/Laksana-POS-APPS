@@ -261,7 +261,7 @@ const InventoryPage = () => {
                     <div className="flex items-center gap-2 text-sm">
                         <button
                             onClick={toggleSidebar}
-                            className="lg:hidden p-1 mr-2 text-gray-500 dark:text-text-secondary hover:text-gray-900 dark:hover:text-white transition-colors"
+                            className="p-1.5 mr-2 text-gray-500 dark:text-text-secondary hover:text-primary transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 shrink-0" title="Buka Menu"
                         >
                             <span className="material-symbols-outlined">menu</span>
                         </button>

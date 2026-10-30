@@ -452,7 +452,7 @@ const ReportsPage = () => {
                             {/* Hamburger */}
                             <button
                                 onClick={toggleSidebar}
-                                className="lg:hidden p-2 -ml-2 text-gray-500 dark:text-text-secondary hover:text-gray-900 dark:hover:text-white transition-colors"
+                                className="p-2 -ml-2 text-gray-500 dark:text-text-secondary hover:text-primary transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 shrink-0" title="Buka Menu"
                             >
                                 <span className="material-symbols-outlined">menu</span>
                             </button>
