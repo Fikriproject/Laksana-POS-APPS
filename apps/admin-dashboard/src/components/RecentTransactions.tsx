@@ -1,3 +1,4 @@
+import { useAuth } from '../context/AuthContext';
 import { formatRupiah } from '../utils/format';
 
 // Keep TransactionStatus if needed, or update based on API
@@ -24,6 +25,7 @@ const statusStyles: Record<string, string> = {
 };
 
 const RecentTransactions = ({ transactions }: RecentTransactionsProps) => {
+    const { user } = useAuth();
 
     const formatCurrency = (amount: string | number) => {
         return formatRupiah(amount as number);
@@ -33,7 +35,9 @@ const RecentTransactions = ({ transactions }: RecentTransactionsProps) => {
         <section className="bg-surface-light dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col h-full">
             <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
                 <h3 className="text-lg font-bold">Recent Transactions</h3>
-                <a href="/reports" className="text-primary text-sm font-medium hover:underline">View All</a>
+                {(user?.role === 'admin' || user?.role === 'manager') && (
+                    <a href="/reports" className="text-primary text-sm font-medium hover:underline">View All</a>
+                )}
             </div>
             <div className="p-0 overflow-x-auto">
                 <table className="w-full text-left border-collapse">

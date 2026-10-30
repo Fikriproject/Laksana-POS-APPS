@@ -28,6 +28,10 @@ return function ($method, $path, $orderService, $shiftService, $user) {
     // GET /api/orders/today - Get today's summary
     if ($method === 'GET' && $path === '/today') {
         $summary = $orderService->getTodaySummary();
+        // Sembunyikan omset/pendapatan dan laba jika user bukan admin atau manager
+        if (!in_array($user['role'] ?? '', ['admin', 'manager'])) {
+            unset($summary['total_revenue'], $summary['net_sales'], $summary['net_profit'], $summary['total_cogs'], $summary['avg_order_value']);
+        }
         Response::success($summary);
     }
 

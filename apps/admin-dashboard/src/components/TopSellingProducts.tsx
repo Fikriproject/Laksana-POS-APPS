@@ -1,3 +1,4 @@
+import { useAuth } from '../context/AuthContext';
 import { formatRupiah } from '../utils/format';
 
 interface Product {
@@ -14,6 +15,7 @@ interface TopSellingProductsProps {
 }
 
 const TopSellingProducts = ({ products }: TopSellingProductsProps) => {
+    const { user } = useAuth();
 
     const formatPrice = (price: string | number) => {
         return formatRupiah(Number(price));
@@ -23,7 +25,9 @@ const TopSellingProducts = ({ products }: TopSellingProductsProps) => {
         <section className="bg-surface-light dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col h-full">
             <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
                 <h3 className="text-lg font-bold">Top Selling Products</h3>
-                <a href="/reports" className="text-primary text-sm font-medium hover:underline">View All</a>
+                {(user?.role === 'admin' || user?.role === 'manager') && (
+                    <a href="/reports" className="text-primary text-sm font-medium hover:underline">View All</a>
+                )}
             </div>
             <div className="p-6 flex flex-col gap-6">
                 {products.length === 0 ? (
