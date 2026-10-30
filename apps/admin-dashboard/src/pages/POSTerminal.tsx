@@ -321,14 +321,43 @@ const POSTerminal = () => {
 
 
     const filteredProducts = products.filter(product => {
+        const cleanSearch = searchTerm.trim().toLowerCase();
         const matchesCategory = activeCategory === 'all' || 
             (activeCategory === 'uncategorized' && !product.category_id) || 
             product.category_id === activeCategory;
-        const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (product.sku && product.sku.toLowerCase().includes(searchTerm.toLowerCase()));
+        const matchesSearch = cleanSearch === '' || 
+            product.name.toLowerCase().includes(cleanSearch) ||
+            (product.sku && product.sku.toLowerCase().includes(cleanSearch));
         const isActive = product.is_active === 1 || product.is_active === '1' || product.is_active === true;
         return matchesCategory && matchesSearch && isActive;
     });
+
+    const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const trimmed = searchTerm.trim().toLowerCase();
+            if (!trimmed) return;
+
+            // Cari produk dengan SKU persis sama (untuk scanner barcode)
+            const exactSku = products.find(p => p.sku && p.sku.toLowerCase() === trimmed);
+            if (exactSku && (exactSku.stock_quantity === undefined || exactSku.stock_quantity > 0)) {
+                addToCart(exactSku);
+                setSearchTerm('');
+                toast.success(`Ditambahkan: ${exactSku.name}`, { duration: 1500 });
+                return;
+            }
+
+            // Jika hasil filter hanya 1 produk, langsung tambahkan
+            if (filteredProducts.length === 1) {
+                const single = filteredProducts[0];
+                if (single.stock_quantity === undefined || single.stock_quantity > 0) {
+                    addToCart(single);
+                    setSearchTerm('');
+                    toast.success(`Ditambahkan: ${single.name}`, { duration: 1500 });
+                }
+            }
+        }
+    };
 
     return (
         <>
@@ -344,65 +373,56 @@ const POSTerminal = () => {
 
                 <div className="flex-1 flex flex-col h-full overflow-hidden relative">
                     {/* Header */}
-                    <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-[#282839] px-6 py-3 bg-white dark:bg-surface-dark shrink-0 print:hidden transition-colors">
-                        <div className="flex items-center gap-8">
-                            <div className="flex items-center gap-3 text-gray-900 dark:text-white">
-                                <button
-                                    onClick={toggleSidebar}
-                                    className="lg:hidden p-2 -ml-2 text-gray-500 dark:text-text-secondary hover:text-primary transition-colors"
-                                >
-                                    <span className="material-symbols-outlined">menu</span>
-                                </button>
-                                <div className="size-8 flex items-center justify-center bg-primary rounded-lg text-white">
-                                    <span className="material-symbols-outlined">point_of_sale</span>
-                                </div>
-                                <h2 className="text-gray-900 dark:text-white text-xl font-bold leading-tight tracking-tight">POS Terminal</h2>
+                    <header className="flex items-center gap-2 sm:gap-4 border-b border-solid border-slate-200 dark:border-[#282839] px-3 sm:px-6 py-2.5 bg-white dark:bg-surface-dark shrink-0 print:hidden transition-colors">
+                        {/* Kiri: Menu & Logo Kasir (Teks POS Terminal dihapus untuk menghemat ruang) */}
+                        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                            <button
+                                onClick={toggleSidebar}
+                                className="lg:hidden p-1.5 -ml-1 text-gray-500 dark:text-text-secondary hover:text-primary transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-white/5"
+                                title="Buka Menu"
+                            >
+                                <span className="material-symbols-outlined text-[22px] sm:text-[24px]">menu</span>
+                            </button>
+                            <div 
+                                className="size-8 sm:size-9 flex items-center justify-center bg-primary rounded-xl text-white shadow-sm shadow-primary/25 shrink-0"
+                                title="Kasir Laksana POS"
+                            >
+                                <span className="material-symbols-outlined text-[19px] sm:text-[21px]">point_of_sale</span>
                             </div>
-                            {/* Search */}
-                            <label className="flex items-center flex-1 mx-4 max-w-lg h-10">
-                                <div className="flex w-full flex-1 items-stretch rounded-lg h-full bg-gray-100 dark:bg-background-dark border border-slate-200 dark:border-[#282839] overflow-hidden group focus-within:border-primary/50 transition-colors">
-                                    <div className="text-gray-400 dark:text-[#9d9db9] flex border-none items-center justify-center pl-4">
-                                        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>search</span>
-                                    </div>
-                                    <input
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-900 dark:text-white focus:outline-0 focus:ring-0 border-none bg-transparent focus:border-none h-full placeholder:text-gray-400 dark:placeholder:text-[#9d9db9] px-3 text-sm font-normal leading-normal"
-                                        placeholder="Search by name, SKU or barcode..."
-                                    />
-                                </div>
-                            </label>
                         </div>
-                        <div className="flex items-center justify-end gap-4 sm:gap-6">
-                            <div className="flex items-center gap-2 sm:gap-3">
-                                {/* Toggle Product Images */}
-                                <button
-                                    type="button"
-                                    onClick={toggleProductImages}
-                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
-                                        showProductImages
-                                            ? 'bg-primary/10 border-primary/30 text-primary dark:text-indigo-400 hover:bg-primary/20'
-                                            : 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20'
-                                    }`}
-                                    title={showProductImages ? "Nonaktifkan Gambar (Mode Ringkas / Teks)" : "Aktifkan Gambar Produk"}
-                                >
-                                    <span className="material-symbols-outlined text-[18px]">
-                                        {showProductImages ? 'image' : 'hide_image'}
-                                    </span>
-                                    <span className="hidden sm:inline">
-                                        {showProductImages ? 'Gambar: ON' : 'Gambar: OFF'}
-                                    </span>
-                                </button>
 
-                                <ThemeToggle />
-                                <button className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-sm font-medium text-gray-500 dark:text-[#9d9db9] hover:text-primary dark:hover:text-white">
-                                    <span className="material-symbols-outlined">sync</span>
-                                    Sync
-                                </button>
-                                <div className="text-right hidden sm:block">
-                                    <div className="text-sm font-bold text-gray-900 dark:text-white">{user?.full_name || 'Cashier'}</div>
-                                    <div className="text-xs text-gray-500 dark:text-[#9d9db9] capitalize">{user?.role || 'Staff'}</div>
-                                </div>
+                        {/* Tengah: Search Bar Responsif Fleksibel (Optimal untuk HP & Tablet segala ukuran) */}
+                        <div className="flex-1 min-w-0 max-w-2xl">
+                            <div className="flex items-center w-full h-9 sm:h-10 rounded-xl bg-gray-100 dark:bg-background-dark border border-slate-200 dark:border-[#282839] focus-within:border-primary/60 focus-within:ring-2 focus-within:ring-primary/20 transition-all overflow-hidden px-2.5 sm:px-3">
+                                <span className="material-symbols-outlined text-gray-400 dark:text-[#9d9db9] text-[18px] sm:text-[20px] shrink-0 mr-1.5 sm:mr-2">search</span>
+                                <input
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    onKeyDown={handleSearchKeyDown}
+                                    className="w-full min-w-0 bg-transparent text-xs sm:text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-[#9d9db9] focus:outline-none border-none p-0"
+                                    placeholder="Cari nama barang, SKU, barcode..."
+                                />
+                                {searchTerm && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setSearchTerm('')}
+                                        className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors rounded-full shrink-0 ml-1"
+                                        title="Hapus pencarian"
+                                    >
+                                        <span className="material-symbols-outlined text-[16px] sm:text-[18px]">close</span>
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Kanan: Theme Toggle & Profile Avatar (Tanpa detail teks pengguna & tanpa tombol Sync) */}
+                        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 ml-auto">
+                            <ThemeToggle />
+                            <div 
+                                className="size-8 sm:size-9 rounded-full bg-primary/10 dark:bg-primary/20 border border-primary/25 text-primary dark:text-indigo-400 flex items-center justify-center font-bold text-xs sm:text-sm shadow-sm shrink-0 cursor-default select-none"
+                                title={`${user?.full_name || 'Kasir'} (${user?.role || 'Staff'})`}
+                            >
+                                <span className="material-symbols-outlined text-[20px] sm:text-[22px]">account_circle</span>
                             </div>
                         </div>
                     </header>
@@ -412,7 +432,7 @@ const POSTerminal = () => {
                         {/* Left Side: Products Grid */}
                         <div className={`flex-1 flex flex-col md:mr-[400px] overflow-hidden bg-background-light dark:bg-background-dark transition-all print:hidden ${showMobileCart ? 'hidden md:flex' : 'flex'}`}>
                             {/* Category Tabs */}
-                            <div className="px-6 pt-4 pb-2 overflow-x-auto no-scrollbar">
+                            <div className="px-3 sm:px-6 pt-3 sm:pt-4 pb-2 overflow-x-auto no-scrollbar">
                                 <div className="flex gap-3 min-w-max">
                                     {categories.map((category) => (
                                         <button
@@ -431,7 +451,7 @@ const POSTerminal = () => {
                             </div>
 
                             {/* Sub-header: Count & Mode Toggle */}
-                            <div className="px-6 py-2 flex items-center justify-between border-b border-slate-100 dark:border-white/5 bg-white/40 dark:bg-surface-dark/20 backdrop-blur-sm text-xs">
+                            <div className="px-3 sm:px-6 py-2 flex items-center justify-between border-b border-slate-100 dark:border-white/5 bg-white/40 dark:bg-surface-dark/20 backdrop-blur-sm text-xs">
                                 <div className="flex items-center gap-2 text-gray-500 dark:text-[#9d9db9]">
                                     <span>Menampilkan <strong className="text-gray-900 dark:text-white font-semibold">{filteredProducts.length}</strong> produk</span>
                                 </div>
@@ -470,7 +490,7 @@ const POSTerminal = () => {
                             </div>
 
                             {/* Products Grid */}
-                            <div className="flex-1 overflow-y-auto p-6 pb-24 md:pb-6">
+                            <div className="flex-1 overflow-y-auto p-3 sm:p-6 pb-24 md:pb-6">
                                 {loading ? (
                                     <div className="flex items-center justify-center h-full text-[#9d9db9]">
                                         Loading products...
