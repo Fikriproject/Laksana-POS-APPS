@@ -52,6 +52,7 @@ const POSTerminal = () => {
     const [discountType, setDiscountType] = useState<'percent' | 'fixed'>('percent');
     const [discountValue, setDiscountValue] = useState<number>(0);
     const [cashReceived, setCashReceived] = useState<number>(0);
+    const [isSummaryCollapsed, setIsSummaryCollapsed] = useState<boolean>(false);
 
     // Toggle Product Images in POS (persisted in localStorage)
     const [showProductImages, setShowProductImages] = useState<boolean>(() => {
@@ -430,7 +431,7 @@ const POSTerminal = () => {
                     {/* Main Layout */}
                     <div className="flex flex-1 overflow-hidden relative">
                         {/* Left Side: Products Grid */}
-                        <div className={`flex-1 flex flex-col md:mr-[400px] overflow-hidden bg-background-light dark:bg-background-dark transition-all print:hidden ${showMobileCart ? 'hidden md:flex' : 'flex'}`}>
+                        <div className={`flex-1 flex flex-col md:mr-[340px] lg:mr-[360px] xl:mr-[390px] 2xl:mr-[400px] overflow-hidden bg-background-light dark:bg-background-dark transition-all print:hidden ${showMobileCart ? 'hidden md:flex' : 'flex'}`}>
                             {/* Category Tabs */}
                             <div className="px-3 sm:px-6 pt-3 sm:pt-4 pb-2 overflow-x-auto no-scrollbar">
                                 <div className="flex gap-3 min-w-max">
@@ -502,41 +503,50 @@ const POSTerminal = () => {
                                     </div>
                                 ) : showProductImages ? (
                                     /* MODE DENGAN GAMBAR (Visual Grid) */
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                                    <div className="grid grid-cols-[repeat(auto-fill,minmax(175px,1fr))] gap-2.5 sm:gap-3.5">
                                         {filteredProducts.map((product) => (
                                             <div
                                                 key={product.id}
                                                 onClick={() => addToCart(product)}
-                                                className={`group relative flex flex-col bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl overflow-hidden hover:border-primary/50 transition-all hover:shadow-xl hover:-translate-y-1 cursor-pointer ${product.stock_quantity <= 0 ? 'opacity-50 pointer-events-none' : ''}`}
+                                                className={`group relative flex flex-col bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-xl overflow-hidden hover:border-primary/50 transition-all hover:shadow-lg hover:-translate-y-0.5 cursor-pointer select-none ${product.stock_quantity <= 0 ? 'opacity-55 pointer-events-none' : ''}`}
                                             >
                                                 <div className="aspect-[4/3] w-full overflow-hidden bg-gray-200 dark:bg-[#111118] relative">
                                                     <div
-                                                        className="absolute inset-0 bg-center bg-cover transition-transform duration-500 group-hover:scale-110"
+                                                        className="absolute inset-0 bg-center bg-cover transition-transform duration-500 group-hover:scale-105"
                                                         style={{ backgroundImage: `url("${product.image_url || 'https://via.placeholder.com/300'}")` }}
                                                     />
                                                     {/* Price Badge */}
-                                                    <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white text-xs font-bold px-2 py-1 rounded-lg border border-white/10">
+                                                    <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-md text-white text-[11px] sm:text-xs font-bold px-2 py-0.5 rounded-md border border-white/10 shadow-sm max-w-[85%] truncate">
                                                         {formatRupiah(product.price)}
                                                     </div>
                                                     {product.stock_quantity <= 0 && (
-                                                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center font-bold text-white uppercase tracking-widest text-xs">
-                                                            Out of Stock
+                                                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center font-bold text-white uppercase tracking-wider text-[11px]">
+                                                            Stok Habis
                                                         </div>
                                                     )}
                                                 </div>
-                                                <div className="p-4 flex flex-col flex-1">
-                                                    <div className="text-xs text-gray-500 dark:text-[#9d9db9] mb-1">{product.category_name}</div>
-                                                    <h3 className="text-gray-900 dark:text-white font-bold leading-tight mb-2 line-clamp-2 min-h-[2.5em]">{product.name}</h3>
-                                                    <div className="mt-auto flex items-center justify-between text-xs text-gray-500 dark:text-[#9d9db9]">
-                                                        <span>{product.stock_quantity} in stock</span>
+                                                <div className="p-2.5 sm:p-3 flex flex-col flex-1 min-w-0">
+                                                    <div className="flex items-center justify-between gap-1 text-[11px] text-gray-500 dark:text-[#9d9db9] mb-1 min-w-0">
+                                                        <span className="truncate max-w-[65%]">{product.category_name || 'Umum'}</span>
+                                                        <span className={`shrink-0 font-medium ${product.stock_quantity <= 10 ? 'text-amber-600 dark:text-amber-400' : ''}`}>
+                                                            {product.stock_quantity > 0 ? `Stok: ${product.stock_quantity}` : 'Habis'}
+                                                        </span>
                                                     </div>
+                                                    <h3 className="text-gray-900 dark:text-white font-bold text-xs sm:text-sm leading-snug line-clamp-2 min-h-[2.5em] group-hover:text-primary transition-colors break-words">
+                                                        {product.name}
+                                                    </h3>
+                                                    {product.sku && (
+                                                        <span className="text-[10px] font-mono text-gray-400 dark:text-text-secondary mt-1 block truncate">
+                                                            {product.sku}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
                                         ))}
                                     </div>
                                 ) : (
                                     /* MODE TANPA GAMBAR (Compact POS Text Cards) - Ergonomis, Rapi, & Elegan */
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
+                                    <div className="grid grid-cols-[repeat(auto-fill,minmax(155px,1fr))] gap-2.5 sm:gap-3">
                                         {filteredProducts.map((product) => {
                                             const isOutOfStock = product.stock_quantity <= 0;
                                             const isLowStock = !isOutOfStock && product.stock_quantity <= 10;
@@ -545,20 +555,20 @@ const POSTerminal = () => {
                                                 <div
                                                     key={product.id}
                                                     onClick={() => addToCart(product)}
-                                                    className={`group relative flex flex-col justify-between bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-xl p-3.5 hover:border-primary/60 hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer min-h-[140px] select-none ${
+                                                    className={`group relative flex flex-col justify-between bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-xl p-2.5 sm:p-3 hover:border-primary/60 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer min-h-[125px] sm:min-h-[135px] select-none overflow-hidden ${
                                                         isOutOfStock ? 'opacity-55 pointer-events-none' : ''
                                                     }`}
                                                 >
                                                     {/* Baris Atas: Kategori & Status Stok */}
-                                                    <div className="flex items-center justify-between gap-1.5 mb-2">
+                                                    <div className="flex items-center justify-between gap-1 mb-1.5 min-w-0">
                                                         <span
-                                                            className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-primary/10 text-primary dark:bg-primary/20 dark:text-indigo-300 truncate max-w-[110px]"
+                                                            className="text-[10px] sm:text-[11px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary dark:bg-primary/20 dark:text-indigo-300 truncate max-w-[55%]"
                                                             title={product.category_name || 'Umum'}
                                                         >
                                                             {product.category_name || 'Umum'}
                                                         </span>
                                                         <span
-                                                            className={`text-[11px] font-semibold px-2 py-0.5 rounded-md whitespace-nowrap shrink-0 ${
+                                                            className={`text-[10px] sm:text-[11px] font-semibold px-1.5 py-0.5 rounded whitespace-nowrap shrink-0 ${
                                                                 isOutOfStock
                                                                     ? 'bg-rose-500/10 text-rose-500 dark:text-rose-400'
                                                                     : isLowStock
@@ -571,31 +581,31 @@ const POSTerminal = () => {
                                                     </div>
 
                                                     {/* Bagian Tengah: Nama Produk & SKU */}
-                                                    <div className="my-auto py-1">
-                                                        <h3 className="text-gray-900 dark:text-white font-bold text-sm leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+                                                    <div className="my-1 min-w-0">
+                                                        <h3 className="text-gray-900 dark:text-white font-bold text-xs sm:text-sm leading-snug line-clamp-2 group-hover:text-primary transition-colors break-words">
                                                             {product.name}
                                                         </h3>
                                                         {product.sku && (
-                                                            <span className="text-[10px] font-mono text-gray-400 dark:text-text-secondary mt-1 block truncate">
+                                                            <span className="text-[10px] font-mono text-gray-400 dark:text-text-secondary mt-0.5 block truncate">
                                                                 {product.sku}
                                                             </span>
                                                         )}
                                                     </div>
 
                                                     {/* Baris Bawah: Harga Prominen & Tombol Tambah Cepat */}
-                                                    <div className="pt-2.5 border-t border-slate-100 dark:border-white/5 flex items-center justify-between mt-2">
-                                                        <div className="text-sm sm:text-[15px] font-extrabold text-primary dark:text-indigo-400">
+                                                    <div className="pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between gap-1 mt-1.5 min-w-0">
+                                                        <div className="text-xs sm:text-sm font-extrabold text-primary dark:text-indigo-400 truncate min-w-0">
                                                             {formatRupiah(product.price)}
                                                         </div>
-                                                        <div className="size-6 rounded-md bg-gray-100 dark:bg-white/10 group-hover:bg-primary group-hover:text-white flex items-center justify-center text-gray-400 dark:text-gray-300 transition-colors">
-                                                            <span className="material-symbols-outlined text-[16px]">add</span>
+                                                        <div className="size-6 sm:size-6.5 rounded-md bg-gray-100 dark:bg-white/10 group-hover:bg-primary group-hover:text-white flex items-center justify-center text-gray-400 dark:text-gray-300 transition-colors shrink-0">
+                                                            <span className="material-symbols-outlined text-[15px] sm:text-[16px]">add</span>
                                                         </div>
                                                     </div>
 
                                                     {/* Overlay Jika Stok Habis */}
                                                     {isOutOfStock && (
-                                                        <div className="absolute inset-0 bg-white/75 dark:bg-surface-dark/85 backdrop-blur-[1px] rounded-xl flex items-center justify-center">
-                                                            <span className="text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/80 px-2.5 py-1 rounded-md border border-rose-200 dark:border-rose-900/50 shadow-sm">
+                                                        <div className="absolute inset-0 bg-white/80 dark:bg-surface-dark/85 backdrop-blur-[1px] rounded-xl flex items-center justify-center p-2">
+                                                            <span className="text-[11px] sm:text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/80 px-2 py-0.5 rounded border border-rose-200 dark:border-rose-900/50 shadow-sm text-center">
                                                                 Stok Habis
                                                             </span>
                                                         </div>
@@ -609,73 +619,83 @@ const POSTerminal = () => {
                         </div>
 
                         {/* Right Side: Cart / Checkout Sidebar */}
-                        <aside className={`${showMobileCart ? 'flex w-full z-30' : 'hidden'} md:flex flex-col w-full md:w-[400px] border-l border-slate-200 dark:border-[#282839] bg-white dark:bg-surface-dark absolute right-0 top-0 bottom-0 shadow-2xl print:relative print:w-full print:border-none print:shadow-none print:flex print:bg-white print:text-black transition-colors`}>
+                        <aside className={`${showMobileCart ? 'flex w-full z-30' : 'hidden'} md:flex flex-col w-full md:w-[340px] lg:w-[360px] xl:w-[390px] 2xl:w-[400px] border-l border-slate-200 dark:border-[#282839] bg-white dark:bg-surface-dark absolute right-0 top-0 bottom-0 shadow-2xl print:relative print:w-full print:border-none print:shadow-none print:flex print:bg-white print:text-black transition-colors`}>
                             {/* Cart Header */}
-                            <div className="p-6 border-b border-slate-200 dark:border-[#282839] flex items-center justify-between bg-gray-50 dark:bg-[#151520]">
-                                <div className="flex items-center gap-3">
+                            <div className="px-4 py-3 sm:px-5 sm:py-3.5 border-b border-slate-200 dark:border-[#282839] flex items-center justify-between bg-gray-50 dark:bg-[#151520] shrink-0">
+                                <div className="flex items-center gap-2 sm:gap-3">
                                     {showMobileCart && (
-                                        <button onClick={() => setShowMobileCart(false)} className="md:hidden text-gray-500 dark:text-[#9d9db9] hover:text-primary dark:hover:text-white mr-2">
-                                            <span className="material-symbols-outlined">arrow_back</span>
+                                        <button onClick={() => setShowMobileCart(false)} className="md:hidden text-gray-500 dark:text-[#9d9db9] hover:text-primary dark:hover:text-white mr-1">
+                                            <span className="material-symbols-outlined text-[20px]">arrow_back</span>
                                         </button>
                                     )}
-                                    <span className="material-symbols-outlined text-primary">shopping_cart</span>
-                                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">Current Order</h3>
+                                    <span className="material-symbols-outlined text-primary text-[20px] sm:text-[22px]">shopping_cart</span>
+                                    <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">Current Order</h3>
                                 </div>
-                                <div className="bg-gray-200 dark:bg-[#282839] text-gray-900 dark:text-white text-xs font-bold px-2 py-1 rounded-md">
-                                    #{cart.length} Items
+                                <div className="flex items-center gap-2">
+                                    <div className="bg-gray-200 dark:bg-[#282839] text-gray-900 dark:text-white text-xs font-bold px-2 py-0.5 rounded-md">
+                                        #{cart.reduce((sum, item) => sum + item.quantity, 0)} Items
+                                    </div>
+                                    {cart.length > 0 && (
+                                        <button
+                                            onClick={() => setCart([])}
+                                            className="text-gray-400 hover:text-rose-500 transition-colors p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                                            title="Kosongkan Keranjang"
+                                        >
+                                            <span className="material-symbols-outlined text-[18px]">delete_sweep</span>
+                                        </button>
+                                    )}
                                 </div>
                             </div>
 
                             {/* Cart Items List */}
-                            <div className="flex-1 overflow-y-auto min-h-0 p-4 flex flex-col gap-3">
+                            <div className="flex-1 overflow-y-auto min-h-0 p-3 sm:p-4 flex flex-col gap-2.5">
                                 {cart.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-[#55556d] gap-4">
-                                        <div className="size-20 bg-gray-100 dark:bg-[#282839] rounded-full flex items-center justify-center">
-                                            <span className="material-symbols-outlined text-[40px] opacity-50">remove_shopping_cart</span>
+                                    <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-[#55556d] gap-3 py-8">
+                                        <div className="size-16 sm:size-20 bg-gray-100 dark:bg-[#282839] rounded-full flex items-center justify-center">
+                                            <span className="material-symbols-outlined text-[32px] sm:text-[40px] opacity-50">remove_shopping_cart</span>
                                         </div>
-                                        <p className="font-medium">Keranjang Kosong</p>
+                                        <p className="font-semibold text-sm sm:text-base">Keranjang Kosong</p>
                                         <p className="text-xs text-center max-w-[200px]">Pilih produk dari menu untuk memulai pesanan baru.</p>
                                     </div>
                                 ) : (
                                     cart.map((item) => (
-                                        <div key={item.id} className="flex gap-4 p-3 rounded-xl bg-white dark:bg-[#1c1c27] border border-slate-200 dark:border-[#282839] group hover:border-primary/50 dark:hover:border-[#3b3c54] transition-all relative overflow-hidden shrink-0 shadow-sm dark:shadow-none">
-                                            {/* Background slide effect for quantity controls could go here */}
-
+                                        <div key={item.id} className="flex gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-xl bg-white dark:bg-[#1c1c27] border border-slate-200 dark:border-[#282839] group hover:border-primary/50 dark:hover:border-[#3b3c54] transition-all relative overflow-hidden shrink-0 shadow-sm dark:shadow-none">
                                             {showProductImages ? (
-                                                <div className="size-16 rounded-lg bg-gray-200 dark:bg-[#282839] bg-center bg-cover shrink-0" style={{ backgroundImage: `url("${item.image_url || 'https://via.placeholder.com/150'}")` }} />
+                                                <div className="size-12 sm:size-14 rounded-lg bg-gray-200 dark:bg-[#282839] bg-center bg-cover shrink-0" style={{ backgroundImage: `url("${item.image_url || 'https://via.placeholder.com/150'}")` }} />
                                             ) : (
-                                                <div className="size-10 rounded-lg bg-primary/10 dark:bg-primary/20 text-primary dark:text-indigo-400 flex items-center justify-center shrink-0 self-center">
-                                                    <span className="material-symbols-outlined text-[20px]">shopping_bag</span>
+                                                <div className="size-9 sm:size-10 rounded-lg bg-primary/10 dark:bg-primary/20 text-primary dark:text-indigo-400 flex items-center justify-center shrink-0 self-center">
+                                                    <span className="material-symbols-outlined text-[18px] sm:text-[20px]">shopping_bag</span>
                                                 </div>
                                             )}
 
-                                            <div className="flex-1 flex flex-col justify-between py-0.5">
-                                                <div className="flex justify-between items-start gap-2">
-                                                    <h4 className="font-bold text-gray-900 dark:text-white text-sm line-clamp-1">{item.name}</h4>
+                                            <div className="flex-1 flex flex-col justify-between py-0.5 min-w-0">
+                                                <div className="flex justify-between items-start gap-1">
+                                                    <h4 className="font-bold text-gray-900 dark:text-white text-xs sm:text-sm line-clamp-1 truncate" title={item.name}>{item.name}</h4>
                                                     <button
                                                         onClick={() => removeFromCart(item.id)}
-                                                        className="text-gray-400 dark:text-[#55556d] hover:text-red-500 transition-colors p-1 -mt-1 -mr-1"
+                                                        className="text-gray-400 dark:text-[#55556d] hover:text-red-500 transition-colors p-0.5 -mt-0.5 -mr-0.5 shrink-0"
+                                                        title="Hapus barang"
                                                     >
-                                                        <span className="material-symbols-outlined text-[18px]">close</span>
+                                                        <span className="material-symbols-outlined text-[16px] sm:text-[18px]">close</span>
                                                     </button>
                                                 </div>
-                                                <div className="flex items-end justify-between">
-                                                    <div className="flex items-center gap-3 bg-gray-100 dark:bg-[#111118] rounded-lg p-1 border border-slate-200 dark:border-[#282839]">
+                                                <div className="flex items-end justify-between gap-1 mt-1">
+                                                    <div className="flex items-center gap-1.5 sm:gap-2 bg-gray-100 dark:bg-[#111118] rounded-lg p-0.5 border border-slate-200 dark:border-[#282839]">
                                                         <button
                                                             onClick={() => updateQuantity(item.id, -1)}
-                                                            className="size-6 flex items-center justify-center rounded bg-white dark:bg-[#282839] text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-[#3b3c54] transition-colors shadow-sm dark:shadow-none"
+                                                            className="size-5 sm:size-6 flex items-center justify-center rounded bg-white dark:bg-[#282839] text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-[#3b3c54] transition-colors shadow-sm dark:shadow-none"
                                                         >
-                                                            <span className="material-symbols-outlined text-[16px]">remove</span>
+                                                            <span className="material-symbols-outlined text-[14px] sm:text-[16px]">remove</span>
                                                         </button>
-                                                        <span className="text-sm font-bold w-4 text-center text-gray-900 dark:text-white">{item.quantity}</span>
+                                                        <span className="text-xs sm:text-sm font-bold min-w-4 text-center text-gray-900 dark:text-white">{item.quantity}</span>
                                                         <button
                                                             onClick={() => updateQuantity(item.id, 1)}
-                                                            className="size-6 flex items-center justify-center rounded bg-primary text-white hover:bg-primary/90 transition-colors"
+                                                            className="size-5 sm:size-6 flex items-center justify-center rounded bg-primary text-white hover:bg-primary/90 transition-colors"
                                                         >
-                                                            <span className="material-symbols-outlined text-[16px]">add</span>
+                                                            <span className="material-symbols-outlined text-[14px] sm:text-[16px]">add</span>
                                                         </button>
                                                     </div>
-                                                    <div className="text-sm font-bold text-gray-900 dark:text-white">
+                                                    <div className="text-xs sm:text-sm font-extrabold text-gray-900 dark:text-white truncate">
                                                         {formatRupiah(Number(item.price) * item.quantity)}
                                                     </div>
                                                 </div>
@@ -685,120 +705,162 @@ const POSTerminal = () => {
                                 )}
                             </div>
 
-                            {/* Order Summary Footer */}
-                            <div className="p-6 bg-gray-50 dark:bg-[#151520] border-t border-slate-200 dark:border-[#282839] space-y-4 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] dark:shadow-[0_-10px_40px_rgba(0,0,0,0.5)] z-10 transition-colors">
-                                {/* Discount & Tax Controls */}
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-1">
-                                        <label className="text-xs text-gray-500 dark:text-[#9d9db9] font-medium">Diskon</label>
-                                        <div className="flex gap-2">
-                                            <div className="relative flex-1">
-                                                <input
-                                                    type="number"
-                                                    value={discountValue}
-                                                    onChange={(e) => setDiscountValue(Number(e.target.value))}
-                                                    className="w-full bg-white dark:bg-[#111118] border border-slate-200 dark:border-[#282839] rounded-lg px-2 py-1 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary transition-colors"
-                                                />
-                                            </div>
-                                            <div className="flex bg-white dark:bg-[#111118] rounded-lg border border-slate-200 dark:border-[#282839] p-0.5">
-                                                <button
-                                                    onClick={() => setDiscountType('percent')}
-                                                    className={`px-2 py-0.5 rounded text-xs font-bold ${discountType === 'percent' ? 'bg-primary text-white' : 'text-gray-500 dark:text-[#9d9db9]'}`}
-                                                >
-                                                    %
-                                                </button>
-                                                <button
-                                                    onClick={() => setDiscountType('fixed')}
-                                                    className={`px-2 py-0.5 rounded text-xs font-bold ${discountType === 'fixed' ? 'bg-primary text-white' : 'text-gray-500 dark:text-[#9d9db9]'}`}
-                                                >
-                                                    Rp
-                                                </button>
-                                            </div>
+                            {/* Order Summary Footer (Dengan Fitur Minimize & Rincian Pembayaran) */}
+                            <div className="p-3 sm:p-4 bg-gray-50 dark:bg-[#151520] border-t border-slate-200 dark:border-[#282839] shadow-[0_-10px_40px_rgba(0,0,0,0.05)] dark:shadow-[0_-10px_40px_rgba(0,0,0,0.5)] z-10 transition-all flex flex-col gap-2.5 shrink-0">
+                                {/* Collapsible Header Bar: Klik untuk Minimize / Expand Rincian */}
+                                <button
+                                    type="button"
+                                    onClick={() => setIsSummaryCollapsed(prev => !prev)}
+                                    className="w-full flex items-center justify-between py-1 px-1.5 -mx-1.5 rounded-lg hover:bg-gray-200/60 dark:hover:bg-white/5 transition-colors text-left"
+                                    title={isSummaryCollapsed ? "Klik untuk melihat rincian diskon, pajak & pembayaran" : "Klik untuk meminimalkan rincian"}
+                                >
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                        <span className={`material-symbols-outlined text-primary text-[20px] transition-transform duration-200 ${isSummaryCollapsed ? 'rotate-180' : ''}`}>
+                                            keyboard_arrow_down
+                                        </span>
+                                        <div className="flex flex-col min-w-0">
+                                            <span className="text-xs font-bold text-gray-700 dark:text-gray-200 flex items-center gap-1.5 truncate">
+                                                {isSummaryCollapsed ? "Rincian & Diskon" : "Rincian Pembayaran"}
+                                                {discountAmount > 0 && (
+                                                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400">
+                                                        Diskon
+                                                    </span>
+                                                )}
+                                            </span>
+                                            <span className="text-[10px] text-gray-400">
+                                                {isSummaryCollapsed ? "Sentuh untuk buka" : "Sentuh untuk minimize"}
+                                            </span>
                                         </div>
                                     </div>
-                                    <div className="space-y-1">
-                                        <label className="text-xs text-gray-500 dark:text-[#9d9db9] font-medium">Pajak (%)</label>
-                                        <div className="flex items-center gap-2">
+
+                                    <div className="text-right shrink-0">
+                                        <span className="text-[10px] text-gray-400 block leading-tight">Total Tagihan</span>
+                                        <span className="text-base sm:text-lg font-black text-primary dark:text-indigo-400 leading-tight">
+                                            {formatRupiah(total)}
+                                        </span>
+                                    </div>
+                                </button>
+
+                                {/* Isi Rincian Pembayaran (Dapat Di-minimize) */}
+                                {!isSummaryCollapsed && (
+                                    <div className="space-y-2.5 pt-1 border-t border-slate-200/80 dark:border-[#282839]/80 max-h-[42vh] overflow-y-auto pr-0.5">
+                                        {/* Discount & Tax Controls */}
+                                        <div className="grid grid-cols-2 gap-2.5">
+                                            <div className="space-y-1">
+                                                <label className="text-xs text-gray-500 dark:text-[#9d9db9] font-medium">Diskon</label>
+                                                <div className="flex gap-1.5">
+                                                    <div className="relative flex-1">
+                                                        <input
+                                                            type="number"
+                                                            value={discountValue || ''}
+                                                            onChange={(e) => setDiscountValue(Number(e.target.value))}
+                                                            placeholder="0"
+                                                            className="w-full bg-white dark:bg-[#111118] border border-slate-200 dark:border-[#282839] rounded-lg px-2 py-1 text-xs sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary transition-colors"
+                                                        />
+                                                    </div>
+                                                    <div className="flex bg-white dark:bg-[#111118] rounded-lg border border-slate-200 dark:border-[#282839] p-0.5 shrink-0">
+                                                        <button
+                                                            onClick={() => setDiscountType('percent')}
+                                                            className={`px-1.5 py-0.5 rounded text-xs font-bold ${discountType === 'percent' ? 'bg-primary text-white' : 'text-gray-500 dark:text-[#9d9db9]'}`}
+                                                        >
+                                                            %
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setDiscountType('fixed')}
+                                                            className={`px-1.5 py-0.5 rounded text-xs font-bold ${discountType === 'fixed' ? 'bg-primary text-white' : 'text-gray-500 dark:text-[#9d9db9]'}`}
+                                                        >
+                                                            Rp
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-xs text-gray-500 dark:text-[#9d9db9] font-medium">Pajak (%)</label>
+                                                <div className="flex items-center gap-2">
+                                                    <input
+                                                        type="number"
+                                                        value={taxRate || ''}
+                                                        onChange={(e) => setTaxRate(Number(e.target.value))}
+                                                        placeholder="0"
+                                                        className="w-full bg-white dark:bg-[#111118] border border-slate-200 dark:border-[#282839] rounded-lg px-2 py-1 text-xs sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary transition-colors"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Breakdown Subtotal & Diskon */}
+                                        <div className="space-y-1.5 pt-1.5 border-t border-slate-200 dark:border-[#282839]/50 text-xs sm:text-sm">
+                                            <div className="flex justify-between text-gray-500 dark:text-[#9d9db9]">
+                                                <span>Subtotal</span>
+                                                <span>{formatRupiah(subtotal)}</span>
+                                            </div>
+                                            {discountAmount > 0 && (
+                                                <div className="flex justify-between text-red-500">
+                                                    <span>Diskon {discountType === 'percent' ? `(${discountValue}%)` : ''}</span>
+                                                    <span>-{formatRupiah(discountAmount)}</span>
+                                                </div>
+                                            )}
+                                            {taxAmount > 0 && (
+                                                <div className="flex justify-between text-gray-500 dark:text-[#9d9db9]">
+                                                    <span>Pajak ({taxRate}%)</span>
+                                                    <span>{formatRupiah(taxAmount)}</span>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Input Pembayaran Uang Diterima */}
+                                        <div className="space-y-1">
+                                            <label className="text-xs text-gray-500 dark:text-[#9d9db9] font-medium">Uang Diterima (Rp)</label>
                                             <input
                                                 type="number"
-                                                value={taxRate}
-                                                onChange={(e) => setTaxRate(Number(e.target.value))}
-                                                className="w-full bg-white dark:bg-[#111118] border border-slate-200 dark:border-[#282839] rounded-lg px-2 py-1 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary transition-colors"
+                                                value={cashReceived || ''}
+                                                onChange={(e) => setCashReceived(parseFloat(e.target.value))}
+                                                placeholder="0"
+                                                className={`w-full bg-white dark:bg-[#111118] border rounded-lg px-3 py-1.5 text-base sm:text-lg font-bold text-gray-900 dark:text-white focus:outline-none focus:border-primary ${cashReceived > 0 && cashReceived < total ? 'border-red-500' : 'border-slate-200 dark:border-[#282839]'}`}
                                             />
+                                            {cashReceived > total && (
+                                                <div className="flex justify-between text-xs sm:text-sm text-emerald-600 dark:text-emerald-500 font-bold mt-0.5">
+                                                    <span>Kembalian</span>
+                                                    <span>{formatRupiah(cashReceived - total)}</span>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Tombol Print & Save */}
+                                        <div className="grid grid-cols-2 gap-2 pt-0.5 print:hidden">
+                                            <button
+                                                onClick={handlePrint}
+                                                className="h-9 sm:h-10 rounded-xl border border-slate-200 dark:border-[#282839] bg-white dark:bg-[#1c1c27] text-gray-900 dark:text-white font-bold hover:bg-gray-50 dark:hover:bg-[#282839] transition-colors flex items-center justify-center gap-1.5 text-xs sm:text-sm"
+                                            >
+                                                <span className="material-symbols-outlined text-[18px]">print</span>
+                                                <span>Print Nota</span>
+                                            </button>
+                                            <button
+                                                onClick={handleSave}
+                                                className="h-9 sm:h-10 rounded-xl border border-slate-200 dark:border-[#282839] bg-white dark:bg-[#1c1c27] text-gray-900 dark:text-white font-bold hover:bg-gray-50 dark:hover:bg-[#282839] transition-colors flex items-center justify-center gap-1.5 text-xs sm:text-sm"
+                                            >
+                                                <span className="material-symbols-outlined text-[18px]">save</span>
+                                                <span>Simpan</span>
+                                            </button>
                                         </div>
                                     </div>
-                                </div>
+                                )}
 
-                                <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-[#282839]/50">
-                                    <div className="flex justify-between text-sm text-gray-500 dark:text-[#9d9db9]">
-                                        <span>Subtotal</span>
-                                        <span>{formatRupiah(subtotal)}</span>
-                                    </div>
-                                    {discountAmount > 0 && (
-                                        <div className="flex justify-between text-sm text-red-500">
-                                            <span>Diskon {discountType === 'percent' ? `(${discountValue}%)` : ''}</span>
-                                            <span>-{formatRupiah(discountAmount)}</span>
-                                        </div>
-                                    )}
-                                    <div className="flex justify-between text-sm text-gray-500 dark:text-[#9d9db9]">
-                                        <span>Pajak ({taxRate}%)</span>
-                                        <span>{formatRupiah(taxAmount)}</span>
-                                    </div>
-                                    <div className="flex justify-between text-lg font-bold text-gray-900 dark:text-white pt-2 border-t border-slate-200 dark:border-[#282839]">
-                                        <span>Total</span>
-                                        <span>{formatRupiah(total)}</span>
-                                    </div>
-                                </div>
-
-                                {/* Payment Amount Input */}
-                                <div className="space-y-1">
-                                    <label className="text-xs text-gray-500 dark:text-[#9d9db9] font-medium">Uang Diterima (Rp)</label>
-                                    <input
-                                        type="number"
-                                        value={cashReceived || ''}
-                                        onChange={(e) => setCashReceived(parseFloat(e.target.value))}
-                                        placeholder="0"
-                                        className={`w-full bg-white dark:bg-[#111118] border rounded-lg px-3 py-2 text-lg font-bold text-gray-900 dark:text-white focus:outline-none focus:border-primary ${cashReceived > 0 && cashReceived < total ? 'border-red-500' : 'border-slate-200 dark:border-[#282839]'}`}
-                                    />
-                                    {cashReceived > total && (
-                                        <div className="flex justify-between text-sm text-emerald-600 dark:text-emerald-500 font-bold mt-1">
-                                            <span>Kembalian</span>
-                                            <span>{formatRupiah(cashReceived - total)}</span>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-3 mt-4 print:hidden">
-                                    <button
-                                        onClick={handlePrint}
-                                        className="h-12 rounded-xl border border-slate-200 dark:border-[#282839] bg-white dark:bg-[#1c1c27] text-gray-900 dark:text-white font-bold hover:bg-gray-50 dark:hover:bg-[#282839] transition-colors flex items-center justify-center gap-2"
-                                    >
-                                        <span className="material-symbols-outlined text-[20px]">print</span>
-                                        <span className="hidden sm:inline">Print</span>
-                                    </button>
-                                    <button
-                                        onClick={handleSave}
-                                        className="h-12 rounded-xl border border-slate-200 dark:border-[#282839] bg-white dark:bg-[#1c1c27] text-gray-900 dark:text-white font-bold hover:bg-gray-50 dark:hover:bg-[#282839] transition-colors flex items-center justify-center gap-2"
-                                    >
-                                        <span className="material-symbols-outlined text-[20px]">save</span>
-                                        <span className="hidden sm:inline">Save</span>
-                                    </button>
-                                </div>
-
+                                {/* Tombol Bayar Sekarang (Selalu Nyaman Diakses) */}
                                 <button
                                     disabled={cart.length === 0 || processingOrder}
                                     onClick={handlePlaceOrder}
-                                    className="w-full h-14 bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 text-white font-bold text-lg rounded-xl shadow-lg shadow-primary/25 transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="w-full h-11 sm:h-12 bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 text-white font-bold text-sm sm:text-base rounded-xl shadow-md shadow-primary/25 transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
                                 >
                                     {processingOrder ? (
                                         <>
-                                            <span className="material-symbols-outlined animate-spin">refresh</span>
-                                            Memproses...
+                                            <span className="material-symbols-outlined animate-spin text-[18px]">refresh</span>
+                                            <span>Memproses...</span>
                                         </>
                                     ) : (
                                         <>
                                             <span>Bayar Sekarang</span>
-                                            <span className="material-symbols-outlined">payments</span>
+                                            <span className="material-symbols-outlined text-[18px]">payments</span>
                                         </>
                                     )}
                                 </button>
