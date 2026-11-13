@@ -52,21 +52,22 @@ body {
 
   /* Only show the print container and its children */
   #printable-receipt,
-  #printable-receipt * {
+  #printable-receipt *,
+  #printable-test-receipt,
+  #printable-test-receipt * {
     visibility: visible;
   }
 
   /* Position the receipt at the very top left, ignoring original layout flow */
-  #printable-receipt {
+  #printable-receipt,
+  #printable-test-receipt {
     position: absolute;
     left: 0;
     top: 0;
     width: 100%;
     margin: 0;
-    padding: 20px;
-    /* Optional padding for paper edge */
+    padding: 8px 0;
     display: block !important;
-    /* Ensure it's not display:none */
     z-index: 9999;
     background-color: white;
   }

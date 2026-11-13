@@ -103,3 +103,4 @@ const PrintableTestReceipt: React.FC<PrintableTestReceiptProps> = ({ config }) =
 };
 
 export default PrintableTestReceipt;
+

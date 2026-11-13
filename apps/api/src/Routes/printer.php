@@ -105,3 +105,4 @@ return function ($method, $path, $user) {
 
     Response::error('Endpoint printer tidak valid', 404);
 };
+
