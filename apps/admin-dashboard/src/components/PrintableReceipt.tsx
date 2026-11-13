@@ -28,6 +28,24 @@ interface PrintableReceiptProps {
 }
 
 const PrintableReceipt: React.FC<PrintableReceiptProps> = ({ order, className = '' }) => {
+    // Baca pengaturan printer aktif (jika ada)
+    const printerConfig = React.useMemo(() => {
+        try {
+            const saved = localStorage.getItem('pos_printer_settings');
+            if (saved) return JSON.parse(saved);
+        } catch (e) {}
+        return {
+            paperWidth: '80mm',
+            storeName: 'Kasir Laksana',
+            storeAddress: 'Kramat Dukupuntang',
+            storePhone: '+62 851-8316-7100',
+            receiptFooter: 'Barang yang sudah dibeli tidak dapat ditukar/dikembalikan'
+        };
+    }, []);
+
+    const is80mm = (printerConfig.paperWidth || '80mm') === '80mm';
+    const maxWidthClass = is80mm ? 'max-w-[80mm]' : 'max-w-[58mm]';
+
     // If no order, render a placeholder so we know it's a data issue, not CSS
     if (!order) {
         return (
@@ -39,12 +57,12 @@ const PrintableReceipt: React.FC<PrintableReceiptProps> = ({ order, className = 
     }
 
     return (
-        <div id="printable-receipt" className={`hidden print:block print:w-full print:bg-white text-black font-mono p-8 bg-white ${className}`}>
-            <div className="max-w-[80mm] mx-auto">
-                <div className="text-center mb-4">
-                    <h2 className="font-bold text-xl uppercase">Omega Digital Store</h2>
-                    <p className="text-sm">Kramat Dukupuntang</p>
-                    <p className="text-sm">Telp: +62 851-8316-7100</p>
+        <div id="printable-receipt" className={`hidden print:block print:w-full print:bg-white text-black font-mono p-4 sm:p-6 bg-white ${className}`}>
+            <div className={`${maxWidthClass} mx-auto`}>
+                <div className="text-center mb-3">
+                    <h2 className="font-bold text-lg sm:text-xl uppercase">{printerConfig.storeName || 'KASIR LAKSANA'}</h2>
+                    {printerConfig.storeAddress && <p className="text-xs sm:text-sm">{printerConfig.storeAddress}</p>}
+                    {printerConfig.storePhone && <p className="text-xs sm:text-sm">Telp: {printerConfig.storePhone}</p>}
                 </div>
 
                 <div className="border-b border-dashed border-black my-2"></div>
@@ -126,7 +144,7 @@ const PrintableReceipt: React.FC<PrintableReceiptProps> = ({ order, className = 
 
                 <div className="text-center text-sm">
                     <p>Terima Kasih</p>
-                    <p>Barang yang sudah dibeli tidak dapat ditukar/dikembalikan</p>
+                    <p>{printerConfig.receiptFooter || "Barang yang sudah dibeli tidak dapat ditukar/dikembalikan"}</p>
                 </div>
             </div>
         </div>

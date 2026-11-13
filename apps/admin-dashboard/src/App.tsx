@@ -10,6 +10,7 @@ import POSTerminal from './pages/POSTerminal';
 import ReportsPage from './pages/ReportsPage';
 import ProductsPage from './pages/ProductsPage';
 import ProfilePage from './pages/ProfilePage';
+import PrinterSettingsPage from './pages/PrinterSettingsPage';
 import InventoryPage from './pages/InventoryPage';
 import DashboardLayout from './layouts/DashboardLayout';
 
@@ -88,6 +89,14 @@ function App() {
                       <ProfilePage />
                     </ProtectedRoute>
                   } />
+
+                  <Route path="/settings/printer" element={
+                    <ProtectedRoute allowedRoles={['admin', 'manager', 'cashier']}>
+                      <PrinterSettingsPage />
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/settings" element={<Navigate to="/settings/printer" replace />} />
                 </Route>
 
                 {/* POS has its own layout */}

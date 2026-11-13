@@ -86,6 +86,7 @@ const Sidebar = ({ className = '', isOpen = false, onClose }: SidebarProps) => {
         { icon: "shopping_bag", label: "Produk", to: "/products", roles: ['admin', 'manager'] },
         { icon: "inventory_2", label: "Inventaris", to: "/inventory", roles: ['admin', 'manager'] },
         { icon: "bar_chart", label: "Laporan", to: "/reports", roles: ['admin', 'manager'] },
+        { icon: "print", label: "Pengaturan Printer", to: "/settings/printer", roles: ['admin', 'manager', 'cashier'] },
         { icon: "person", label: "Profil", to: "/profile", roles: ['admin', 'manager', 'cashier'] },
     ];
 
