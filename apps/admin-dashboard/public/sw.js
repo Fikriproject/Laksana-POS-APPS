@@ -1,21 +1,22 @@
 /**
  * Laksana POS - Service Worker (PWA)
- * Versi: v1.0.0
+ * Versi: v1.0.1
  */
 
-const CACHE_NAME = 'laksana-pos-v1.0.0';
+const CACHE_NAME = 'laksana-pos-v1.0.1';
 
 // Core shell assets to pre-cache on install
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
+  '/manifest.webmanifest',
   '/manifest.json',
   '/favicon.svg',
-  '/icons/icon.svg',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
-  '/icons/icon-maskable-192.png',
-  '/icons/icon-maskable-512.png'
+  '/pwa-icons/icon.svg',
+  '/pwa-icons/icon-192.png',
+  '/pwa-icons/icon-512.png',
+  '/pwa-icons/icon-maskable-192.png',
+  '/pwa-icons/icon-maskable-512.png'
 ];
 
 // Install Event: Pre-cache static assets
@@ -23,7 +24,9 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(PRECACHE_ASSETS);
+      return cache.addAll(PRECACHE_ASSETS).catch((err) => {
+        console.warn('[SW] Beberapa aset gagal di-precache:', err);
+      });
     })
   );
 });
@@ -94,10 +97,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 4. Static Assets (JS, CSS, Images, Fonts): Cache-First / Stale-While-Revalidate
+  // 4. Static Assets (JS, CSS, Images, Fonts, Manifest): Cache-First / Stale-While-Revalidate
   const isStaticAsset =
     url.pathname.startsWith('/assets/') ||
+    url.pathname.startsWith('/pwa-icons/') ||
     url.pathname.startsWith('/icons/') ||
+    url.pathname === '/manifest.json' ||
+    url.pathname === '/manifest.webmanifest' ||
     request.destination === 'style' ||
     request.destination === 'script' ||
     request.destination === 'image' ||

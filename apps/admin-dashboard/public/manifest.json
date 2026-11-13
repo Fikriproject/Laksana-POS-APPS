@@ -1,5 +1,5 @@
 {
-  "id": "/",
+  "id": "/?source=pwa",
   "name": "Laksana POS - Aplikasi Kasir",
   "short_name": "Kasir Laksana",
   "description": "Sistem Kasir & Manajemen Toko Laksana Modern, Responsif, dan Cepat",
@@ -15,6 +15,36 @@
   "categories": ["business", "finance", "productivity"],
   "icons": [
     {
+      "src": "/pwa-icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-icons/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/pwa-icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/pwa-icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
       "src": "/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
@@ -25,24 +55,6 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-maskable-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "/icons/icon-maskable-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "/icons/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
     }
   ],
   "shortcuts": [
@@ -53,7 +65,7 @@
       "url": "/pos",
       "icons": [
         {
-          "src": "/icons/icon-192.png",
+          "src": "/pwa-icons/icon-192.png",
           "sizes": "192x192"
         }
       ]
@@ -65,7 +77,7 @@
       "url": "/",
       "icons": [
         {
-          "src": "/icons/icon-192.png",
+          "src": "/pwa-icons/icon-192.png",
           "sizes": "192x192"
         }
       ]
@@ -77,7 +89,7 @@
       "url": "/products",
       "icons": [
         {
-          "src": "/icons/icon-192.png",
+          "src": "/pwa-icons/icon-192.png",
           "sizes": "192x192"
         }
       ]

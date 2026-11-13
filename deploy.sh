@@ -63,14 +63,23 @@ mkdir -p "$ROOT_DIR/apps/api/public/storage/receipts"
 chmod -R 777 "$ROOT_DIR/apps/api/public/uploads"
 chmod -R 777 "$ROOT_DIR/apps/api/public/storage"
 
-# Jika dijalankan dengan sudo, beri akses ke www-data
+# Jika dijalankan dengan sudo, beri akses ke www-data & perbarui Nginx
 if [ "$EUID" -eq 0 ]; then
     chown -R www-data:www-data "$ROOT_DIR/apps/api/public/uploads"
     chown -R www-data:www-data "$ROOT_DIR/apps/api/public/storage"
     
+    # Periksa dan perbarui konfigurasi Nginx jika file situs ditemukan
+    for CONF_PATH in "/etc/nginx/sites-available/laksana-pos.conf" "/etc/nginx/sites-available/poslaksana.conf" "/etc/nginx/conf.d/laksana-pos.conf"; do
+        if [ -f "$CONF_PATH" ]; then
+            cp "$ROOT_DIR/nginx-laksana-pos.conf" "$CONF_PATH"
+            echo -e "\033[32m✓ Konfigurasi Nginx ($CONF_PATH) berhasil diselaraskan.\033[0m"
+            break
+        fi
+    done
+
     # Reload Nginx jika aktif
     if systemctl is-active --quiet nginx; then
-        systemctl reload nginx
+        nginx -t 2>/dev/null && systemctl reload nginx
         echo -e "\033[32m✓ Nginx berhasil di-reload.\033[0m"
     fi
 fi
