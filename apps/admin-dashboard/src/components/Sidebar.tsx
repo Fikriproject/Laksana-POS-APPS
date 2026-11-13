@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 import { useEffect } from 'react';
+import { usePWAInstall } from '../hooks/usePWAInstall';
 
 interface SidebarLinkProps {
     icon: string;
@@ -43,6 +44,22 @@ interface SidebarProps {
 const Sidebar = ({ className = '', isOpen = false, onClose }: SidebarProps) => {
     const { logout, user } = useAuth();
     const location = useLocation();
+    const { isInstallable, isInstalled, installApp } = usePWAInstall();
+
+    const handleInstallClick = async () => {
+        if (isInstallable) {
+            const success = await installApp();
+            if (success) {
+                toast.success('Aplikasi Kasir Laksana berhasil dipasang!');
+                onClose?.();
+            }
+        } else {
+            toast('Untuk menginstal di HP/Tablet:\nKetuk Menu browser (titik 3 di Chrome atau tombol Bagikan di Safari) lalu pilih "Tambahkan ke Layar Utama" / "Install Aplikasi".', {
+                icon: '📲',
+                duration: 6000
+            });
+        }
+    };
 
     const handleShutdown = async () => {
         const isConfirmed = window.confirm('Apakah Anda yakin ingin MENUTUP APLIKASI SEPENUHNYA?\nServer akan dimatikan.');
@@ -147,7 +164,26 @@ const Sidebar = ({ className = '', isOpen = false, onClose }: SidebarProps) => {
                     ))}
                 </nav>
 
-                {/* Logout */}
+                {/* Install PWA Button / Status */}
+                <div className="px-3 sm:px-4 py-2 border-t border-slate-100 dark:border-[#282839]/60">
+                    {!isInstalled ? (
+                        <button
+                            onClick={handleInstallClick}
+                            className="w-full flex items-center justify-center gap-2.5 px-3 py-2.5 rounded-xl bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-500 text-white font-medium text-xs sm:text-sm shadow-md shadow-primary/20 hover:shadow-primary/40 transition-all"
+                            title="Pasang aplikasi Kasir Laksana ke layar utama HP / Tablet / Desktop"
+                        >
+                            <span className="material-symbols-outlined text-[19px]">install_mobile</span>
+                            <span>Install Aplikasi</span>
+                        </button>
+                    ) : (
+                        <div className="flex items-center justify-center gap-1.5 py-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                            <span className="material-symbols-outlined text-[16px]">verified</span>
+                            <span>Aplikasi Terpasang (PWA)</span>
+                        </div>
+                    )}
+                </div>
+
+                {/* Logout & Shutdown */}
                 <div className="p-4 border-t border-slate-200 dark:border-[#282839]">
                     <button
                         onClick={logout}
