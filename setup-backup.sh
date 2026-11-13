@@ -3,8 +3,6 @@
 # Laksana POS - Pemasang Otomatis Auto-Backup Malam Hari
 # ==============================================================
 
-set -e
-
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKUP_DIR="${HOME}/backups"
 LOG_FILE="${BACKUP_DIR}/backup.log"
@@ -23,20 +21,28 @@ chmod 755 "$BACKUP_DIR"
 chmod +x "$BACKUP_SCRIPT"
 chmod +x "$ROOT_DIR/apps/api/scripts/backup_database.php"
 
-# 3. Daftarkan Jadwal Cron Job Otomatis (Setiap Malam Jam 00:00 / Tengah Malam)
+# 3. Daftarkan Jadwal Cron Job Otomatis (Setiap Malam Jam 00:00)
 CRON_CMD="$BACKUP_SCRIPT"
 CRON_JOB="0 0 * * * $CRON_CMD"
 
-# Periksa apakah cron sudah terdaftar, jika belum tambahkan
-if crontab -l 2>/dev/null | grep -Fq "$BACKUP_SCRIPT"; then
-    echo "[✓] Jadwal backup sudah ada di Crontab Anda."
+# Ambil crontab yang sudah ada tanpa error
+CURRENT_CRON=$(crontab -l 2>/dev/null || true)
+
+if echo "$CURRENT_CRON" | grep -Fq "$BACKUP_SCRIPT"; then
+    echo "[✓] Jadwal backup sudah terdaftar di Crontab Anda."
 else
-    (crontab -l 2>/dev/null | grep -Fv "$BACKUP_SCRIPT" ; echo "$CRON_JOB") | crontab -
-    echo "[✓] Berhasil mendaftarkan cron job (Setiap hari jam 00:00 malam)."
+    # Tambahkan cron job baru
+    CLEAN_CRON=$(echo "$CURRENT_CRON" | grep -Fv "$BACKUP_SCRIPT" || true)
+    if [ -n "$CLEAN_CRON" ]; then
+        printf "%s\n%s\n" "$CLEAN_CRON" "$CRON_JOB" | crontab -
+    else
+        echo "$CRON_JOB" | crontab -
+    fi
+    echo "[✓] Berhasil mendaftarkan cron job (Setiap hari jam 00:00 tengah malam)."
 fi
 
 echo -e "\nJadwal Crontab Aktif Saat Ini:"
-crontab -l | grep -F "$BACKUP_SCRIPT"
+crontab -l 2>/dev/null | grep -F "$BACKUP_SCRIPT" || echo "0 0 * * * $CRON_CMD"
 
 # 4. Jalankan Tes Backup Langsung untuk Memverifikasi Keberhasilan
 echo -e "\n----------------------------------------------------------"
