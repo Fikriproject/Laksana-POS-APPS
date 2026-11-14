@@ -712,30 +712,39 @@ if ($userCount === 0) {
 
 // Check Categories
 $catCount = (int) $db->query("SELECT COUNT(*) FROM categories")->fetchColumn();
-if ($catCount === 0) {
-    echo " [✓] Menambahkan kategori default...\n";
-    $categories = [
-        ['name' => 'Peci', 'icon' => 'domino', 'slug' => 'peci'],
-        ['name' => 'Jam', 'icon' => 'schedule', 'slug' => 'jam'],
-        ['name' => 'Kertas', 'icon' => 'description', 'slug' => 'kertas'],
-        ['name' => 'ATK', 'icon' => 'edit', 'slug' => 'atk'],
-        ['name' => 'Kalkulator', 'icon' => 'calculate', 'slug' => 'kalkulator'],
-        ['name' => 'Jasa', 'icon' => 'design_services', 'slug' => 'jasa'],
-        ['name' => 'Figura', 'icon' => 'crop_original', 'slug' => 'figura'],
-    ];
+$categories = [
+    ['name' => 'Peci', 'icon' => 'domino', 'slug' => 'peci'],
+    ['name' => 'Jam', 'icon' => 'schedule', 'slug' => 'jam'],
+    ['name' => 'Kertas', 'icon' => 'description', 'slug' => 'kertas'],
+    ['name' => 'ATK', 'icon' => 'edit', 'slug' => 'atk'],
+    ['name' => 'Kalkulator', 'icon' => 'calculate', 'slug' => 'kalkulator'],
+    ['name' => 'Jasa', 'icon' => 'design_services', 'slug' => 'jasa'],
+    ['name' => 'Figura', 'icon' => 'crop_original', 'slug' => 'figura'],
+    ['name' => "Al-Qur'an", 'icon' => 'menu_book', 'slug' => 'al-quran'],
+    ['name' => 'Kitab & Buku Agama', 'icon' => 'auto_stories', 'slug' => 'kitab-buku'],
+    ['name' => 'Pramuka & Sekolah', 'icon' => 'school', 'slug' => 'pramuka'],
+    ['name' => 'Aksesoris & Kerajinan', 'icon' => 'palette', 'slug' => 'aksesoris'],
+];
 
-    $stmtCat = $db->prepare("INSERT INTO categories (name, icon, slug, is_active) VALUES (:name, :icon, :slug, :is_active)");
-    foreach ($categories as $cat) {
-        $stmtCat->execute([
+$stmtCatCheck = $db->prepare("SELECT id FROM categories WHERE slug = :slug OR name = :name LIMIT 1");
+$stmtCatInsert = $db->prepare("INSERT INTO categories (name, icon, slug, is_active) VALUES (:name, :icon, :slug, :is_active)");
+$addedCats = 0;
+foreach ($categories as $cat) {
+    $stmtCatCheck->execute(['slug' => $cat['slug'], 'name' => $cat['name']]);
+    if (!$stmtCatCheck->fetch()) {
+        $stmtCatInsert->execute([
             'name' => $cat['name'],
             'icon' => $cat['icon'],
             'slug' => $cat['slug'],
             'is_active' => $isPg ? 'true' : 1
         ]);
+        $addedCats++;
     }
-    echo "     - Berhasil menambahkan " . count($categories) . " kategori default.\n";
+}
+if ($addedCats > 0) {
+    echo " [✓] Berhasil menambahkan {$addedCats} kategori baru ke tabel categories.\n";
 } else {
-    echo " [•] Tabel categories sudah memiliki {$catCount} kategori (dilewati).\n";
+    echo " [•] Seluruh " . count($categories) . " kategori standar sudah terdaftar.\n";
 }
 
 // Optional sample products if empty and requested or table has 0 products
@@ -784,12 +793,13 @@ if ($isImportProducts) {
                 is_active, created_at, updated_at
             ) VALUES (
                 :id, :sku, :name, NULL, :price, 0.00, 
-                :stock_quantity, 10, NULL, NULL, 
+                :stock_quantity, 10, :category_id, NULL, 
                 :is_active, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
             )");
             $stmtUpdate = $db->prepare("UPDATE products SET 
                 price = :price, 
                 stock_quantity = :stock_quantity,
+                category_id = COALESCE(:category_id, category_id),
                 updated_at = CURRENT_TIMESTAMP
                 WHERE id = :id");
 
@@ -798,11 +808,13 @@ if ($isImportProducts) {
             foreach ($importList as $item) {
                 $stmtCheck->execute(['sku' => $item['sku'], 'name' => $item['name']]);
                 $ex = $stmtCheck->fetch(PDO::FETCH_ASSOC);
+                $catId = $item['category_id'] ?? null;
                 if ($ex) {
                     $stmtUpdate->execute([
                         'id' => $ex['id'],
                         'price' => $item['price'],
-                        'stock_quantity' => $item['stock_quantity']
+                        'stock_quantity' => $item['stock_quantity'],
+                        'category_id' => $catId
                     ]);
                     $upCount++;
                 } else {
@@ -812,6 +824,7 @@ if ($isImportProducts) {
                         'name' => $item['name'],
                         'price' => $item['price'],
                         'stock_quantity' => $item['stock_quantity'],
+                        'category_id' => $catId,
                         'is_active' => $isPg ? 'true' : 1
                     ]);
                     $newCount++;

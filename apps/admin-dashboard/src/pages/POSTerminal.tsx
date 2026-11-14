@@ -321,17 +321,43 @@ const POSTerminal = () => {
 
 
 
+    const cleanSearch = searchTerm.trim().toLowerCase();
+    const isSearching = cleanSearch !== '';
+
+    const isProductActive = (product: Product) => {
+        return product.is_active !== 0 && product.is_active !== '0' && product.is_active !== false;
+    };
+
+    const matchesCategoryFilter = (product: Product, catId: string | number) => {
+        if (catId === 'all') return true;
+        if (catId === 'uncategorized') {
+            return !product.category_id || product.category_id === 'uncategorized' || product.category_id === '0' || product.category_id === 0;
+        }
+        const matchesId = product.category_id !== undefined && product.category_id !== null && String(product.category_id) === String(catId);
+        const matchesName = product.category_name && String(product.category_name).trim().toLowerCase() === String(catId).trim().toLowerCase();
+        return Boolean(matchesId || matchesName);
+    };
+
+    const matchesSearchFilter = (product: Product, query: string) => {
+        if (!query) return true;
+        return (
+            product.name.toLowerCase().includes(query) ||
+            (product.sku && product.sku.toLowerCase().includes(query)) ||
+            (product.category_name && product.category_name.toLowerCase().includes(query))
+        );
+    };
+
     const filteredProducts = products.filter(product => {
-        const cleanSearch = searchTerm.trim().toLowerCase();
-        const matchesCategory = activeCategory === 'all' || 
-            (activeCategory === 'uncategorized' && !product.category_id) || 
-            product.category_id === activeCategory;
-        const matchesSearch = cleanSearch === '' || 
-            product.name.toLowerCase().includes(cleanSearch) ||
-            (product.sku && product.sku.toLowerCase().includes(cleanSearch));
-        const isActive = product.is_active === 1 || product.is_active === '1' || product.is_active === true;
-        return matchesCategory && matchesSearch && isActive;
+        const matchesCat = matchesCategoryFilter(product, activeCategory);
+        const matchesQuery = matchesSearchFilter(product, cleanSearch);
+        const active = isProductActive(product);
+        return matchesCat && matchesQuery && active;
     });
+
+    // Cek apakah ada barang yang cocok di kategori lain jika hasil di kategori aktif kosong
+    const totalMatchesAllCategories = isSearching && activeCategory !== 'all'
+        ? products.filter(p => isProductActive(p) && matchesSearchFilter(p, cleanSearch)).length
+        : 0;
 
     const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
@@ -497,9 +523,25 @@ const POSTerminal = () => {
                                         Loading products...
                                     </div>
                                 ) : filteredProducts.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center h-full text-[#9d9db9] gap-2">
+                                    <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-[#9d9db9] gap-3 p-6 text-center">
                                         <span className="material-symbols-outlined text-4xl">inventory_2</span>
-                                        <p>No products found</p>
+                                        <p className="text-sm font-medium">
+                                            {isSearching 
+                                                ? `Tidak ada produk yang cocok dengan "${searchTerm}" di kategori ini` 
+                                                : 'Tidak ada produk dalam kategori ini'}
+                                        </p>
+                                        {activeCategory !== 'all' && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setActiveCategory('all')}
+                                                className="mt-1 flex items-center gap-2 px-3.5 py-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary dark:text-indigo-400 font-semibold text-xs border border-primary/20 transition-all shadow-sm"
+                                            >
+                                                <span className="material-symbols-outlined text-[18px]">grid_view</span>
+                                                {totalMatchesAllCategories > 0 
+                                                    ? `Tampilkan ${totalMatchesAllCategories} Hasil di Semua Kategori` 
+                                                    : 'Tampilkan Semua Kategori'}
+                                            </button>
+                                        )}
                                     </div>
                                 ) : showProductImages ? (
                                     /* MODE DENGAN GAMBAR (Visual Grid) */

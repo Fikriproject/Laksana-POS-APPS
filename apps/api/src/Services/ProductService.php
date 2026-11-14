@@ -21,7 +21,7 @@ class ProductService
 
     public function getAll(int $page = 1, int $perPage = 20, ?int $categoryId = null, ?bool $activeOnly = null): array
     {
-        $perPage = max(1, min(1000, $perPage));
+        $perPage = max(1, min(5000, $perPage));
         $offset = ($page - 1) * $perPage;
         
         $products = $this->productModel->findAllWithCategory($perPage, $offset, $categoryId, $activeOnly);

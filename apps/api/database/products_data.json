@@ -8,7 +8,7 @@
     "purchase_price": 0,
     "stock_quantity": 2,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -21,7 +21,7 @@
     "purchase_price": 0,
     "stock_quantity": 2,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -34,7 +34,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -47,7 +47,7 @@
     "purchase_price": 0,
     "stock_quantity": 7,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -60,7 +60,7 @@
     "purchase_price": 0,
     "stock_quantity": 0,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -73,7 +73,7 @@
     "purchase_price": 0,
     "stock_quantity": 0,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -86,7 +86,7 @@
     "purchase_price": 0,
     "stock_quantity": 0,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -99,7 +99,7 @@
     "purchase_price": 0,
     "stock_quantity": 0,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -112,7 +112,7 @@
     "purchase_price": 0,
     "stock_quantity": 0,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -125,7 +125,7 @@
     "purchase_price": 0,
     "stock_quantity": 0,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -138,7 +138,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -151,7 +151,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -164,7 +164,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -177,7 +177,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -190,7 +190,7 @@
     "purchase_price": 0,
     "stock_quantity": 2,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -203,7 +203,7 @@
     "purchase_price": 0,
     "stock_quantity": 0,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -216,7 +216,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -229,7 +229,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -242,7 +242,7 @@
     "purchase_price": 0,
     "stock_quantity": 7,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -255,7 +255,7 @@
     "purchase_price": 0,
     "stock_quantity": 25,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -268,7 +268,7 @@
     "purchase_price": 0,
     "stock_quantity": 0,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -281,7 +281,7 @@
     "purchase_price": 0,
     "stock_quantity": 6,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -294,7 +294,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -307,7 +307,7 @@
     "purchase_price": 0,
     "stock_quantity": 2,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -320,7 +320,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -333,7 +333,7 @@
     "purchase_price": 0,
     "stock_quantity": 4,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -346,7 +346,7 @@
     "purchase_price": 0,
     "stock_quantity": 0,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -359,7 +359,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -372,7 +372,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -385,7 +385,7 @@
     "purchase_price": 0,
     "stock_quantity": 0,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -398,7 +398,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -411,7 +411,7 @@
     "purchase_price": 0,
     "stock_quantity": 2,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -424,7 +424,7 @@
     "purchase_price": 0,
     "stock_quantity": 0,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -437,7 +437,7 @@
     "purchase_price": 0,
     "stock_quantity": 0,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -450,7 +450,7 @@
     "purchase_price": 0,
     "stock_quantity": 0,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -463,7 +463,7 @@
     "purchase_price": 0,
     "stock_quantity": 0,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -476,7 +476,7 @@
     "purchase_price": 0,
     "stock_quantity": 0,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -489,7 +489,7 @@
     "purchase_price": 0,
     "stock_quantity": 0,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -502,7 +502,7 @@
     "purchase_price": 0,
     "stock_quantity": 0,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -515,7 +515,7 @@
     "purchase_price": 0,
     "stock_quantity": 0,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -528,7 +528,7 @@
     "purchase_price": 0,
     "stock_quantity": 0,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -541,7 +541,7 @@
     "purchase_price": 0,
     "stock_quantity": 0,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -554,7 +554,7 @@
     "purchase_price": 0,
     "stock_quantity": 0,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -567,7 +567,7 @@
     "purchase_price": 0,
     "stock_quantity": 0,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -580,7 +580,7 @@
     "purchase_price": 0,
     "stock_quantity": 12,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -593,7 +593,7 @@
     "purchase_price": 0,
     "stock_quantity": 16,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -606,7 +606,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -619,7 +619,7 @@
     "purchase_price": 0,
     "stock_quantity": 4,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -632,7 +632,7 @@
     "purchase_price": 0,
     "stock_quantity": 17,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -645,7 +645,7 @@
     "purchase_price": 0,
     "stock_quantity": 12,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -658,7 +658,7 @@
     "purchase_price": 0,
     "stock_quantity": 32,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -671,7 +671,7 @@
     "purchase_price": 0,
     "stock_quantity": 3,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -684,7 +684,7 @@
     "purchase_price": 0,
     "stock_quantity": 12,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -697,7 +697,7 @@
     "purchase_price": 0,
     "stock_quantity": 0,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -710,7 +710,7 @@
     "purchase_price": 0,
     "stock_quantity": 6,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -723,7 +723,7 @@
     "purchase_price": 0,
     "stock_quantity": 8,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -736,7 +736,7 @@
     "purchase_price": 0,
     "stock_quantity": 0,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -749,7 +749,7 @@
     "purchase_price": 0,
     "stock_quantity": 29,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -762,7 +762,7 @@
     "purchase_price": 0,
     "stock_quantity": 6,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -775,7 +775,7 @@
     "purchase_price": 0,
     "stock_quantity": 4,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -788,7 +788,7 @@
     "purchase_price": 0,
     "stock_quantity": 13,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -801,7 +801,7 @@
     "purchase_price": 0,
     "stock_quantity": 9,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -814,7 +814,7 @@
     "purchase_price": 0,
     "stock_quantity": 0,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -827,7 +827,7 @@
     "purchase_price": 0,
     "stock_quantity": 5,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -840,7 +840,7 @@
     "purchase_price": 0,
     "stock_quantity": 5,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -853,7 +853,7 @@
     "purchase_price": 0,
     "stock_quantity": 8,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -866,7 +866,7 @@
     "purchase_price": 0,
     "stock_quantity": 14,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -879,7 +879,7 @@
     "purchase_price": 0,
     "stock_quantity": 21,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -892,7 +892,7 @@
     "purchase_price": 0,
     "stock_quantity": 9,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -905,7 +905,7 @@
     "purchase_price": 0,
     "stock_quantity": 16,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -918,7 +918,7 @@
     "purchase_price": 0,
     "stock_quantity": 27,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -931,7 +931,7 @@
     "purchase_price": 0,
     "stock_quantity": 6,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -944,7 +944,7 @@
     "purchase_price": 0,
     "stock_quantity": 3,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -957,7 +957,7 @@
     "purchase_price": 0,
     "stock_quantity": 20,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -970,7 +970,7 @@
     "purchase_price": 0,
     "stock_quantity": 3,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -983,7 +983,7 @@
     "purchase_price": 0,
     "stock_quantity": 9,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -996,7 +996,7 @@
     "purchase_price": 0,
     "stock_quantity": 10,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1009,7 +1009,7 @@
     "purchase_price": 0,
     "stock_quantity": 10,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1022,7 +1022,7 @@
     "purchase_price": 0,
     "stock_quantity": 26,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1035,7 +1035,7 @@
     "purchase_price": 0,
     "stock_quantity": 16,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1048,7 +1048,7 @@
     "purchase_price": 0,
     "stock_quantity": 13,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1061,7 +1061,7 @@
     "purchase_price": 0,
     "stock_quantity": 9,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1074,7 +1074,7 @@
     "purchase_price": 0,
     "stock_quantity": 19,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1087,7 +1087,7 @@
     "purchase_price": 0,
     "stock_quantity": 18,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1100,7 +1100,7 @@
     "purchase_price": 0,
     "stock_quantity": 13,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1113,7 +1113,7 @@
     "purchase_price": 0,
     "stock_quantity": 0,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1126,7 +1126,7 @@
     "purchase_price": 0,
     "stock_quantity": 7,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1139,7 +1139,7 @@
     "purchase_price": 0,
     "stock_quantity": 2,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1152,7 +1152,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1165,7 +1165,7 @@
     "purchase_price": 0,
     "stock_quantity": 5,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1178,7 +1178,7 @@
     "purchase_price": 0,
     "stock_quantity": 17,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1191,7 +1191,7 @@
     "purchase_price": 0,
     "stock_quantity": 12,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1204,7 +1204,7 @@
     "purchase_price": 0,
     "stock_quantity": 3,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1217,7 +1217,7 @@
     "purchase_price": 0,
     "stock_quantity": 13,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1230,7 +1230,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1243,7 +1243,7 @@
     "purchase_price": 0,
     "stock_quantity": 0,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1256,7 +1256,7 @@
     "purchase_price": 0,
     "stock_quantity": 8,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1269,7 +1269,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1282,7 +1282,7 @@
     "purchase_price": 0,
     "stock_quantity": 13,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1295,7 +1295,7 @@
     "purchase_price": 0,
     "stock_quantity": 5,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1308,7 +1308,7 @@
     "purchase_price": 0,
     "stock_quantity": 5,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1321,7 +1321,7 @@
     "purchase_price": 0,
     "stock_quantity": 28,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1334,7 +1334,7 @@
     "purchase_price": 0,
     "stock_quantity": 45,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1347,7 +1347,7 @@
     "purchase_price": 0,
     "stock_quantity": 11,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1360,7 +1360,7 @@
     "purchase_price": 0,
     "stock_quantity": 5,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1373,7 +1373,7 @@
     "purchase_price": 0,
     "stock_quantity": 13,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1386,7 +1386,7 @@
     "purchase_price": 0,
     "stock_quantity": 32,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1399,7 +1399,7 @@
     "purchase_price": 0,
     "stock_quantity": 11,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1412,7 +1412,7 @@
     "purchase_price": 0,
     "stock_quantity": 11,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1425,7 +1425,7 @@
     "purchase_price": 0,
     "stock_quantity": 15,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1438,7 +1438,7 @@
     "purchase_price": 0,
     "stock_quantity": 12,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1451,7 +1451,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1464,7 +1464,7 @@
     "purchase_price": 0,
     "stock_quantity": 12,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1477,7 +1477,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1490,7 +1490,7 @@
     "purchase_price": 0,
     "stock_quantity": 6,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1503,7 +1503,7 @@
     "purchase_price": 0,
     "stock_quantity": 2,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1516,7 +1516,7 @@
     "purchase_price": 0,
     "stock_quantity": 3,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1529,7 +1529,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1542,7 +1542,7 @@
     "purchase_price": 0,
     "stock_quantity": 2,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1555,7 +1555,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1568,7 +1568,7 @@
     "purchase_price": 0,
     "stock_quantity": 0,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -1581,7 +1581,7 @@
     "purchase_price": 0,
     "stock_quantity": 25,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1594,7 +1594,7 @@
     "purchase_price": 0,
     "stock_quantity": 16,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1607,7 +1607,7 @@
     "purchase_price": 0,
     "stock_quantity": 6,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1620,7 +1620,7 @@
     "purchase_price": 0,
     "stock_quantity": 10,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1633,7 +1633,7 @@
     "purchase_price": 0,
     "stock_quantity": 13,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1646,7 +1646,7 @@
     "purchase_price": 0,
     "stock_quantity": 19,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1659,7 +1659,7 @@
     "purchase_price": 0,
     "stock_quantity": 15,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1672,7 +1672,7 @@
     "purchase_price": 0,
     "stock_quantity": 7,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1685,7 +1685,7 @@
     "purchase_price": 0,
     "stock_quantity": 4,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1698,7 +1698,7 @@
     "purchase_price": 0,
     "stock_quantity": 2,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1711,7 +1711,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1724,7 +1724,7 @@
     "purchase_price": 0,
     "stock_quantity": 2,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1737,7 +1737,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1750,7 +1750,7 @@
     "purchase_price": 0,
     "stock_quantity": 3,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1763,7 +1763,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1776,7 +1776,7 @@
     "purchase_price": 0,
     "stock_quantity": 2,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1789,7 +1789,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1802,7 +1802,7 @@
     "purchase_price": 0,
     "stock_quantity": 2,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1815,7 +1815,7 @@
     "purchase_price": 0,
     "stock_quantity": 3,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1828,7 +1828,7 @@
     "purchase_price": 0,
     "stock_quantity": 2,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1841,7 +1841,7 @@
     "purchase_price": 0,
     "stock_quantity": 4,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1854,7 +1854,7 @@
     "purchase_price": 0,
     "stock_quantity": 12,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1867,7 +1867,7 @@
     "purchase_price": 0,
     "stock_quantity": 3,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1880,7 +1880,7 @@
     "purchase_price": 0,
     "stock_quantity": 3,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1893,7 +1893,7 @@
     "purchase_price": 0,
     "stock_quantity": 2,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1906,7 +1906,7 @@
     "purchase_price": 0,
     "stock_quantity": 4,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1919,7 +1919,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1932,7 +1932,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1945,7 +1945,7 @@
     "purchase_price": 0,
     "stock_quantity": 2,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1958,7 +1958,7 @@
     "purchase_price": 0,
     "stock_quantity": 22,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1971,7 +1971,7 @@
     "purchase_price": 0,
     "stock_quantity": 15,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1984,7 +1984,7 @@
     "purchase_price": 0,
     "stock_quantity": 49,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -1997,7 +1997,7 @@
     "purchase_price": 0,
     "stock_quantity": 9,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2010,7 +2010,7 @@
     "purchase_price": 0,
     "stock_quantity": 41,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2023,7 +2023,7 @@
     "purchase_price": 0,
     "stock_quantity": 23,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2036,7 +2036,7 @@
     "purchase_price": 0,
     "stock_quantity": 18,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2049,7 +2049,7 @@
     "purchase_price": 0,
     "stock_quantity": 6,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2062,7 +2062,7 @@
     "purchase_price": 0,
     "stock_quantity": 30,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2075,7 +2075,7 @@
     "purchase_price": 0,
     "stock_quantity": 4,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2088,7 +2088,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2101,7 +2101,7 @@
     "purchase_price": 0,
     "stock_quantity": 7,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2114,7 +2114,7 @@
     "purchase_price": 0,
     "stock_quantity": 3,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2127,7 +2127,7 @@
     "purchase_price": 0,
     "stock_quantity": 3,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2140,7 +2140,7 @@
     "purchase_price": 0,
     "stock_quantity": 5,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2153,7 +2153,7 @@
     "purchase_price": 0,
     "stock_quantity": 26,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2166,7 +2166,7 @@
     "purchase_price": 0,
     "stock_quantity": 13,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2179,7 +2179,7 @@
     "purchase_price": 0,
     "stock_quantity": 20,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2192,7 +2192,7 @@
     "purchase_price": 0,
     "stock_quantity": 22,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2205,7 +2205,7 @@
     "purchase_price": 0,
     "stock_quantity": 22,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2218,7 +2218,7 @@
     "purchase_price": 0,
     "stock_quantity": 12,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -2231,7 +2231,7 @@
     "purchase_price": 0,
     "stock_quantity": 9,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -2244,7 +2244,7 @@
     "purchase_price": 0,
     "stock_quantity": 9,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2257,7 +2257,7 @@
     "purchase_price": 0,
     "stock_quantity": 3,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2270,7 +2270,7 @@
     "purchase_price": 0,
     "stock_quantity": 5,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2283,7 +2283,7 @@
     "purchase_price": 0,
     "stock_quantity": 0,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2296,7 +2296,7 @@
     "purchase_price": 0,
     "stock_quantity": 98,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2309,7 +2309,7 @@
     "purchase_price": 0,
     "stock_quantity": 6,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2322,7 +2322,7 @@
     "purchase_price": 0,
     "stock_quantity": 3,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2335,7 +2335,7 @@
     "purchase_price": 0,
     "stock_quantity": 5,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2348,7 +2348,7 @@
     "purchase_price": 0,
     "stock_quantity": 4,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2361,7 +2361,7 @@
     "purchase_price": 0,
     "stock_quantity": 4,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2374,7 +2374,7 @@
     "purchase_price": 0,
     "stock_quantity": 3,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2387,7 +2387,7 @@
     "purchase_price": 0,
     "stock_quantity": 4,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2400,7 +2400,7 @@
     "purchase_price": 0,
     "stock_quantity": 2,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2413,7 +2413,7 @@
     "purchase_price": 0,
     "stock_quantity": 4,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2426,7 +2426,7 @@
     "purchase_price": 0,
     "stock_quantity": 2,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2439,7 +2439,7 @@
     "purchase_price": 0,
     "stock_quantity": 9,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2452,7 +2452,7 @@
     "purchase_price": 0,
     "stock_quantity": 5,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2465,7 +2465,7 @@
     "purchase_price": 0,
     "stock_quantity": 4,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2478,7 +2478,7 @@
     "purchase_price": 0,
     "stock_quantity": 2,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -2491,7 +2491,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -2504,7 +2504,7 @@
     "purchase_price": 0,
     "stock_quantity": 2,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -2517,7 +2517,7 @@
     "purchase_price": 0,
     "stock_quantity": 2,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -2530,7 +2530,7 @@
     "purchase_price": 0,
     "stock_quantity": 2,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -2543,7 +2543,7 @@
     "purchase_price": 0,
     "stock_quantity": 5,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -2556,7 +2556,7 @@
     "purchase_price": 0,
     "stock_quantity": 5,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -2569,7 +2569,7 @@
     "purchase_price": 0,
     "stock_quantity": 0,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -2582,7 +2582,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -2595,7 +2595,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -2608,7 +2608,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -2621,7 +2621,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -2634,7 +2634,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -2647,7 +2647,7 @@
     "purchase_price": 0,
     "stock_quantity": 2,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -2660,7 +2660,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -2673,7 +2673,7 @@
     "purchase_price": 0,
     "stock_quantity": 3,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -2686,7 +2686,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -2699,7 +2699,7 @@
     "purchase_price": 0,
     "stock_quantity": 3,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -2712,7 +2712,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -2725,7 +2725,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -2738,7 +2738,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -2751,7 +2751,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -2764,7 +2764,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -2777,7 +2777,7 @@
     "purchase_price": 0,
     "stock_quantity": 8,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -2790,7 +2790,7 @@
     "purchase_price": 0,
     "stock_quantity": 2,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -2803,7 +2803,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -2816,7 +2816,7 @@
     "purchase_price": 0,
     "stock_quantity": 2,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -2829,7 +2829,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -2842,7 +2842,7 @@
     "purchase_price": 0,
     "stock_quantity": 2,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -2855,7 +2855,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -2868,7 +2868,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -2881,7 +2881,7 @@
     "purchase_price": 0,
     "stock_quantity": 6,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -2894,7 +2894,7 @@
     "purchase_price": 0,
     "stock_quantity": 9,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2907,7 +2907,7 @@
     "purchase_price": 0,
     "stock_quantity": 2,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2920,7 +2920,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2933,7 +2933,7 @@
     "purchase_price": 0,
     "stock_quantity": 9,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2946,7 +2946,7 @@
     "purchase_price": 0,
     "stock_quantity": 28,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2959,7 +2959,7 @@
     "purchase_price": 0,
     "stock_quantity": 6,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2972,7 +2972,7 @@
     "purchase_price": 0,
     "stock_quantity": 1,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2985,7 +2985,7 @@
     "purchase_price": 0,
     "stock_quantity": 5,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -2998,7 +2998,7 @@
     "purchase_price": 0,
     "stock_quantity": 5,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -3011,7 +3011,7 @@
     "purchase_price": 0,
     "stock_quantity": 4,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -3024,7 +3024,7 @@
     "purchase_price": 0,
     "stock_quantity": 15,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -3037,7 +3037,7 @@
     "purchase_price": 0,
     "stock_quantity": 12,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -3050,7 +3050,7 @@
     "purchase_price": 0,
     "stock_quantity": 9,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -3063,7 +3063,7 @@
     "purchase_price": 0,
     "stock_quantity": 4,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -3076,7 +3076,7 @@
     "purchase_price": 0,
     "stock_quantity": 0,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -3089,7 +3089,7 @@
     "purchase_price": 0,
     "stock_quantity": 14,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -3102,7 +3102,7 @@
     "purchase_price": 0,
     "stock_quantity": 4,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -3115,7 +3115,7 @@
     "purchase_price": 0,
     "stock_quantity": 3,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -3128,7 +3128,7 @@
     "purchase_price": 0,
     "stock_quantity": 0,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -3141,7 +3141,7 @@
     "purchase_price": 0,
     "stock_quantity": 10,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -3154,7 +3154,7 @@
     "purchase_price": 0,
     "stock_quantity": 19,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -3167,7 +3167,7 @@
     "purchase_price": 0,
     "stock_quantity": 21,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -3180,7 +3180,7 @@
     "purchase_price": 0,
     "stock_quantity": 7,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -3193,7 +3193,7 @@
     "purchase_price": 0,
     "stock_quantity": 0,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -3206,7 +3206,7 @@
     "purchase_price": 0,
     "stock_quantity": 9,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -3219,7 +3219,7 @@
     "purchase_price": 0,
     "stock_quantity": 2,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -3232,7 +3232,7 @@
     "purchase_price": 0,
     "stock_quantity": 0,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -3245,7 +3245,7 @@
     "purchase_price": 0,
     "stock_quantity": 12,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -3258,7 +3258,7 @@
     "purchase_price": 0,
     "stock_quantity": 3,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -3271,7 +3271,7 @@
     "purchase_price": 0,
     "stock_quantity": 8,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -3284,7 +3284,7 @@
     "purchase_price": 0,
     "stock_quantity": 8,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -3297,7 +3297,7 @@
     "purchase_price": 0,
     "stock_quantity": 9,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -3310,7 +3310,7 @@
     "purchase_price": 0,
     "stock_quantity": 10,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -3323,7 +3323,7 @@
     "purchase_price": 0,
     "stock_quantity": 9,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -3336,7 +3336,7 @@
     "purchase_price": 0,
     "stock_quantity": 17,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -3349,7 +3349,7 @@
     "purchase_price": 0,
     "stock_quantity": 7,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -3362,7 +3362,7 @@
     "purchase_price": 0,
     "stock_quantity": 8,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -3375,7 +3375,7 @@
     "purchase_price": 0,
     "stock_quantity": 7,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -3388,7 +3388,7 @@
     "purchase_price": 0,
     "stock_quantity": 10,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -3401,7 +3401,7 @@
     "purchase_price": 0,
     "stock_quantity": 7,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -3414,7 +3414,7 @@
     "purchase_price": 0,
     "stock_quantity": 3,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -3427,7 +3427,7 @@
     "purchase_price": 0,
     "stock_quantity": 7,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -3440,7 +3440,7 @@
     "purchase_price": 0,
     "stock_quantity": 10,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -3453,7 +3453,7 @@
     "purchase_price": 0,
     "stock_quantity": 10,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -3466,7 +3466,7 @@
     "purchase_price": 0,
     "stock_quantity": 11,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -3479,7 +3479,7 @@
     "purchase_price": 0,
     "stock_quantity": 0,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -3492,7 +3492,7 @@
     "purchase_price": 0,
     "stock_quantity": 13,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -3505,7 +3505,7 @@
     "purchase_price": 0,
     "stock_quantity": 14,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -3518,7 +3518,7 @@
     "purchase_price": 0,
     "stock_quantity": 14,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -3531,7 +3531,7 @@
     "purchase_price": 0,
     "stock_quantity": 13,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -3544,7 +3544,7 @@
     "purchase_price": 0,
     "stock_quantity": 14,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -3557,7 +3557,7 @@
     "purchase_price": 0,
     "stock_quantity": 10,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -3570,7 +3570,7 @@
     "purchase_price": 0,
     "stock_quantity": 13,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -3583,7 +3583,7 @@
     "purchase_price": 0,
     "stock_quantity": 10,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -3596,7 +3596,7 @@
     "purchase_price": 0,
     "stock_quantity": 7,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 8,
     "image_url": null,
     "is_active": 1
   },
@@ -3609,7 +3609,7 @@
     "purchase_price": 0,
     "stock_quantity": 11,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -3622,7 +3622,7 @@
     "purchase_price": 0,
     "stock_quantity": 97,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -3635,7 +3635,7 @@
     "purchase_price": 0,
     "stock_quantity": 34,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -3648,7 +3648,7 @@
     "purchase_price": 0,
     "stock_quantity": 11,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -3661,7 +3661,7 @@
     "purchase_price": 0,
     "stock_quantity": 9,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -3674,7 +3674,7 @@
     "purchase_price": 0,
     "stock_quantity": 3,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -3687,7 +3687,7 @@
     "purchase_price": 0,
     "stock_quantity": 12,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   },
@@ -3700,7 +3700,7 @@
     "purchase_price": 0,
     "stock_quantity": 3,
     "low_stock_threshold": 10,
-    "category_id": null,
+    "category_id": 9,
     "image_url": null,
     "is_active": 1
   }
