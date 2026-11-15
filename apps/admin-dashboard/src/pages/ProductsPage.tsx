@@ -5,6 +5,8 @@ import toast from 'react-hot-toast';
 import api from '../services/api';
 import { formatRupiah } from '../utils/format';
 import { DashboardContextType } from '../layouts/DashboardLayout';
+import { BarcodePreview } from '../components/BarcodePreview';
+import { generateBarcodePdf, downloadBlob, openPdfBlob } from '../utils/barcode128';
 
 interface Product {
     id: string;
@@ -310,6 +312,71 @@ const ProductsPage = () => {
         }
     };
 
+    const handleDownloadSingleProductPdf = async (targetProduct?: Product) => {
+        const prod = targetProduct || (currentProduct ? {
+            ...currentProduct,
+            name: formData.name || currentProduct.name,
+            sku: formData.sku || currentProduct.sku,
+            price: parseFloat(formData.price) || currentProduct.price
+        } : null);
+
+        if (!prod) {
+            toast.error('Data produk tidak tersedia.');
+            return;
+        }
+
+        try {
+            toast.loading(`Membuat barcode untuk ${prod.name}...`, { id: 'single-prod-pdf' });
+            const blob = await generateBarcodePdf([{
+                id: prod.id,
+                name: prod.name,
+                sku: prod.sku || '0000',
+                price: Number(prod.price || 0)
+            }], {
+                layout: 'grid3x8',
+                copiesPerProduct: 24, // 1 lembar stiker A4 isi 24 label untuk produk ini
+                showStoreName: true,
+                showPrice: true,
+                storeName: 'TOKO LAKSANA'
+            });
+            toast.dismiss('single-prod-pdf');
+            downloadBlob(blob, `Barcode-${prod.sku || '0000'}-${prod.name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
+            toast.success(`PDF barcode (${prod.name}) berhasil diunduh!`);
+        } catch (e) {
+            toast.dismiss('single-prod-pdf');
+            toast.error('Gagal membuat barcode produk.');
+        }
+    };
+
+    const handlePrintSingleProductDirect = async (targetProduct?: Product) => {
+        const prod = targetProduct || (currentProduct ? {
+            ...currentProduct,
+            name: formData.name || currentProduct.name,
+            sku: formData.sku || currentProduct.sku,
+            price: parseFloat(formData.price) || currentProduct.price
+        } : null);
+
+        if (!prod) return;
+
+        try {
+            const blob = await generateBarcodePdf([{
+                id: prod.id,
+                name: prod.name,
+                sku: prod.sku || '0000',
+                price: Number(prod.price || 0)
+            }], {
+                layout: 'grid3x8',
+                copiesPerProduct: 24,
+                showStoreName: true,
+                showPrice: true,
+                storeName: 'TOKO LAKSANA'
+            });
+            openPdfBlob(blob);
+        } catch {
+            toast.error('Gagal membuka preview cetak.');
+        }
+    };
+
     const getStockColor = (stock: number, threshold: number) => {
         if (stock === 0) return 'bg-red-500';
         if (stock <= threshold) return 'bg-yellow-500';
@@ -485,6 +552,13 @@ const ProductsPage = () => {
                                                     <td className="p-4 text-right">
                                                         <div className="flex items-center justify-end gap-2 opacity-100">
                                                             <button
+                                                                onClick={() => handleDownloadSingleProductPdf(product)}
+                                                                className="p-2 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20 transition-colors"
+                                                                title="Unduh 1 Lembar Barcode Produk Ini"
+                                                            >
+                                                                <span className="material-symbols-outlined text-[18px]">barcode_scanner</span>
+                                                            </button>
+                                                            <button
                                                                 onClick={() => openEditModal(product)}
                                                                 className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-500 hover:bg-blue-500/20 transition-colors"
                                                                 title="Edit"
@@ -649,15 +723,52 @@ const ProductsPage = () => {
                                         ))}
                                     </select>
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="col-span-1">
-                                        <label className="block text-sm font-medium text-gray-500 dark:text-[#9d9db9] mb-1">SKU (Opsional)</label>
+                                        <label className="block text-sm font-medium text-gray-500 dark:text-[#9d9db9] mb-1">SKU / Kode Barcode</label>
                                         <input
                                             type="text"
                                             value={formData.sku}
                                             onChange={e => setFormData({ ...formData, sku: e.target.value })}
+                                            placeholder="Contoh: LM6374 atau nomor barcode"
                                             className="w-full bg-gray-50 dark:bg-[#111118] border border-slate-200 dark:border-[#282839] rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-primary transition-colors"
                                         />
+                                        <p className="text-[11px] text-gray-400 mt-1">Kode ini yang dibaca scanner barcode kasir.</p>
+                                    </div>
+                                    <div className="col-span-1 bg-slate-50 dark:bg-[#111118] border border-slate-200 dark:border-[#282839] rounded-xl p-3 flex flex-col justify-between gap-2">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1">
+                                                <span className="material-symbols-outlined text-[16px] text-primary">barcode_scanner</span>
+                                                Barcode Garis (Code 128)
+                                            </span>
+                                            <span className="text-[10px] font-mono text-gray-400 font-bold">{formData.sku || currentProduct?.sku || '0000'}</span>
+                                        </div>
+                                        <BarcodePreview
+                                            sku={formData.sku || currentProduct?.sku || '0000'}
+                                            height={34}
+                                            showText={false}
+                                            className="w-full py-1 border-slate-200 dark:border-slate-800"
+                                        />
+                                        <div className="flex items-center gap-1.5 w-full">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleDownloadSingleProductPdf()}
+                                                className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-white text-[11px] font-semibold transition-colors"
+                                                title="Unduh 1 lembar (24 label) barcode produk ini dalam format PDF"
+                                            >
+                                                <span className="material-symbols-outlined text-[14px]">picture_as_pdf</span>
+                                                <span>Unduh PDF</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => handlePrintSingleProductDirect()}
+                                                className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg border border-slate-200 dark:border-[#282839] text-gray-700 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-[#282839] text-[11px] font-medium transition-colors"
+                                                title="Buka barcode di tab baru untuk langsung dicetak"
+                                            >
+                                                <span className="material-symbols-outlined text-[14px]">print</span>
+                                                <span>Cetak</span>
+                                            </button>
+                                        </div>
                                     </div>
                                     <div className="col-span-2">
                                         <label className="block text-sm font-medium text-gray-500 dark:text-[#9d9db9] mb-1">Gambar Produk</label>

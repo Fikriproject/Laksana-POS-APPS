@@ -9,6 +9,7 @@ import Login from './pages/LoginPage';
 import POSTerminal from './pages/POSTerminal';
 import ReportsPage from './pages/ReportsPage';
 import ProductsPage from './pages/ProductsPage';
+import BarcodePage from './pages/BarcodePage';
 import ProfilePage from './pages/ProfilePage';
 import PrinterSettingsPage from './pages/PrinterSettingsPage';
 import InventoryPage from './pages/InventoryPage';
@@ -75,6 +76,12 @@ function App() {
                   <Route path="/products" element={
                     <ProtectedRoute allowedRoles={['admin', 'manager']}>
                       <ProductsPage />
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/barcodes" element={
+                    <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                      <BarcodePage />
                     </ProtectedRoute>
                   } />
 
