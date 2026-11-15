@@ -39,6 +39,16 @@ export const OpenShiftModal: React.FC<OpenShiftModalProps> = ({ isOpen, onClose,
             onSuccess(res.data.data);
             onClose();
         } catch (error: any) {
+            // Jika shift sudah ada yang aktif, otomatis muat shift tersebut
+            try {
+                const cur = await api.get('/shifts/current');
+                if (cur.data?.data) {
+                    toast.success('Shift kasir yang sedang aktif berhasil dimuat!');
+                    onSuccess(cur.data.data);
+                    onClose();
+                    return;
+                }
+            } catch (_) {}
             toast.error(error.response?.data?.message || 'Gagal membuka kasir');
         } finally {
             setLoading(false);

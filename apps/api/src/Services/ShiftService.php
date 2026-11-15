@@ -86,11 +86,12 @@ class ShiftService
         $stmtExpenses = $this->db->prepare(
             "SELECT COALESCE(SUM(amount), 0) as total_expenses
              FROM expenses 
-             WHERE created_at >= :started_at OR DATE(created_at) = :shift_date OR date = :shift_date"
+             WHERE created_at >= :started_at OR DATE(created_at) = :shift_date_1 OR date = :shift_date_2"
         );
         $stmtExpenses->execute([
             'started_at' => $startedAt,
-            'shift_date' => $shiftDate
+            'shift_date_1' => $shiftDate,
+            'shift_date_2' => $shiftDate
         ]);
         $totalExpenses = (float)($stmtExpenses->fetchColumn() ?: 0);
 
@@ -119,8 +120,8 @@ class ShiftService
         // Cek jika sudah ada shift yang sedang terbuka di toko
         $existingShift = $this->shiftModel->findCurrentOpen();
         if ($existingShift) {
-            $openedBy = $existingShift['user_name'] ?? 'Kasir';
-            throw new \Exception("Masih ada shift kasir yang aktif (dibuka oleh {$openedBy}). Harap tutup shift sebelumnya terlebih dahulu.");
+            // Jika sudah ada yang aktif, otomatis gunakan shift yang sedang aktif
+            return $this->getCurrentShift($userId);
         }
         
         $shiftId = $this->shiftModel->openShift($userId, $openingCash);
@@ -215,14 +216,16 @@ class ShiftService
             "SELECT e.*, u.full_name as user_name
              FROM expenses e
              LEFT JOIN users u ON e.user_id = u.id
-             WHERE (e.created_at >= :started_at OR DATE(e.created_at) = :shift_date OR e.date = :shift_date)
-               AND (e.created_at <= :ended_at OR DATE(e.created_at) = :shift_date)
+             WHERE (e.created_at >= :started_at OR DATE(e.created_at) = :shift_date_1 OR e.date = :shift_date_2)
+               AND (e.created_at <= :ended_at OR DATE(e.created_at) = :shift_date_3)
              ORDER BY e.created_at ASC"
         );
         $stmtExpenses->execute([
             'started_at' => $startedAt,
             'ended_at' => $endedAt,
-            'shift_date' => $shiftDate
+            'shift_date_1' => $shiftDate,
+            'shift_date_2' => $shiftDate,
+            'shift_date_3' => $shiftDate
         ]);
         $expenseList = $stmtExpenses->fetchAll(PDO::FETCH_ASSOC) ?: [];
         $totalExpenses = array_sum(array_column($expenseList, 'amount'));

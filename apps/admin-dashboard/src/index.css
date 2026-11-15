@@ -54,13 +54,16 @@ body {
   #printable-receipt,
   #printable-receipt *,
   #printable-test-receipt,
-  #printable-test-receipt * {
+  #printable-test-receipt *,
+  #printable-zreport,
+  #printable-zreport * {
     visibility: visible;
   }
 
   /* Position the receipt at the very top left, ignoring original layout flow */
   #printable-receipt,
-  #printable-test-receipt {
+  #printable-test-receipt,
+  #printable-zreport {
     position: absolute;
     left: 0;
     top: 0;

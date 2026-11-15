@@ -71,6 +71,8 @@ const POSTerminal = () => {
                 setTimeout(() => {
                     setIsOpenShiftModalOpen(true);
                 }, 400);
+            } else {
+                setIsOpenShiftModalOpen(false);
             }
         } catch (err) {
             console.error("Gagal memeriksa shift kasir:", err);
