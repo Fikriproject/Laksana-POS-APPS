@@ -97,15 +97,32 @@ export const DailySettlementPage = () => {
         expenses: settlementData.expenses
     } : null;
 
+    const [printMode, setPrintMode] = useState<'zreport' | 'receipt'>('zreport');
+
     const handlePrintZReport = () => {
         if (!settlementData) return;
-        window.print();
+        setPrintMode('zreport');
+        setTimeout(() => {
+            window.print();
+        }, 50);
+    };
+
+    const handlePrintReceipt = () => {
+        if (!selectedReceipt) return;
+        setPrintMode('receipt');
+        setTimeout(() => {
+            window.print();
+        }, 50);
     };
 
     return (
         <>
-            {/* Thermal Print Template (Z-Report) */}
-            <PrintableZReport data={zReportPrintData} />
+            {/* Thermal Print Template (Z-Report or Receipt) */}
+            {printMode === 'zreport' ? (
+                <PrintableZReport data={zReportPrintData} />
+            ) : (
+                <PrintableReceipt order={selectedReceipt} />
+            )}
 
             {/* Modal Detail Nota untuk Cetak Ulang */}
             {selectedReceipt && (
@@ -168,10 +185,7 @@ export const DailySettlementPage = () => {
                                 Tutup
                             </button>
                             <button
-                                onClick={() => {
-                                    // Trigger print nota
-                                    window.print();
-                                }}
+                                onClick={handlePrintReceipt}
                                 className="flex-1 py-2 text-xs font-bold rounded-xl bg-primary text-white flex items-center justify-center gap-1.5 shadow-md shadow-primary/25"
                             >
                                 <span className="material-symbols-outlined text-[16px]">print</span>

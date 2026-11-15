@@ -46,14 +46,9 @@ const PrintableReceipt: React.FC<PrintableReceiptProps> = ({ order, className = 
     const is80mm = (printerConfig.paperWidth || '80mm') === '80mm';
     const maxWidthClass = is80mm ? 'max-w-[80mm]' : 'max-w-[58mm]';
 
-    // If no order, render a placeholder so we know it's a data issue, not CSS
+    // If no order, don't render anything in print
     if (!order) {
-        return (
-            <div id="printable-receipt" className={`hidden print:block text-center p-10 font-mono ${className}`}>
-                <h2 className="text-xl font-bold">NO RECEIPT DATA</h2>
-                <p>Silakan coba print ulang manual.</p>
-            </div>
-        );
+        return null;
     }
 
     return (
