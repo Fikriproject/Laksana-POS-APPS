@@ -147,8 +147,8 @@ class Product extends Model
         
         if ($startDate && $endDate) {
             $dateFilter = 'AND o.created_at BETWEEN :start_date AND :end_date';
-            $params['start_date'] = $startDate;
-            $params['end_date'] = $endDate;
+            $params['start_date'] = strlen($startDate) <= 10 ? $startDate . ' 00:00:00' : $startDate;
+            $params['end_date'] = strlen($endDate) <= 10 ? $endDate . ' 23:59:59' : $endDate;
         }
         
         $stmt = $this->db->prepare(

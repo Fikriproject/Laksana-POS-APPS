@@ -12,6 +12,13 @@ import { formatRupiah } from '../utils/format';
 
 import { useAuth } from '../context/AuthContext';
 
+const formatLocalDate = (d: Date) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
 const Dashboard = () => {
     const { user } = useAuth();
     const { toggleSidebar } = useOutletContext<DashboardContextType>();
@@ -24,7 +31,7 @@ const Dashboard = () => {
         lowStock: 0
     });
     const [chartData, setChartData] = useState<{ date: string; revenue: number }[]>([]);
-    const [topProducts, setTopProducts] = useState([]);
+    const [topProducts, setTopProducts] = useState<any[]>([]);
     const [recentTransactions, setRecentTransactions] = useState([]);
     const [lowStockProducts, setLowStockProducts] = useState([]);
     const [isStockModalOpen, setIsStockModalOpen] = useState(false);
@@ -33,16 +40,22 @@ const Dashboard = () => {
     useEffect(() => {
         const fetchStats = async () => {
             try {
+                const today = new Date();
+                const todayStr = formatLocalDate(today);
+                const weekAgo = new Date();
+                weekAgo.setDate(weekAgo.getDate() - 6);
+                const startWeekStr = formatLocalDate(weekAgo);
+
                 const promises: Promise<any>[] = [
                     api.get('/orders/today'),
                     api.get('/products/low-stock'),
-                    api.get('/products/top-selling?limit=5'),
+                    api.get(`/products/top-selling?limit=5&start_date=${todayStr}&end_date=${todayStr}`),
                     api.get('/orders?per_page=5')
                 ];
 
                 if (canViewFinancials) {
                     promises.push(
-                        api.get('/reports/sales/by-date?group_by=day&start_date=' + new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] + '&end_date=' + new Date().toISOString().split('T')[0])
+                        api.get(`/reports/sales/by-date?group_by=day&start_date=${startWeekStr}&end_date=${todayStr}`)
                     );
                 }
 
@@ -69,11 +82,11 @@ const Dashboard = () => {
                 // Process chart data jika berhak melihat pendapatan
                 if (chartRes && chartRes.data?.data) {
                     const salesData = chartRes.data.data;
-                    const last7Days = [];
+                    const last7Days: string[] = [];
                     for (let i = 6; i >= 0; i--) {
                         const d = new Date();
                         d.setDate(d.getDate() - i);
-                        last7Days.push(d.toISOString().split('T')[0]);
+                        last7Days.push(formatLocalDate(d));
                     }
 
                     const processedChartData = last7Days.map(date => {
@@ -87,7 +100,17 @@ const Dashboard = () => {
                     setChartData(processedChartData);
                 }
 
-                setTopProducts(topProductsRes.data?.data || []);
+                let topProductsList = topProductsRes.data?.data || [];
+                // Fallback jika hari ini belum ada produk terjual, tampilkan all-time top selling
+                if (topProductsList.length === 0) {
+                    try {
+                        const fallbackRes = await api.get('/products/top-selling?limit=5');
+                        topProductsList = fallbackRes.data?.data || [];
+                    } catch {
+                        // ignore fallback error
+                    }
+                }
+                setTopProducts(topProductsList);
                 setRecentTransactions(recentRes.data?.data?.orders || []);
 
             } catch (error) {

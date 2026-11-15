@@ -23,7 +23,7 @@ const ChartSection = ({ data }: ChartSectionProps) => {
 
     // Format date for display (e.g., "Mon", "Tue")
     const formatXAxis = (dateStr: string) => {
-        const date = new Date(dateStr);
+        const date = new Date(dateStr.includes('T') ? dateStr : `${dateStr}T12:00:00`);
         return date.toLocaleDateString('en-US', { weekday: 'short' });
     };
 

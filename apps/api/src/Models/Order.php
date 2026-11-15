@@ -113,18 +113,18 @@ class Order extends Model
         // Use DATE(created_at) = :today for compatibility
         $stmt = $this->db->prepare(
             "SELECT 
-                COUNT(*) as total_transactions,
-                COALESCE(SUM(total_amount), 0) as total_revenue,
-                COALESCE(SUM(total_amount - tax_amount), 0) as net_sales,
-                COALESCE(SUM(tax_amount), 0) as total_tax,
-                COALESCE(SUM(discount_amount), 0) as total_discounts,
+                COUNT(CASE WHEN status = 'completed' THEN 1 END) as total_transactions,
+                COALESCE(SUM(CASE WHEN status = 'completed' THEN total_amount ELSE 0 END), 0) as total_revenue,
+                COALESCE(SUM(CASE WHEN status = 'completed' THEN (total_amount - tax_amount) ELSE 0 END), 0) as net_sales,
+                COALESCE(SUM(CASE WHEN status = 'completed' THEN tax_amount ELSE 0 END), 0) as total_tax,
+                COALESCE(SUM(CASE WHEN status = 'completed' THEN discount_amount ELSE 0 END), 0) as total_discounts,
                 COALESCE(
                     (SELECT SUM(oi.purchase_price * oi.quantity)
                      FROM order_items oi
                      JOIN orders o2 ON oi.order_id = o2.id
                      WHERE CAST(o2.created_at AS DATE) = :today_sub AND o2.status = 'completed')
                 , 0) as total_cogs,
-                COALESCE(AVG(total_amount), 0) as avg_order_value,
+                COALESCE(AVG(CASE WHEN status = 'completed' THEN total_amount END), 0) as avg_order_value,
                 COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_orders,
                 COUNT(CASE WHEN status = 'refunded' THEN 1 END) as refunded_orders
              FROM {$this->table}

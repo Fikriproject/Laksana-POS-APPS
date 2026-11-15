@@ -89,6 +89,13 @@ interface DailyFinancial {
     net_profit: number;
 }
 
+const formatLocalDate = (d: Date) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
 // --- Component ---
 
 const ReportsPage = () => {
@@ -97,9 +104,13 @@ const ReportsPage = () => {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
     const [activeTab, setActiveTab] = useState<'sales' | 'inventory' | 'employees' | 'tax'>('sales');
-    const [dateRange, setDateRange] = useState({
-        start: new Date(new Date().setDate(1)).toISOString().split('T')[0], // 1st of current month
-        end: new Date().toISOString().split('T')[0] // Today
+    const [dateRange, setDateRange] = useState(() => {
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        return {
+            start: formatLocalDate(startOfMonth),
+            end: formatLocalDate(now)
+        };
     });
     const [filterType, setFilterType] = useState<'today' | 'week' | 'month' | 'custom'>('month');
     const [financialGroupBy, setFinancialGroupBy] = useState<'day' | 'week' | 'month' | 'year'>('day');
@@ -142,12 +153,12 @@ const ReportsPage = () => {
         } else if (type === 'week') {
             start.setDate(end.getDate() - 7);
         } else if (type === 'month') {
-            start.setDate(1); // 1st of month
+            start = new Date(end.getFullYear(), end.getMonth(), 1);
         }
 
         setDateRange({
-            start: start.toISOString().split('T')[0],
-            end: end.toISOString().split('T')[0]
+            start: formatLocalDate(start),
+            end: formatLocalDate(end)
         });
     };
 
@@ -558,7 +569,7 @@ const ReportsPage = () => {
                                             { label: 'Total Pendapatan', value: formatRupiah(salesSummary.total_revenue), icon: 'payments', color: 'text-green-500', bg: 'bg-green-500/10' },
                                             { label: 'Transaksi', value: salesSummary.total_transactions, icon: 'receipt_long', color: 'text-blue-500', bg: 'bg-blue-500/10' },
                                             { label: 'Rata-rata Order', value: formatRupiah(salesSummary.avg_order_value), icon: 'shopping_bag', color: 'text-orange-500', bg: 'bg-orange-500/10' },
-                                            { label: 'Penjualan Bersih', value: formatRupiah(Number(salesSummary.total_revenue) - Number(salesSummary.total_tax) - Number(salesSummary.total_discounts)), icon: 'account_balance_wallet', color: 'text-purple-500', bg: 'bg-purple-500/10' },
+                                            { label: 'Penjualan Bersih', value: formatRupiah(Number(salesSummary.total_revenue) - Number(salesSummary.total_tax || 0)), icon: 'account_balance_wallet', color: 'text-purple-500', bg: 'bg-purple-500/10' },
                                         ].map((stat, i) => (
                                             <div key={i} className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-xl p-5 shadow-sm transition-colors">
                                                 <div className="flex justify-between items-start">

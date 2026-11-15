@@ -14,6 +14,9 @@ use App\Utils\Response;
 $dotenv = Dotenv::createImmutable(__DIR__ . '/..');
 $dotenv->safeLoad();
 
+// Set default timezone (WIB)
+date_default_timezone_set($_ENV['APP_TIMEZONE'] ?? 'Asia/Jakarta');
+
 // Set CORS headers
 Cors::headers();
 

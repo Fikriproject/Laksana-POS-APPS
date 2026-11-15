@@ -16,6 +16,14 @@ return function ($method, $path, $reportService, $user) {
     // Default date range (current month)
     $startDate = $_GET['start_date'] ?? date('Y-m-01');
     $endDate = $_GET['end_date'] ?? date('Y-m-d 23:59:59');
+
+    // Ensure start_date covers start of day and end_date covers end of day if only YYYY-MM-DD is passed
+    if (strlen($startDate) <= 10) {
+        $startDate .= ' 00:00:00';
+    }
+    if (strlen($endDate) <= 10) {
+        $endDate .= ' 23:59:59';
+    }
     
     // GET /api/reports/sales/summary - Sales summary
     if ($method === 'GET' && $path === '/sales/summary') {
