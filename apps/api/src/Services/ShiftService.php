@@ -39,8 +39,22 @@ class ShiftService
 
         $shiftId = $shift['id'];
         $startedAt = $shift['started_at'];
+        $shiftDate = substr($startedAt, 0, 10);
 
-        // Ambil metrik penjualan live selama shift ini berjalan
+        // Otomatis tautkan semua pesanan hari ini yang belum memiliki shift_id ke shift aktif ini
+        try {
+            $this->db->prepare(
+                "UPDATE orders SET shift_id = :shift_id 
+                 WHERE DATE(created_at) = :shift_date AND (shift_id IS NULL OR shift_id = '')"
+            )->execute([
+                'shift_id' => $shiftId,
+                'shift_date' => $shiftDate
+            ]);
+        } catch (\Exception $e) {
+            // Abaikan jika update gagal
+        }
+
+        // Ambil metrik penjualan live selama shift ini berjalan (mencakup semua transaksi pada hari shift dibuka)
         $stmtSales = $this->db->prepare(
             "SELECT 
                 COUNT(*) as total_orders,
@@ -51,12 +65,12 @@ class ShiftService
                 COALESCE(SUM(CASE WHEN payment_method = 'cash' THEN total_amount ELSE 0 END), 0) as cash_sales,
                 COALESCE(SUM(CASE WHEN payment_method != 'cash' THEN total_amount ELSE 0 END), 0) as non_cash_sales
              FROM orders 
-             WHERE (shift_id = :shift_id OR (created_at >= :started_at AND shift_id IS NULL)) 
+             WHERE (shift_id = :shift_id OR DATE(created_at) = :shift_date) 
                AND status = 'completed'"
         );
         $stmtSales->execute([
             'shift_id' => $shiftId,
-            'started_at' => $startedAt
+            'shift_date' => $shiftDate
         ]);
         $sales = $stmtSales->fetch(PDO::FETCH_ASSOC) ?: [
             'total_orders' => 0,
@@ -68,13 +82,16 @@ class ShiftService
             'non_cash_sales' => 0
         ];
 
-        // Ambil pengeluaran / kas keluar selama shift berlangsung
+        // Ambil pengeluaran / kas keluar pada hari shift berlangsung
         $stmtExpenses = $this->db->prepare(
             "SELECT COALESCE(SUM(amount), 0) as total_expenses
              FROM expenses 
-             WHERE created_at >= :started_at"
+             WHERE created_at >= :started_at OR DATE(created_at) = :shift_date OR date = :shift_date"
         );
-        $stmtExpenses->execute(['started_at' => $startedAt]);
+        $stmtExpenses->execute([
+            'started_at' => $startedAt,
+            'shift_date' => $shiftDate
+        ]);
         $totalExpenses = (float)($stmtExpenses->fetchColumn() ?: 0);
 
         $openingCash = (float)($shift['opening_cash'] ?? 0);
@@ -146,8 +163,20 @@ class ShiftService
 
         $startedAt = $shift['started_at'];
         $endedAt = $shift['ended_at'] ?: date('Y-m-d H:i:s');
+        $shiftDate = substr($startedAt, 0, 10);
 
-        // 1. Data Transaksi Penjualan Shift
+        // Pastikan semua pesanan hari ini tertaut ke shift ini
+        try {
+            $this->db->prepare(
+                "UPDATE orders SET shift_id = :shift_id 
+                 WHERE DATE(created_at) = :shift_date AND (shift_id IS NULL OR shift_id = '')"
+            )->execute([
+                'shift_id' => $shiftId,
+                'shift_date' => $shiftDate
+            ]);
+        } catch (\Exception $e) {}
+
+        // 1. Data Transaksi Penjualan Shift (mencakup semua transaksi pada hari shift)
         $stmtOrders = $this->db->prepare(
             "SELECT 
                 COUNT(*) as total_orders,
@@ -158,13 +187,12 @@ class ShiftService
                 COALESCE(SUM(CASE WHEN payment_method = 'cash' THEN total_amount ELSE 0 END), 0) as cash_sales,
                 COALESCE(SUM(CASE WHEN payment_method != 'cash' THEN total_amount ELSE 0 END), 0) as non_cash_sales
              FROM orders 
-             WHERE (shift_id = :shift_id OR (created_at >= :started_at AND created_at <= :ended_at AND shift_id IS NULL)) 
+             WHERE (shift_id = :shift_id OR DATE(created_at) = :shift_date) 
                AND status = 'completed'"
         );
         $stmtOrders->execute([
             'shift_id' => $shiftId,
-            'started_at' => $startedAt,
-            'ended_at' => $endedAt
+            'shift_date' => $shiftDate
         ]);
         $sales = $stmtOrders->fetch(PDO::FETCH_ASSOC) ?: [];
 
@@ -173,13 +201,12 @@ class ShiftService
             "SELECT COALESCE(SUM(oi.purchase_price * oi.quantity), 0) as total_cogs
              FROM order_items oi
              JOIN orders o ON oi.order_id = o.id
-             WHERE (o.shift_id = :shift_id OR (o.created_at >= :started_at AND o.created_at <= :ended_at AND o.shift_id IS NULL))
+             WHERE (o.shift_id = :shift_id OR DATE(o.created_at) = :shift_date)
                AND o.status = 'completed'"
         );
         $stmtCogs->execute([
             'shift_id' => $shiftId,
-            'started_at' => $startedAt,
-            'ended_at' => $endedAt
+            'shift_date' => $shiftDate
         ]);
         $totalCogs = (float)($stmtCogs->fetchColumn() ?: 0);
 
@@ -188,12 +215,14 @@ class ShiftService
             "SELECT e.*, u.full_name as user_name
              FROM expenses e
              LEFT JOIN users u ON e.user_id = u.id
-             WHERE e.created_at >= :started_at AND e.created_at <= :ended_at
+             WHERE (e.created_at >= :started_at OR DATE(e.created_at) = :shift_date OR e.date = :shift_date)
+               AND (e.created_at <= :ended_at OR DATE(e.created_at) = :shift_date)
              ORDER BY e.created_at ASC"
         );
         $stmtExpenses->execute([
             'started_at' => $startedAt,
-            'ended_at' => $endedAt
+            'ended_at' => $endedAt,
+            'shift_date' => $shiftDate
         ]);
         $expenseList = $stmtExpenses->fetchAll(PDO::FETCH_ASSOC) ?: [];
         $totalExpenses = array_sum(array_column($expenseList, 'amount'));
