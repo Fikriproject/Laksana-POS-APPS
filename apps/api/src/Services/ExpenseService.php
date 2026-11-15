@@ -32,8 +32,7 @@ class ExpenseService
 
         $stmt = $this->db->prepare(
             "INSERT INTO expenses (user_id, title, category, amount, description, date, created_at) 
-             VALUES (:user_id, :title, :category, :amount, :description, :date, NOW())
-             RETURNING id"
+             VALUES (:user_id, :title, :category, :amount, :description, :date, NOW())"
         );
         
         $stmt->execute([
@@ -45,9 +44,9 @@ class ExpenseService
             'date' => $formattedDate
         ]);
         
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $newId = $this->db->lastInsertId();
         
-        return ['id' => $result['id'], 'message' => 'Expense created successfully'];
+        return ['id' => $newId, 'message' => 'Expense created successfully'];
     }
 
     // Removed unused generateUuid method

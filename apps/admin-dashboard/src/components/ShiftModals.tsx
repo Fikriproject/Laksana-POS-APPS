@@ -68,7 +68,7 @@ export const OpenShiftModal: React.FC<OpenShiftModalProps> = ({ isOpen, onClose,
                             <input
                                 type="number"
                                 min={0}
-                                step={1000}
+                                step="any"
                                 value={openingCash || ''}
                                 onChange={(e) => setOpeningCash(Number(e.target.value))}
                                 className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-[#282839] bg-gray-50 dark:bg-background-dark text-gray-900 dark:text-white font-bold text-lg focus:outline-none focus:border-primary"
@@ -190,8 +190,8 @@ export const PettyCashModal: React.FC<PettyCashModalProps> = ({ isOpen, onClose,
                             <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400">Rp</span>
                             <input
                                 type="number"
-                                min={100}
-                                step={500}
+                                min={0}
+                                step="any"
                                 value={amount || ''}
                                 onChange={(e) => setAmount(Number(e.target.value))}
                                 className="w-full pl-11 pr-4 py-2 rounded-xl border border-slate-200 dark:border-[#282839] bg-gray-50 dark:bg-background-dark text-gray-900 dark:text-white font-bold text-base focus:outline-none focus:border-primary"
@@ -385,7 +385,7 @@ export const CloseShiftModal: React.FC<CloseShiftModalProps> = ({ isOpen, shift,
                         <input
                             type="number"
                             min={0}
-                            step={500}
+                            step="any"
                             value={actualCash || ''}
                             onChange={(e) => setActualCash(Number(e.target.value))}
                             className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-[#282839] bg-white dark:bg-surface-dark text-gray-900 dark:text-white font-bold text-lg focus:outline-none focus:border-primary shadow-sm"
