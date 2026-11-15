@@ -212,3 +212,4 @@ try {
     echo "\n\033[31m[ERROR] Terjadi kesalahan: " . $e->getMessage() . "\033[0m\n\n";
     exit(1);
 }
+

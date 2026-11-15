@@ -20,26 +20,41 @@ echo -e "\n\033[1;33m[2/5] Membangun Frontend (Production Build)...\033[0m"
 cd "$ROOT_DIR"
 BUILD_SUCCESS=0
 
-if command -v pnpm &> /dev/null; then
-    pnpm approve-builds --all 2>/dev/null || true
-    if (pnpm install --dangerously-allow-all-builds 2>/dev/null || pnpm install || pnpm install --no-frozen-lockfile) && pnpm --filter admin-dashboard build; then
+# Coba build langsung jika vite binary sudah ada
+if [ -f "$ROOT_DIR/apps/admin-dashboard/node_modules/.bin/vite" ]; then
+    if (cd "$ROOT_DIR/apps/admin-dashboard" && ./node_modules/.bin/vite build); then
         BUILD_SUCCESS=1
-    else
-        echo -e "\033[33m[WARN] Build dengan pnpm gagal, mencoba kompilasi dengan npm...\033[0m"
+    fi
+fi
+
+# Coba build dengan npm (paling stabil & kompatibel)
+if [ $BUILD_SUCCESS -eq 0 ] && command -v npm &> /dev/null; then
+    cd "$ROOT_DIR/apps/admin-dashboard"
+    # Jika node_modules tercampur symlink pnpm yang memicu error ENOTDIR, bersihkan terlebih dahulu
+    if [ -L "node_modules/autoprefixer" ] || [ -L "node_modules/vite" ] || [ ! -f "node_modules/.bin/vite" ]; then
+        echo -e "\033[33m[INFO] Membersihkan cache node_modules lama untuk menghindari bentrok pnpm/npm...\033[0m"
+        rm -rf node_modules package-lock.json
+    fi
+    if (npm install && npm run build); then
+        BUILD_SUCCESS=1
+    elif npx vite build; then
+        BUILD_SUCCESS=1
+    fi
+    cd "$ROOT_DIR"
+fi
+
+# Fallback ke pnpm dengan hoist
+if [ $BUILD_SUCCESS -eq 0 ] && command -v pnpm &> /dev/null; then
+    cd "$ROOT_DIR"
+    pnpm install --shamefully-hoist || pnpm install
+    if pnpm --filter admin-dashboard build; then
+        BUILD_SUCCESS=1
     fi
 fi
 
 if [ $BUILD_SUCCESS -eq 0 ]; then
-    if command -v npm &> /dev/null; then
-        cd "$ROOT_DIR/apps/admin-dashboard"
-        npm install
-        npm run build
-        cd "$ROOT_DIR"
-        BUILD_SUCCESS=1
-    else
-        echo -e "\033[31m[ERROR] pnpm dan npm tidak dapat melakukan build. Silakan periksa instalasi Node.js.\033[0m"
-        exit 1
-    fi
+    echo -e "\033[31m[ERROR] Gagal melakukan build frontend. Silakan periksa instalasi Node.js & npm.\033[0m"
+    exit 1
 fi
 echo -e "\033[32m✓ Frontend berhasil di-compile ke folder dist/\033[0m"
 
