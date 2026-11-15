@@ -125,21 +125,25 @@ const POSTerminal = () => {
             return false;
         }
 
-        const existingItem = cart.find(item => item.id === product.id);
-        if (existingItem) {
-            // Check stock limit
-            if (product.stock_quantity !== undefined && existingItem.quantity >= product.stock_quantity) {
-                toast.error(`Maksimal stok tercapai untuk "${product.name}" (${product.stock_quantity} unit)`, { id: `limit-${product.id}`, duration: 2500 });
-                return false;
-            }
+        let success = true;
+        setCart(prevCart => {
+            const existingItem = prevCart.find(item => item.id === product.id);
+            if (existingItem) {
+                // Check stock limit
+                if (product.stock_quantity !== undefined && existingItem.quantity >= product.stock_quantity) {
+                    toast.error(`Maksimal stok tercapai untuk "${product.name}" (${product.stock_quantity} unit)`, { id: `limit-${product.id}`, duration: 2500 });
+                    success = false;
+                    return prevCart;
+                }
 
-            setCart(cart.map(item =>
-                item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
-            ));
-        } else {
-            setCart([...cart, { ...product, quantity: 1 }]);
-        }
-        return true;
+                return prevCart.map(item =>
+                    item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+                );
+            } else {
+                return [...prevCart, { ...product, quantity: 1 }];
+            }
+        });
+        return success;
     };
 
     const updateQuantity = (id: string, delta: number) => {
@@ -328,12 +332,26 @@ const POSTerminal = () => {
 
 
 
-    // Debounce pencarian manual agar tablet tidak lag saat mengetik
+    // Debounce pencarian manual agar tablet tidak lag saat mengetik & scanner tidak memicu re-render katalog
     const [debouncedSearch, setDebouncedSearch] = useState('');
-    useEffect(() => {
-        const timer = setTimeout(() => setDebouncedSearch(searchTerm), 80);
-        return () => clearTimeout(timer);
-    }, [searchTerm]);
+    const searchDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+    const handleSearchChange = (val: string) => {
+        setSearchTerm(val);
+        if (searchDebounceTimerRef.current) clearTimeout(searchDebounceTimerRef.current);
+        searchDebounceTimerRef.current = setTimeout(() => {
+            setDebouncedSearch(val);
+        }, 250);
+    };
+
+    const clearSearch = () => {
+        if (searchDebounceTimerRef.current) clearTimeout(searchDebounceTimerRef.current);
+        setSearchTerm('');
+        setDebouncedSearch('');
+        if (searchInputRef.current) {
+            searchInputRef.current.value = '';
+        }
+    };
 
     const isSearching = debouncedSearch.trim().length > 0;
     const cleanSearch = debouncedSearch.trim().toLowerCase();
@@ -343,14 +361,24 @@ const POSTerminal = () => {
         const map = new Map<string, Product>();
         for (const p of products) {
             if (p.sku) {
-                const clean = p.sku.trim().toLowerCase();
+                const clean = String(p.sku).trim().toLowerCase();
                 map.set(clean, p);
                 const noZero = clean.replace(/^0+/, '');
                 if (noZero) map.set(noZero, p);
                 const noDash = clean.replace(/[-\s]/g, '');
                 if (noDash) map.set(noDash, p);
             }
-            map.set(String(p.id).toLowerCase(), p);
+            if ((p as any).barcode) {
+                const cleanB = String((p as any).barcode).trim().toLowerCase();
+                map.set(cleanB, p);
+                const noZeroB = cleanB.replace(/^0+/, '');
+                if (noZeroB) map.set(noZeroB, p);
+            }
+            if (p.id) {
+                map.set(String(p.id).toLowerCase(), p);
+                const skuFallback = `sku-${String(p.id).substring(0, 6).toLowerCase()}`;
+                map.set(skuFallback, p);
+            }
             if (p.name) {
                 map.set(p.name.trim().toLowerCase(), p);
             }
@@ -381,12 +409,15 @@ const POSTerminal = () => {
         );
     };
 
-    const filteredProducts = products.filter(product => {
-        const matchesCat = matchesCategoryFilter(product, activeCategory);
-        const matchesQuery = matchesSearchFilter(product, cleanSearch);
-        const active = isProductActive(product);
-        return matchesCat && matchesQuery && active;
-    });
+    // Memoize filtered products agar tidak re-compute dan memicu re-render 285 kartu produk saat scanner berjalan
+    const filteredProducts = useMemo(() => {
+        return products.filter(product => {
+            const matchesCat = matchesCategoryFilter(product, activeCategory);
+            const matchesQuery = matchesSearchFilter(product, cleanSearch);
+            const active = isProductActive(product);
+            return matchesCat && matchesQuery && active;
+        });
+    }, [products, activeCategory, cleanSearch]);
 
     // Cek apakah ada barang yang cocok di kategori lain jika hasil di kategori aktif kosong
     const totalMatchesAllCategories = isSearching && activeCategory !== 'all'
@@ -397,6 +428,17 @@ const POSTerminal = () => {
     const scanBufferRef = useRef<string>('');
     const lastKeyTimeRef = useRef<number>(0);
     const searchInputRef = useRef<HTMLInputElement>(null);
+
+    // Refs untuk event listener agar tidak perlu re-subscribe listener saat cart / state berubah
+    const productSkuMapRef = useRef(productSkuMap);
+    useEffect(() => {
+        productSkuMapRef.current = productSkuMap;
+    }, [productSkuMap]);
+
+    const addToCartRef = useRef(addToCart);
+    useEffect(() => {
+        addToCartRef.current = addToCart;
+    }, [addToCart]);
 
     // Suara Beep konfirmasi saat scan berhasil
     const playScanBeep = () => {
@@ -434,19 +476,19 @@ const POSTerminal = () => {
         const cleanNoLeadingZero = clean.replace(/^0+/, '');
         const cleanNoDash = clean.replace(/[-\s]/g, '');
 
+        const currentMap = productSkuMapRef.current;
         // Cari instan O(1) via Map
-        const found = productSkuMap.get(clean) ||
-            (cleanNoLeadingZero ? productSkuMap.get(cleanNoLeadingZero) : undefined) ||
-            (cleanNoDash ? productSkuMap.get(cleanNoDash) : undefined);
+        const found = currentMap.get(clean) ||
+            (cleanNoLeadingZero ? currentMap.get(cleanNoLeadingZero) : undefined) ||
+            (cleanNoDash ? currentMap.get(cleanNoDash) : undefined);
 
         if (found) {
-            const added = addToCart(found);
+            const added = addToCartRef.current(found);
             if (added) {
                 playScanBeep();
                 toast.success(`Ditambahkan: ${found.name}`, { id: 'scan-success', duration: 1500 });
             }
-            if (searchInputRef.current) searchInputRef.current.value = '';
-            setSearchTerm('');
+            clearSearch();
             return true;
         } else {
             // Tampilkan notifikasi JELAS kepada kasir dengan kode barcode yang terbaca
@@ -455,16 +497,16 @@ const POSTerminal = () => {
                 duration: 4000,
                 icon: '⚠️'
             });
+            clearSearch();
             return false;
         }
     };
 
-    // Global Keydown Listener: Mencegah karakter scanner masuk ke input teks (Menghilangkan animasi ngetik & lag render di tablet)
+    // Global Keydown Listener: Mendukung pemindaian hands-free (tanpa perlu sentuh layar)
+    // Menggunakan timeout 400ms yang aman untuk USB OTG Android & tidak memblokir input keyboard fisik
     useEffect(() => {
-        let isScannerMode = false;
-
         const handleGlobalKeyDown = (e: KeyboardEvent) => {
-            // Abaikan jika user sedang di input form lain (misal modal pembayaran)
+            // Abaikan jika user sedang di input form modal lain (misal modal pembayaran/kas diterima)
             const target = e.target as HTMLElement;
             const isInsideOtherInput = target && target !== searchInputRef.current && (
                 target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT'
@@ -477,80 +519,70 @@ const POSTerminal = () => {
             const timeDiff = now - lastKeyTimeRef.current;
             lastKeyTimeRef.current = now;
 
+            // Reset buffer jika jeda lebih dari 400ms (pengetikan manual manusia terjeda)
+            // 400ms menjamin tidak pernah mereset di tengah-tengah transmisi OTG Android
+            if (timeDiff > 400) {
+                scanBufferRef.current = '';
+            }
+
             // Jika tombol Enter ditekan (akhir pembacaan barcode scanner)
-            if (e.key === 'Enter') {
+            if (e.key === 'Enter' || e.keyCode === 13) {
                 const buffer = scanBufferRef.current.trim();
-                const inputValue = (searchInputRef.current?.value || searchTerm || '').trim();
+                const inputValue = (searchInputRef.current?.value || '').trim();
                 const codeToProcess = buffer || inputValue;
 
                 if (codeToProcess.length >= 2) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    scanBufferRef.current = '';
-                    isScannerMode = false;
                     const handled = processBarcodeScan(codeToProcess);
                     if (handled) {
-                        if (searchInputRef.current) searchInputRef.current.value = '';
-                        setSearchTerm('');
+                        e.preventDefault();
+                        e.stopPropagation();
+                        scanBufferRef.current = '';
+                        if (searchInputRef.current) {
+                            searchInputRef.current.blur();
+                        }
+                        clearSearch();
+                        return;
                     }
-                    return;
                 }
                 scanBufferRef.current = '';
-                isScannerMode = false;
                 return;
             }
 
-            // Scanner mengirim tombol dengan jeda super cepat (< 50 milidetik per karakter)
-            if (timeDiff < 50 && scanBufferRef.current.length > 0) {
-                isScannerMode = true;
-            } else if (timeDiff > 75) {
-                // Manusia mengetik biasa (jeda > 75ms)
-                scanBufferRef.current = '';
-                isScannerMode = false;
-            }
-
-            if (e.key.length === 1) {
+            // Simpan setiap karakter tunggal ke buffer scan
+            if (e.key && e.key.length === 1) {
                 scanBufferRef.current += e.key;
-
-                // KUNCI UTAMA: Jika terdeteksi scanner, cegah pengetikan fisik ke kotak input!
-                // Ini menghilangkan 'animasi ngetik' dan menghentikan 10x re-render layar di tablet!
-                if (isScannerMode) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (searchInputRef.current && searchInputRef.current.value.length <= 2) {
-                        searchInputRef.current.value = '';
-                    }
-                }
             }
         };
 
-        // Menggunakan mode capture (true) agar event dicegat sebelum sampai ke elemen input
-        window.addEventListener('keydown', handleGlobalKeyDown, true);
-        return () => window.removeEventListener('keydown', handleGlobalKeyDown, true);
-    }, [productSkuMap, cart]);
+        window.addEventListener('keydown', handleGlobalKeyDown);
+        return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+    }, []);
 
     const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
             e.preventDefault();
-            const val = (e.currentTarget.value || searchTerm).trim();
+            e.stopPropagation();
+            const val = (e.currentTarget.value || scanBufferRef.current).trim();
             if (!val) return;
 
             const handled = processBarcodeScan(val);
             if (handled) {
-                e.currentTarget.value = '';
-                setSearchTerm('');
+                e.currentTarget.blur();
+                clearSearch();
+                scanBufferRef.current = '';
                 return;
             }
 
             // Jika hasil filter hanya 1 produk, langsung tambahkan
             if (filteredProducts.length === 1) {
                 const single = filteredProducts[0];
-                const added = addToCart(single);
+                const added = addToCartRef.current(single);
                 if (added) {
                     toast.success(`Ditambahkan: ${single.name}`, { duration: 1500 });
                 }
-                e.currentTarget.value = '';
-                setSearchTerm('');
+                e.currentTarget.blur();
+                clearSearch();
+                scanBufferRef.current = '';
             }
         }
     };
@@ -594,15 +626,19 @@ const POSTerminal = () => {
                                 <input
                                     ref={searchInputRef}
                                     value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    onChange={(e) => handleSearchChange(e.target.value)}
                                     onKeyDown={handleSearchKeyDown}
+                                    autoComplete="off"
+                                    autoCorrect="off"
+                                    autoCapitalize="off"
+                                    spellCheck={false}
                                     className="w-full min-w-0 bg-transparent text-xs sm:text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-[#9d9db9] focus:outline-none border-none p-0"
                                     placeholder="Cari nama barang, SKU, barcode..."
                                 />
                                 {searchTerm && (
                                     <button
                                         type="button"
-                                        onClick={() => setSearchTerm('')}
+                                        onClick={clearSearch}
                                         className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors rounded-full shrink-0 ml-1"
                                         title="Hapus pencarian"
                                     >
