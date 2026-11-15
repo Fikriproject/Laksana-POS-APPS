@@ -81,6 +81,15 @@ class OrderService
             // Generate order number
             $orderNumber = $this->orderModel->generateOrderNumber();
             
+            // Otomatis tautkan pesanan ke shift kasir yang sedang aktif jika ada
+            if (!$shiftId) {
+                $stmtShift = $this->db->query("SELECT id FROM shifts WHERE status = 'open' ORDER BY started_at DESC LIMIT 1");
+                $activeShift = $stmtShift ? $stmtShift->fetch(\PDO::FETCH_ASSOC) : null;
+                if ($activeShift) {
+                    $shiftId = $activeShift['id'];
+                }
+            }
+
             // Create order
             $orderId = $this->orderModel->create([
                 'order_number' => $orderNumber,

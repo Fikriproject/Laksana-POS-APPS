@@ -7,6 +7,8 @@ import Sidebar from '../components/Sidebar';
 import { formatRupiah } from '../utils/format';
 import ThemeToggle from '../components/ThemeToggle';
 import PrintableReceipt from '../components/PrintableReceipt';
+import PrintableZReport from '../components/PrintableZReport';
+import { OpenShiftModal, PettyCashModal, CloseShiftModal } from '../components/ShiftModals';
 
 interface Product {
     id: string;
@@ -53,6 +55,27 @@ const POSTerminal = () => {
     const [discountValue, setDiscountValue] = useState<number>(0);
     const [cashReceived, setCashReceived] = useState<number>(0);
     const [isSummaryCollapsed, setIsSummaryCollapsed] = useState<boolean>(false);
+
+    // State Shift Kasir & Rekonsiliasi Kas Laci
+    const [currentShift, setCurrentShift] = useState<any>(null);
+    const [isOpenShiftModalOpen, setIsOpenShiftModalOpen] = useState<boolean>(false);
+    const [isCloseShiftModalOpen, setIsCloseShiftModalOpen] = useState<boolean>(false);
+    const [isPettyCashModalOpen, setIsPettyCashModalOpen] = useState<boolean>(false);
+    const [zReportData, setZReportData] = useState<any>(null);
+
+    const fetchCurrentShift = async () => {
+        try {
+            const res = await api.get('/shifts/current');
+            setCurrentShift(res.data.data);
+            if (!res.data.data) {
+                setTimeout(() => {
+                    setIsOpenShiftModalOpen(true);
+                }, 400);
+            }
+        } catch (err) {
+            console.error("Gagal memeriksa shift kasir:", err);
+        }
+    };
 
     // Toggle Product Images in POS (persisted in localStorage)
     const [showProductImages, setShowProductImages] = useState<boolean>(() => {
@@ -117,6 +140,7 @@ const POSTerminal = () => {
         };
 
         fetchData();
+        fetchCurrentShift();
     }, []);
 
     const addToCart = (product: Product): boolean => {
@@ -276,6 +300,7 @@ const POSTerminal = () => {
             const res = await api.get('/products?per_page=1000');
             const productsData = res.data.data.products ? res.data.data.products : res.data.data;
             setProducts(productsData);
+            fetchCurrentShift();
 
         } catch (error: any) {
             console.error('Failed to create order', error);
@@ -646,6 +671,55 @@ const POSTerminal = () => {
                                     </button>
                                 )}
                             </div>
+                        </div>
+
+                        {/* Status Shift Kasir & Tombol Kas Keluar / Tutup Kasir */}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                            {currentShift ? (
+                                <>
+                                    {/* Tombol Status Kasir Buka */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsCloseShiftModalOpen(true)}
+                                        className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold transition-all shadow-sm"
+                                        title="Klik untuk melihat status laci & tutup kasir"
+                                    >
+                                        <span className="size-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                        <span>Kasir Buka</span>
+                                    </button>
+
+                                    {/* Tombol Catat Kas Keluar */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsPettyCashModalOpen(true)}
+                                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 dark:bg-red-950/30 dark:hover:bg-red-950/50 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-xs font-bold transition-all shadow-sm"
+                                        title="Catat uang keluar dari laci (beli kresek, galon, dll)"
+                                    >
+                                        <span className="material-symbols-outlined text-[16px]">payments</span>
+                                        <span className="hidden md:inline">Kas Keluar</span>
+                                    </button>
+
+                                    {/* Tombol Tutup Kasir */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsCloseShiftModalOpen(true)}
+                                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-all shadow-sm"
+                                        title="Tutup kasir harian & hitung uang di laci"
+                                    >
+                                        <span className="material-symbols-outlined text-[16px]">lock_clock</span>
+                                        <span className="hidden sm:inline">Tutup Kasir</span>
+                                    </button>
+                                </>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={() => setIsOpenShiftModalOpen(true)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary-hover shadow-sm transition-all animate-pulse"
+                                >
+                                    <span className="material-symbols-outlined text-[16px]">storefront</span>
+                                    <span>Buka Kasir</span>
+                                </button>
+                            )}
                         </div>
 
                         {/* Kanan: Theme Toggle & Profile Avatar (Tanpa detail teks pengguna & tanpa tombol Sync) */}
@@ -1138,6 +1212,44 @@ const POSTerminal = () => {
             </div>
             {/* Printable Receipt - Sibling to Main Layout */}
             <PrintableReceipt order={receiptData} />
+
+            {/* Template Cetak Thermal Z-Report Tutup Kasir */}
+            <PrintableZReport data={zReportData} />
+
+            {/* Modal Buka Kasir */}
+            <OpenShiftModal
+                isOpen={isOpenShiftModalOpen}
+                onClose={() => setIsOpenShiftModalOpen(false)}
+                onSuccess={(shift) => setCurrentShift(shift)}
+            />
+
+            {/* Modal Kas Keluar (Peti Kas) */}
+            <PettyCashModal
+                isOpen={isPettyCashModalOpen}
+                onClose={() => setIsPettyCashModalOpen(false)}
+                onSuccess={() => fetchCurrentShift()}
+            />
+
+            {/* Modal Tutup Kasir */}
+            <CloseShiftModal
+                isOpen={isCloseShiftModalOpen}
+                shift={currentShift}
+                onClose={() => setIsCloseShiftModalOpen(false)}
+                onSuccess={async (summary) => {
+                    setCurrentShift(null);
+                    setZReportData(summary);
+                    const shouldPrint = await confirm({
+                        title: 'Cetak Laporan Tutup Kasir (Z-Report)?',
+                        message: `Shift kasir berhasil ditutup. Selisih laci: ${summary.cash_drawer?.cash_difference === 0 ? 'PAS (Rp 0)' : formatRupiah(summary.cash_drawer?.cash_difference || 0)}. Cetak struk laporan Z-Report sekarang?`,
+                        confirmText: 'Cetak Z-Report',
+                        cancelText: 'Selesai',
+                        type: 'success'
+                    });
+                    if (shouldPrint) {
+                        setTimeout(() => window.print(), 300);
+                    }
+                }}
+            />
         </>
     );
 };

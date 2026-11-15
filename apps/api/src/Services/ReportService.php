@@ -325,4 +325,154 @@ class ReportService
 
         return $merged;
     }
+
+    /**
+     * Rekap Harian Transaksi & Kasir Lengkap (Daily Settlement & Cash Reconciliation)
+     */
+    public function getDailySettlement(string $date): array
+    {
+        // 1. Shifts pada tanggal ini
+        $stmtShifts = $this->db->prepare(
+            "SELECT s.*, u.full_name as user_name, u.role as user_role
+             FROM shifts s
+             LEFT JOIN users u ON s.user_id = u.id
+             WHERE DATE(s.started_at) = :date
+             ORDER BY s.started_at ASC"
+        );
+        $stmtShifts->execute(['date' => $date]);
+        $shifts = $stmtShifts->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        // 2. Ringkasan Penjualan pada tanggal ini
+        $stmtSales = $this->db->prepare(
+            "SELECT 
+                COUNT(*) as total_orders,
+                COALESCE(SUM(total_amount), 0) as gross_sales,
+                COALESCE(SUM(discount_amount), 0) as total_discount,
+                COALESCE(SUM(tax_amount), 0) as total_tax,
+                COALESCE(SUM(total_amount - tax_amount), 0) as net_sales,
+                COALESCE(SUM(CASE WHEN payment_method = 'cash' THEN total_amount ELSE 0 END), 0) as cash_sales,
+                COALESCE(SUM(CASE WHEN payment_method != 'cash' THEN total_amount ELSE 0 END), 0) as non_cash_sales
+             FROM orders
+             WHERE DATE(created_at) = :date AND status = 'completed'"
+        );
+        $stmtSales->execute(['date' => $date]);
+        $sales = $stmtSales->fetch(PDO::FETCH_ASSOC) ?: [
+            'total_orders' => 0,
+            'gross_sales' => 0,
+            'total_discount' => 0,
+            'total_tax' => 0,
+            'net_sales' => 0,
+            'cash_sales' => 0,
+            'non_cash_sales' => 0
+        ];
+
+        // 3. Modal Barang (HPP / COGS)
+        $stmtCogs = $this->db->prepare(
+            "SELECT COALESCE(SUM(oi.purchase_price * oi.quantity), 0) as total_cogs
+             FROM order_items oi
+             JOIN orders o ON oi.order_id = o.id
+             WHERE DATE(o.created_at) = :date AND o.status = 'completed'"
+        );
+        $stmtCogs->execute(['date' => $date]);
+        $totalCogs = (float)($stmtCogs->fetchColumn() ?: 0);
+
+        // 4. Pengeluaran / Kas Keluar Toko pada tanggal ini
+        $stmtExpenses = $this->db->prepare(
+            "SELECT e.*, u.full_name as user_name
+             FROM expenses e
+             LEFT JOIN users u ON e.user_id = u.id
+             WHERE DATE(e.created_at) = :date OR e.date = :date_only
+             ORDER BY e.created_at ASC"
+        );
+        $stmtExpenses->execute(['date' => $date, 'date_only' => $date]);
+        $expenses = $stmtExpenses->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $totalExpenses = array_sum(array_column($expenses, 'amount'));
+
+        // 5. Daftar Seluruh Transaksi / Nota Hari Ini
+        $stmtOrders = $this->db->prepare(
+            "SELECT o.id, o.order_number, o.created_at, o.payment_method, o.total_amount, 
+                    o.discount_amount, o.tax_amount, o.amount_paid, o.status,
+                    u.full_name as cashier_name
+             FROM orders o
+             LEFT JOIN users u ON o.user_id = u.id
+             WHERE DATE(o.created_at) = :date
+             ORDER BY o.created_at DESC"
+        );
+        $stmtOrders->execute(['date' => $date]);
+        $orders = $stmtOrders->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        // Ambil item produk untuk masing-masing transaksi
+        if (!empty($orders)) {
+            $orderIds = array_column($orders, 'id');
+            $inClause = implode(',', array_fill(0, count($orderIds), '?'));
+            $stmtItems = $this->db->prepare(
+                "SELECT order_id, product_name, quantity, unit_price, subtotal
+                 FROM order_items
+                 WHERE order_id IN ($inClause)"
+            );
+            $stmtItems->execute($orderIds);
+            $items = $stmtItems->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+            $groupedItems = [];
+            foreach ($items as $item) {
+                $groupedItems[$item['order_id']][] = $item;
+            }
+
+            foreach ($orders as &$order) {
+                $order['items'] = $groupedItems[$order['id']] ?? [];
+            }
+        }
+
+        // 6. Rekonsiliasi Kas Laci Harian
+        $totalOpeningCash = array_sum(array_column($shifts, 'opening_cash'));
+        $cashSales = (float)$sales['cash_sales'];
+        $expectedCash = $totalOpeningCash + $cashSales - $totalExpenses;
+        
+        $hasClosedShift = false;
+        $totalClosingCash = 0;
+        foreach ($shifts as $s) {
+            if ($s['status'] === 'closed' && $s['closing_cash'] !== null) {
+                $hasClosedShift = true;
+                $totalClosingCash += (float)$s['closing_cash'];
+            }
+        }
+        
+        $actualCash = $hasClosedShift ? $totalClosingCash : null;
+        $cashDifference = $actualCash !== null ? ($actualCash - $expectedCash) : null;
+
+        // 7. Laba Kotor & Laba Bersih
+        $netSales = (float)$sales['net_sales'];
+        $grossProfit = $netSales - $totalCogs;
+        $netProfit = $netSales - $totalCogs - $totalExpenses;
+
+        return [
+            'date' => $date,
+            'summary' => [
+                'total_orders' => (int)$sales['total_orders'],
+                'gross_sales' => (float)$sales['gross_sales'],
+                'total_discount' => (float)$sales['total_discount'],
+                'total_tax' => (float)$sales['total_tax'],
+                'net_sales' => $netSales,
+                'cash_sales' => $cashSales,
+                'non_cash_sales' => (float)$sales['non_cash_sales'],
+                'total_cogs' => $totalCogs,
+                'gross_profit' => $grossProfit,
+                'total_expenses' => $totalExpenses,
+                'net_profit' => $netProfit
+            ],
+            'cash_drawer' => [
+                'shifts_count' => count($shifts),
+                'total_opening_cash' => $totalOpeningCash,
+                'cash_sales' => $cashSales,
+                'total_expenses' => $totalExpenses,
+                'expected_cash' => $expectedCash,
+                'actual_cash' => $actualCash,
+                'cash_difference' => $cashDifference,
+                'is_reconciled' => $hasClosedShift && $cashDifference == 0
+            ],
+            'shifts' => $shifts,
+            'expenses' => $expenses,
+            'orders' => $orders
+        ];
+    }
 }

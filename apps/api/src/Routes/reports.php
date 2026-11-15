@@ -92,5 +92,13 @@ return function ($method, $path, $reportService, $user) {
         Response::success($financials);
     }
 
+    // GET /api/reports/daily-settlement - Rekap harian transaksi, kas, dan laba
+    if ($method === 'GET' && $path === '/daily-settlement') {
+        RoleMiddleware::requireAdminOrManager($user);
+        $date = $_GET['date'] ?? date('Y-m-d');
+        $settlement = $reportService->getDailySettlement($date);
+        Response::success($settlement);
+    }
+
     Response::error('Rute tidak ditemukan', 404);
 };

@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import Login from './pages/LoginPage';
 import POSTerminal from './pages/POSTerminal';
 import ReportsPage from './pages/ReportsPage';
+import DailySettlementPage from './pages/DailySettlementPage';
 import ProductsPage from './pages/ProductsPage';
 import BarcodePage from './pages/BarcodePage';
 import ProfilePage from './pages/ProfilePage';
@@ -70,6 +71,12 @@ function App() {
                   <Route path="/reports" element={
                     <ProtectedRoute allowedRoles={['admin', 'manager', 'owner']}>
                       <ReportsPage />
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/daily-settlement" element={
+                    <ProtectedRoute allowedRoles={['admin', 'manager', 'owner', 'cashier']}>
+                      <DailySettlementPage />
                     </ProtectedRoute>
                   } />
 

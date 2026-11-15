@@ -36,17 +36,22 @@ return function ($method, $path, $user) {
         }
     }
 
-    // POST /expenses
+    // POST /expenses - Catat pengeluaran toko / peti kas
     if ($method === 'POST' && ($path === '' || $path === '/')) {
-        RoleMiddleware::requireAdminOrManager($user);
+        if (!$user) {
+            Response::error('Otentikasi diperlukan', 401);
+        }
 
         $data = json_decode(file_get_contents('php://input'), true);
 
         if (!isset($data['category']) || !isset($data['amount'])) {
-            Response::error('Category and Amount are required', 400);
+            Response::error('Kategori dan Jumlah pengeluaran wajib diisi', 400);
         }
         
         $data['user_id'] = $user['id'];
+        if (empty($data['date'])) {
+            $data['date'] = date('Y-m-d');
+        }
 
         try {
             $result = $expenseService->createExpense($data);

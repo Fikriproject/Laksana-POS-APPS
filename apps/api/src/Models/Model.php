@@ -18,6 +18,11 @@ abstract class Model
         $this->db = $db;
     }
 
+    public function getDb(): PDO
+    {
+        return $this->db;
+    }
+
     public function findAll(int $limit = 100, int $offset = 0): array
     {
         $stmt = $this->db->prepare(

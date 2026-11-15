@@ -100,6 +100,7 @@ const Sidebar = ({ className = '', isOpen = false, onClose }: SidebarProps) => {
     const allLinks = [
         { icon: "dashboard", label: "Dashboard", to: "/", roles: ['admin', 'manager', 'cashier'] },
         { icon: "point_of_sale", label: "Kasir", to: "/pos", roles: ['admin', 'manager', 'cashier'] },
+        { icon: "receipt_long", label: "Rekap Harian", to: "/daily-settlement", roles: ['admin', 'manager', 'cashier'] },
         { icon: "shopping_bag", label: "Produk", to: "/products", roles: ['admin', 'manager'] },
         { icon: "barcode_scanner", label: "Cetak Barcode", to: "/barcodes", roles: ['admin', 'manager'] },
         { icon: "inventory_2", label: "Inventaris", to: "/inventory", roles: ['admin', 'manager'] },

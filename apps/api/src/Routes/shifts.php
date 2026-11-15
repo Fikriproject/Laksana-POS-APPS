@@ -46,18 +46,17 @@ return function ($method, $path, $shiftService, $user) {
             $summary = $shiftService->closeShift(
                 $data['shift_id'],
                 $user['id'],
-                (float) $data['closing_cash']
+                (float) $data['closing_cash'],
+                $user['role'] ?? 'cashier'
             );
-            Response::success($summary, 'Shift closed');
+            Response::success($summary, 'Shift berhasil ditutup');
         } catch (\Exception $e) {
             Response::error($e->getMessage(), 400);
         }
     }
     
-    // GET /api/shifts/:id/summary - Get shift summary (Admin/Manager only)
+    // GET /api/shifts/:id/summary - Get shift summary (Z-Report)
     if ($method === 'GET' && preg_match('/^\/([a-f0-9-]+)\/summary$/', $path, $matches)) {
-        RoleMiddleware::requireAdminOrManager($user);
-        
         try {
             $summary = $shiftService->getShiftSummary($matches[1]);
             Response::success($summary);
