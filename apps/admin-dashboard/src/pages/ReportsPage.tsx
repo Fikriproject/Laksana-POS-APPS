@@ -136,7 +136,7 @@ const ReportsPage = () => {
         amount: '',
         description: ''
     });
-    const expenseCategories = ['Tanah sewa', 'Arisan', 'Belanja', 'Tamu', 'Infaq', 'Lainnya'];
+    const expenseCategories = ['Operasional', 'Belanja', 'Konsumsi', 'Tamu', 'Infaq', 'Lainnya', 'Tanah sewa', 'Arisan'];
 
     // Race condition handling
     const requestRef = useRef<number>(0);

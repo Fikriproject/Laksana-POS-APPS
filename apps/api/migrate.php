@@ -620,6 +620,20 @@ foreach ($columnPatches as $patch) {
 }
 echo "\n";
 
+// Pastikan tipe kolom expenses.category fleksibel VARCHAR(100), bukan ENUM kaku
+if (tableExists($db, $driver, 'expenses')) {
+    try {
+        if ($isPg) {
+            $db->exec("ALTER TABLE expenses ALTER COLUMN category TYPE VARCHAR(100)");
+        } else {
+            $db->exec("ALTER TABLE expenses MODIFY category VARCHAR(100) NOT NULL DEFAULT 'Lainnya'");
+        }
+        echo " [✓] Modifikasi kolom expenses.category -> VARCHAR(100) : " . CliColor::green("BERHASIL DISESUAIKAN") . "\n\n";
+    } catch (\Exception $e) {
+        // Abaikan jika sudah VARCHAR atau tidak ada izin
+    }
+}
+
 // 7. Ensure Indexes Exist
 echo CliColor::bold("LANGKAH 3: MEMERIKSA & MEMBUAT INDEKS") . "\n";
 
