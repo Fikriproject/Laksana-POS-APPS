@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useConfirm } from '../context/ConfirmContext';
 import toast from 'react-hot-toast';
@@ -119,13 +119,19 @@ const POSTerminal = () => {
         fetchData();
     }, []);
 
-    const addToCart = (product: Product) => {
-        if (product.stock_quantity <= 0) return;
+    const addToCart = (product: Product): boolean => {
+        if (product.stock_quantity !== undefined && product.stock_quantity <= 0) {
+            toast.error(`Stok "${product.name}" habis (0)!`, { id: `stock-${product.id}`, duration: 2500 });
+            return false;
+        }
 
         const existingItem = cart.find(item => item.id === product.id);
         if (existingItem) {
             // Check stock limit
-            if (existingItem.quantity >= product.stock_quantity) return;
+            if (product.stock_quantity !== undefined && existingItem.quantity >= product.stock_quantity) {
+                toast.error(`Maksimal stok tercapai untuk "${product.name}" (${product.stock_quantity} unit)`, { id: `limit-${product.id}`, duration: 2500 });
+                return false;
+            }
 
             setCart(cart.map(item =>
                 item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
@@ -133,6 +139,7 @@ const POSTerminal = () => {
         } else {
             setCart([...cart, { ...product, quantity: 1 }]);
         }
+        return true;
     };
 
     const updateQuantity = (id: string, delta: number) => {
@@ -359,29 +366,166 @@ const POSTerminal = () => {
         ? products.filter(p => isProductActive(p) && matchesSearchFilter(p, cleanSearch)).length
         : 0;
 
+    // --- Barcode Scanner Engine & Audio Feedback ---
+    const scanBufferRef = useRef<string>('');
+    const lastKeyTimeRef = useRef<number>(0);
+    const searchInputRef = useRef<HTMLInputElement>(null);
+
+    // Auto-focus kotak pencarian saat POS dibuka
+    useEffect(() => {
+        searchInputRef.current?.focus();
+    }, []);
+
+    // Suara Beep konfirmasi saat scan berhasil
+    const playScanBeep = () => {
+        try {
+            const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+            if (!AudioContext) return;
+            const ctx = new AudioContext();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(1760, ctx.currentTime); // Nada A6 (1760Hz POS Beep)
+            gain.gain.setValueAtTime(0.12, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.08);
+        } catch {
+            // Audio diabaikan jika browser membatasi autoplay
+        }
+    };
+
+    /**
+     * Memproses kode barcode dari scanner atau input manual
+     */
+    const processBarcodeScan = (scannedCode: string): boolean => {
+        const raw = (scannedCode || '')
+            .replace(/[\r\n\t]/g, '')
+            .replace(/^\][A-Za-z0-9]{2}/, '') // Hapus prefix AIM identifier jika scanner mengirimkan ]C0, ]E0 dll
+            .trim();
+
+        if (!raw) return false;
+
+        const clean = raw.toLowerCase();
+        const cleanNoLeadingZero = clean.replace(/^0+/, '');
+        const cleanNoDash = clean.replace(/[-\s]/g, '');
+
+        // 1. Cari exact SKU (case-insensitive)
+        let found = products.find(p => p.sku && p.sku.trim().toLowerCase() === clean);
+
+        // 2. Cari tanpa leading zero (misal barcode '04474' vs '4474')
+        if (!found && cleanNoLeadingZero) {
+            found = products.find(p => p.sku && p.sku.trim().toLowerCase().replace(/^0+/, '') === cleanNoLeadingZero);
+        }
+
+        // 3. Cari tanpa strip/spasi (misal 'SKU-KER-A4' vs 'SKUKERA4')
+        if (!found && cleanNoDash) {
+            found = products.find(p => p.sku && p.sku.trim().toLowerCase().replace(/[-\s]/g, '') === cleanNoDash);
+        }
+
+        // 4. Cari by ID
+        if (!found) {
+            found = products.find(p => String(p.id).toLowerCase() === clean);
+        }
+
+        // 5. Cari by Nama yang persis
+        if (!found) {
+            found = products.find(p => p.name && p.name.trim().toLowerCase() === clean);
+        }
+
+        if (found) {
+            const added = addToCart(found);
+            if (added) {
+                playScanBeep();
+                toast.success(`Ditambahkan: ${found.name}`, { id: 'scan-success', duration: 1500 });
+            }
+            setSearchTerm('');
+            return true;
+        } else {
+            // Tampilkan notifikasi JELAS kepada kasir dengan kode barcode yang terbaca
+            toast.error(`Barcode "${raw}" tidak terdaftar di daftar produk!`, {
+                id: 'barcode-not-found',
+                duration: 4000,
+                icon: '⚠️'
+            });
+            return false;
+        }
+    };
+
+    // Global Keydown Listener: Menerima scan barcode dari halaman mana saja tanpa harus klik kotak pencarian
+    useEffect(() => {
+        const handleGlobalKeyDown = (e: KeyboardEvent) => {
+            // Abaikan jika user sedang mengetik di input form lain (misal modal bayar atau modal diskon)
+            const target = e.target as HTMLElement;
+            const isInsideOtherInput = target && target !== searchInputRef.current && (
+                target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT'
+            );
+            if (isInsideOtherInput) {
+                return;
+            }
+
+            const now = Date.now();
+            const timeDiff = now - lastKeyTimeRef.current;
+            lastKeyTimeRef.current = now;
+
+            if (e.key === 'Enter') {
+                const buffer = scanBufferRef.current.trim();
+                const inputValue = (searchInputRef.current?.value || searchTerm || '').trim();
+                const codeToProcess = buffer || inputValue;
+
+                if (codeToProcess.length >= 2) {
+                    e.preventDefault();
+                    scanBufferRef.current = '';
+                    const handled = processBarcodeScan(codeToProcess);
+                    if (handled) {
+                        if (searchInputRef.current) searchInputRef.current.value = '';
+                        setSearchTerm('');
+                    }
+                    return;
+                }
+                scanBufferRef.current = '';
+                return;
+            }
+
+            // Jika jeda antar tombol > 100ms, reset buffer (karena scanner mengetik sangat cepat < 50ms)
+            if (timeDiff > 100) {
+                scanBufferRef.current = '';
+            }
+
+            // Tangkap karakter alfanumerik & simbol
+            if (e.key.length === 1) {
+                scanBufferRef.current += e.key;
+            }
+        };
+
+        window.addEventListener('keydown', handleGlobalKeyDown);
+        return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+    }, [products, cart]);
+
     const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
             e.preventDefault();
-            const trimmed = searchTerm.trim().toLowerCase();
-            if (!trimmed) return;
+            const val = (e.currentTarget.value || searchTerm).trim();
+            if (!val) return;
 
-            // Cari produk dengan SKU persis sama (untuk scanner barcode)
-            const exactSku = products.find(p => p.sku && p.sku.toLowerCase() === trimmed);
-            if (exactSku && (exactSku.stock_quantity === undefined || exactSku.stock_quantity > 0)) {
-                addToCart(exactSku);
+            const handled = processBarcodeScan(val);
+            if (handled) {
+                e.currentTarget.value = '';
                 setSearchTerm('');
-                toast.success(`Ditambahkan: ${exactSku.name}`, { duration: 1500 });
                 return;
             }
 
             // Jika hasil filter hanya 1 produk, langsung tambahkan
             if (filteredProducts.length === 1) {
                 const single = filteredProducts[0];
-                if (single.stock_quantity === undefined || single.stock_quantity > 0) {
-                    addToCart(single);
-                    setSearchTerm('');
+                const added = addToCart(single);
+                if (added) {
                     toast.success(`Ditambahkan: ${single.name}`, { duration: 1500 });
                 }
+                e.currentTarget.value = '';
+                setSearchTerm('');
             }
         }
     };
@@ -423,6 +567,7 @@ const POSTerminal = () => {
                             <div className="flex items-center w-full h-9 sm:h-10 rounded-xl bg-gray-100 dark:bg-background-dark border border-slate-200 dark:border-[#282839] focus-within:border-primary/60 focus-within:ring-2 focus-within:ring-primary/20 transition-all overflow-hidden px-2.5 sm:px-3">
                                 <span className="material-symbols-outlined text-gray-400 dark:text-[#9d9db9] text-[18px] sm:text-[20px] shrink-0 mr-1.5 sm:mr-2">search</span>
                                 <input
+                                    ref={searchInputRef}
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     onKeyDown={handleSearchKeyDown}
