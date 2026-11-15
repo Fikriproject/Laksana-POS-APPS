@@ -20,6 +20,14 @@ echo -e "\n\033[1;33m[2/5] Membangun Frontend (Production Build)...\033[0m"
 cd "$ROOT_DIR"
 BUILD_SUCCESS=0
 
+# Pastikan folder dist tidak terkunci oleh kepemilikan root sebelumnya
+if [ -d "$ROOT_DIR/apps/admin-dashboard/dist" ]; then
+    if [ ! -w "$ROOT_DIR/apps/admin-dashboard/dist" ] || [ ! -w "$ROOT_DIR/apps/admin-dashboard/dist/assets" 2>/dev/null ]; then
+        echo -e "\033[33m[WARN] Folder dist terkunci oleh izin root. Memperbaiki kepemilikan...\033[0m"
+        sudo chown -R "$(whoami):$(whoami)" "$ROOT_DIR/apps/admin-dashboard" 2>/dev/null || sudo rm -rf "$ROOT_DIR/apps/admin-dashboard/dist" 2>/dev/null || true
+    fi
+fi
+
 # Coba build langsung jika vite binary sudah ada
 if [ -f "$ROOT_DIR/apps/admin-dashboard/node_modules/.bin/vite" ]; then
     if (cd "$ROOT_DIR/apps/admin-dashboard" && ./node_modules/.bin/vite build); then
