@@ -104,7 +104,7 @@ export const DailySettlementPage = () => {
         setPrintMode('zreport');
         setTimeout(() => {
             window.print();
-        }, 50);
+        }, 250);
     };
 
     const handlePrintReceipt = () => {
@@ -112,7 +112,7 @@ export const DailySettlementPage = () => {
         setPrintMode('receipt');
         setTimeout(() => {
             window.print();
-        }, 50);
+        }, 250);
     };
 
     return (

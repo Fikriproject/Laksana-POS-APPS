@@ -7,16 +7,45 @@ namespace App\Services;
 
 use App\Models\Product;
 use App\Models\Category;
+use App\Models\ProductUnit;
 
 class ProductService
 {
     private Product $productModel;
     private Category $categoryModel;
+    private ProductUnit $productUnitModel;
 
-    public function __construct(Product $productModel, Category $categoryModel)
+    public function __construct(Product $productModel, Category $categoryModel, ?ProductUnit $productUnitModel = null)
     {
         $this->productModel = $productModel;
         $this->categoryModel = $categoryModel;
+        $this->productUnitModel = $productUnitModel ?? new ProductUnit();
+    }
+
+    private function attachUnits(array $products): array
+    {
+        if (empty($products)) return [];
+        $ids = array_filter(array_column($products, 'id'));
+        if (empty($ids)) return $products;
+
+        $unitsByProduct = [];
+        try {
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            $db = (new \App\Config\Database())->getConnection();
+            $stmt = $db->prepare("SELECT * FROM product_units WHERE product_id IN ($placeholders) ORDER BY conversion_factor ASC");
+            $stmt->execute(array_values($ids));
+            $allUnits = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+            foreach ($allUnits as $u) {
+                $unitsByProduct[$u['product_id']][] = $u;
+            }
+        } catch (\Exception $e) {
+            // Table might not exist yet if migration hasn't run
+        }
+
+        foreach ($products as &$p) {
+            $p['units'] = $unitsByProduct[$p['id']] ?? [];
+        }
+        return $products;
     }
 
     public function getAll(int $page = 1, int $perPage = 20, ?int $categoryId = null, ?bool $activeOnly = null): array
@@ -28,7 +57,7 @@ class ProductService
         $total = $this->productModel->countWithFilter($categoryId, $activeOnly);
         
         return [
-            'products' => $this->transformImageUrls($products),
+            'products' => $this->attachUnits($this->transformImageUrls($products)),
             'pagination' => [
                 'current_page' => $page,
                 'per_page' => $perPage,
@@ -42,7 +71,7 @@ class ProductService
     {
         $product = $this->productModel->findById($id);
         if ($product) {
-            return $this->transformImageUrls([$product])[0];
+            return $this->attachUnits($this->transformImageUrls([$product]))[0];
         }
         return null;
     }
@@ -51,19 +80,45 @@ class ProductService
     {
         $product = $this->productModel->findBySku($sku);
         if ($product) {
-            return $this->transformImageUrls([$product])[0];
+            return $this->attachUnits($this->transformImageUrls([$product]))[0];
         }
+        return null;
+    }
+
+    public function getByBarcode(string $barcode): ?array
+    {
+        $clean = trim($barcode);
+        if (empty($clean)) return null;
+
+        // 1. Direct SKU / Barcode on base product
+        $product = $this->getBySku($clean);
+        if ($product) return $product;
+
+        // 2. Lookup in product_units
+        $unit = $this->productUnitModel->findByBarcode($clean);
+        if ($unit) {
+            $prod = $this->getById($unit['product_id']);
+            if ($prod) {
+                $prod['matched_unit'] = $unit;
+                return $prod;
+            }
+        }
+
         return null;
     }
 
     public function search(string $query): array
     {
         $products = $this->productModel->search($query);
-        return $this->transformImageUrls($products);
+        return $this->attachUnits($this->transformImageUrls($products));
     }
 
     public function create(array $data): string
     {
+        // Extract units if provided
+        $units = $data['units'] ?? [];
+        unset($data['units']);
+
         // Generate SKU if not provided
         if (empty($data['sku'])) {
             $data['sku'] = $this->generateSku($data['name']);
@@ -84,12 +139,43 @@ class ProductService
         if (isset($data['category_id']) && empty($data['category_id'])) {
             $data['category_id'] = null;
         }
+
+        if (isset($data['wholesale_price']) && ($data['wholesale_price'] === '' || $data['wholesale_price'] === null)) {
+            $data['wholesale_price'] = null;
+        }
+
+        if (isset($data['reseller_price']) && ($data['reseller_price'] === '' || $data['reseller_price'] === null)) {
+            $data['reseller_price'] = null;
+        }
+
+        if (empty($data['wholesale_min_qty'])) {
+            $data['wholesale_min_qty'] = 12;
+        }
+
+        if (empty($data['base_unit'])) {
+            $data['base_unit'] = 'pcs';
+        }
         
-        return $this->productModel->create($data);
+        $productId = $this->productModel->create($data);
+
+        if (!empty($units) && is_array($units)) {
+            $this->productUnitModel->syncUnits($productId, $units);
+        }
+
+        return $productId;
     }
 
     public function update(string $id, array $data): bool
     {
+        // Sync units if provided
+        if (array_key_exists('units', $data)) {
+            $units = $data['units'] ?? [];
+            if (is_array($units)) {
+                $this->productUnitModel->syncUnits($id, $units);
+            }
+            unset($data['units']);
+        }
+
         if (isset($data['purchase_price']) && ($data['purchase_price'] === null || $data['purchase_price'] === '')) {
             $data['purchase_price'] = 0;
         }
@@ -101,6 +187,12 @@ class ProductService
         }
         if (array_key_exists('category_id', $data) && empty($data['category_id'])) {
             $data['category_id'] = null;
+        }
+        if (array_key_exists('wholesale_price', $data) && ($data['wholesale_price'] === '' || $data['wholesale_price'] === null)) {
+            $data['wholesale_price'] = null;
+        }
+        if (array_key_exists('reseller_price', $data) && ($data['reseller_price'] === '' || $data['reseller_price'] === null)) {
+            $data['reseller_price'] = null;
         }
 
         return $this->productModel->update($id, $data);

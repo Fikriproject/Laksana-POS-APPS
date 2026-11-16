@@ -57,21 +57,35 @@ class OrderService
                 if (!$product) {
                     throw new \Exception("Product not found: {$item['product_id']}");
                 }
+
+                $conversionFactor = isset($item['conversion_factor']) && (int)$item['conversion_factor'] > 0 
+                    ? (int)$item['conversion_factor'] 
+                    : 1;
+                $deductStock = $item['quantity'] * $conversionFactor;
                 
-                if ($product['stock_quantity'] < $item['quantity']) {
-                    throw new \Exception("Insufficient stock for: {$product['name']}");
+                if ($product['stock_quantity'] < $deductStock) {
+                    throw new \Exception("Insufficient stock for: {$product['name']} (Stok: {$product['stock_quantity']}, Butuh: {$deductStock})");
                 }
                 
-                $itemSubtotal = $product['price'] * $item['quantity'];
+                // Allow unit price from cart item (supporting wholesale/reseller/unit price)
+                $unitPrice = isset($item['price']) && $item['price'] !== null 
+                    ? (float)$item['price'] 
+                    : (float)$product['price'];
+
+                $itemSubtotal = $unitPrice * $item['quantity'];
                 $subtotal += $itemSubtotal;
                 
                 $orderItems[] = [
                     'product_id' => $product['id'],
                     'product_name' => $product['name'],
-                    'unit_price' => $product['price'],
-                    'purchase_price' => $product['purchase_price'] ?? 0,
+                    'unit_name' => $item['unit_name'] ?? ($product['base_unit'] ?? 'pcs'),
+                    'conversion_factor' => $conversionFactor,
+                    'price_tier' => $item['price_tier'] ?? 'retail',
+                    'unit_price' => $unitPrice,
+                    'purchase_price' => (float)($product['purchase_price'] ?? 0),
                     'quantity' => $item['quantity'],
-                    'subtotal' => $itemSubtotal
+                    'subtotal' => $itemSubtotal,
+                    'deduct_stock' => $deductStock
                 ];
             }
             
@@ -108,24 +122,28 @@ class OrderService
             
             // Create order items and update stock
             foreach ($orderItems as $item) {
+                $deductQty = $item['deduct_stock'];
+                unset($item['deduct_stock']);
+
                 $item['order_id'] = $orderId;
                 $this->orderItemModel->create($item);
                 
-                // Update product stock
+                // Update product stock in base unit (pcs)
                 $product = $this->productModel->findById($item['product_id']);
-                $newStock = $product['stock_quantity'] - $item['quantity'];
-                $this->productModel->updateStock($item['product_id'], -$item['quantity']);
+                $newStock = $product['stock_quantity'] - $deductQty;
+                $this->productModel->updateStock($item['product_id'], -$deductQty);
                 
                 // Log inventory change
+                $unitNote = $item['conversion_factor'] > 1 ? " ({$item['quantity']} {$item['unit_name']} = {$deductQty} pcs)" : "";
                 $this->inventoryLogModel->recordStockChange(
                     $item['product_id'],
                     $userId,
                     'sale',
-                    -$item['quantity'],
+                    -$deductQty,
                     $newStock,
                     null,
                     $orderNumber,
-                    "Sale: Order {$orderNumber}"
+                    "Sale: Order {$orderNumber}{$unitNote}"
                 );
             }
             
@@ -372,19 +390,24 @@ class OrderService
             // Restore stock for each item
             foreach ($order['items'] as $item) {
                 $product = $this->productModel->findById($item['product_id']);
-                $newStock = $product['stock_quantity'] + $item['quantity'];
-                $this->productModel->updateStock($item['product_id'], $item['quantity']);
+                $conversionFactor = isset($item['conversion_factor']) && (int)$item['conversion_factor'] > 0 
+                    ? (int)$item['conversion_factor'] 
+                    : 1;
+                $restoreStock = $item['quantity'] * $conversionFactor;
+                $newStock = $product['stock_quantity'] + $restoreStock;
+                $this->productModel->updateStock($item['product_id'], $restoreStock);
                 
                 // Log inventory change
+                $unitNote = $conversionFactor > 1 ? " ({$item['quantity']} " . ($item['unit_name'] ?? 'unit') . " = {$restoreStock} pcs)" : "";
                 $this->inventoryLogModel->recordStockChange(
                     $item['product_id'],
                     $userId,
                     'adjustment',
-                    $item['quantity'],
+                    $restoreStock,
                     $newStock,
                     null,
                     $order['order_number'],
-                    "Refund: Order {$order['order_number']}"
+                    "Refund: Order {$order['order_number']}{$unitNote}"
                 );
             }
             

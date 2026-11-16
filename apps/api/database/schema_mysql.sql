@@ -39,6 +39,10 @@ CREATE TABLE IF NOT EXISTS products (
     description TEXT,
     price DECIMAL(15, 2) NOT NULL DEFAULT 0,
     purchase_price DECIMAL(15, 2) NOT NULL DEFAULT 0,
+    wholesale_price DECIMAL(15, 2) DEFAULT NULL,
+    wholesale_min_qty INT DEFAULT 12,
+    reseller_price DECIMAL(15, 2) DEFAULT NULL,
+    base_unit VARCHAR(20) NOT NULL DEFAULT 'pcs',
     stock_quantity INTEGER NOT NULL DEFAULT 0,
     low_stock_threshold INTEGER NOT NULL DEFAULT 10,
     category_id INT,
@@ -110,12 +114,29 @@ CREATE TABLE IF NOT EXISTS order_items (
     order_id CHAR(36) NOT NULL,
     product_id CHAR(36) NOT NULL,
     product_name VARCHAR(100) NOT NULL,
+    unit_name VARCHAR(50) NOT NULL DEFAULT 'pcs',
+    conversion_factor INT NOT NULL DEFAULT 1,
+    price_tier VARCHAR(20) NOT NULL DEFAULT 'retail',
     unit_price DECIMAL(15, 2) NOT NULL DEFAULT 0,
     purchase_price DECIMAL(15, 2) NOT NULL DEFAULT 0,
     quantity INTEGER NOT NULL DEFAULT 1,
     subtotal DECIMAL(15, 2) NOT NULL DEFAULT 0,
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
     FOREIGN KEY (product_id) REFERENCES products(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 8b. Product Units (Satuan Bertingkat: Lusin, Dus, Pack, Rim)
+CREATE TABLE IF NOT EXISTS product_units (
+    id CHAR(36) PRIMARY KEY,
+    product_id CHAR(36) NOT NULL,
+    unit_name VARCHAR(50) NOT NULL,
+    conversion_factor INT NOT NULL DEFAULT 1,
+    price DECIMAL(15, 2) NOT NULL DEFAULT 0,
+    wholesale_price DECIMAL(15, 2) DEFAULT NULL,
+    reseller_price DECIMAL(15, 2) DEFAULT NULL,
+    barcode VARCHAR(100) DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 9. Inventory Logs table

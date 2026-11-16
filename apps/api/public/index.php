@@ -51,11 +51,12 @@ $customerModel = new App\Models\Customer($db);
 $supplierModel = new App\Models\Supplier($db);
 $shiftModel = new App\Models\Shift($db);
 $stockReportModel = new App\Models\StockReport($db);
+$productUnitModel = new App\Models\ProductUnit($db);
 
 // Initialize Services
 $authService = new App\Services\AuthService($userModel, $shiftModel);
 $userService = new App\Services\UserService($userModel);
-$productService = new App\Services\ProductService($productModel, $categoryModel);
+$productService = new App\Services\ProductService($productModel, $categoryModel, $productUnitModel);
 $orderService = new App\Services\OrderService($orderModel, $orderItemModel, $productModel, $inventoryLogModel, $db);
 $reportService = new App\Services\ReportService($db);
 $inventoryService = new App\Services\InventoryService($productModel, $inventoryLogModel, $supplierModel);

@@ -10,16 +10,35 @@ import PrintableReceipt from '../components/PrintableReceipt';
 import PrintableZReport from '../components/PrintableZReport';
 import { OpenShiftModal, PettyCashModal, CloseShiftModal } from '../components/ShiftModals';
 
+export interface ProductUnitData {
+    id?: string;
+    product_id?: string;
+    unit_name: string;
+    conversion_factor: number;
+    price: number;
+    wholesale_price?: number | null;
+    reseller_price?: number | null;
+    barcode?: string | null;
+}
+
+export type PriceTier = 'retail' | 'wholesale' | 'reseller';
+
 interface Product {
     id: string;
     name: string;
     category_name: string;
     price: number;
+    purchase_price?: number;
+    wholesale_price?: number | null;
+    wholesale_min_qty?: number;
+    reseller_price?: number | null;
+    base_unit?: string;
     image_url: string;
     stock_quantity: number;
     category_id?: number | string;
     sku?: string;
     is_active?: boolean | number;
+    units?: ProductUnitData[];
 }
 
 interface Category {
@@ -28,8 +47,27 @@ interface Category {
     icon?: string;
 }
 
-interface CartItem extends Product {
+interface CartItem {
+    id: string; // product id
+    cartItemId: string; // unique item key e.g. `${id}_${unit_name}`
+    name: string;
+    category_name: string;
+    image_url: string;
+    stock_quantity: number;
+    sku?: string;
+    
+    unit_name: string;
+    conversion_factor: number;
+    price: number;
+    base_retail_price: number;
+    wholesale_price?: number | null;
+    reseller_price?: number | null;
+    wholesale_min_qty: number;
+    price_tier: PriceTier;
+    
     quantity: number;
+    is_auto_wholesale?: boolean;
+    available_units?: ProductUnitData[];
 }
 
 
@@ -55,6 +93,7 @@ const POSTerminal = () => {
     const [discountValue, setDiscountValue] = useState<number>(0);
     const [cashReceived, setCashReceived] = useState<number>(0);
     const [isSummaryCollapsed, setIsSummaryCollapsed] = useState<boolean>(false);
+    const [activePriceTier, setActivePriceTier] = useState<PriceTier>('retail');
 
     // State Shift Kasir & Rekonsiliasi Kas Laci
     const [currentShift, setCurrentShift] = useState<any>(null);
@@ -145,48 +184,173 @@ const POSTerminal = () => {
         fetchCurrentShift();
     }, []);
 
-    const addToCart = (product: Product): boolean => {
-        if (product.stock_quantity !== undefined && product.stock_quantity <= 0) {
-            toast.error(`Stok "${product.name}" habis (0)!`, { id: `stock-${product.id}`, duration: 2500 });
+    const calculateItemPrice = (
+        product: Product,
+        unitName: string,
+        quantity: number,
+        tier: PriceTier
+    ): { price: number; isAutoWholesale: boolean } => {
+        const matchedUnit = product.units?.find(u => u.unit_name.toLowerCase() === unitName.toLowerCase());
+
+        if (matchedUnit) {
+            if (tier === 'reseller' && matchedUnit.reseller_price !== null && matchedUnit.reseller_price !== undefined) {
+                return { price: Number(matchedUnit.reseller_price), isAutoWholesale: false };
+            }
+            if (tier === 'wholesale' && matchedUnit.wholesale_price !== null && matchedUnit.wholesale_price !== undefined) {
+                return { price: Number(matchedUnit.wholesale_price), isAutoWholesale: false };
+            }
+            return { price: Number(matchedUnit.price), isAutoWholesale: false };
+        }
+
+        // Base unit
+        if (tier === 'reseller' && product.reseller_price !== null && product.reseller_price !== undefined) {
+            return { price: Number(product.reseller_price), isAutoWholesale: false };
+        }
+        if (tier === 'wholesale' && product.wholesale_price !== null && product.wholesale_price !== undefined) {
+            return { price: Number(product.wholesale_price), isAutoWholesale: false };
+        }
+
+        // Retail tier: check auto wholesale if qty >= wholesale_min_qty
+        const minQty = product.wholesale_min_qty || 12;
+        if (product.wholesale_price !== null && product.wholesale_price !== undefined && quantity >= minQty) {
+            return { price: Number(product.wholesale_price), isAutoWholesale: true };
+        }
+
+        return { price: Number(product.price), isAutoWholesale: false };
+    };
+
+    const addToCart = (product: Product, selectedUnit?: ProductUnitData): boolean => {
+        const unitName = selectedUnit ? selectedUnit.unit_name : (product.base_unit || 'pcs');
+        const factor = selectedUnit ? (selectedUnit.conversion_factor || 1) : 1;
+        const cartItemId = `${product.id}_${unitName}`;
+
+        if (product.stock_quantity !== undefined && product.stock_quantity < factor) {
+            toast.error(`Stok "${product.name}" tidak cukup (Sisa: ${product.stock_quantity} ${product.base_unit || 'pcs'}, butuh: ${factor})!`, { id: `stock-${product.id}`, duration: 2500 });
             return false;
         }
 
         let success = true;
         setCart(prevCart => {
-            const existingItem = prevCart.find(item => item.id === product.id);
-            if (existingItem) {
-                // Check stock limit
-                if (product.stock_quantity !== undefined && existingItem.quantity >= product.stock_quantity) {
-                    toast.error(`Maksimal stok tercapai untuk "${product.name}" (${product.stock_quantity} unit)`, { id: `limit-${product.id}`, duration: 2500 });
-                    success = false;
-                    return prevCart;
-                }
+            const existingItem = prevCart.find(item => item.cartItemId === cartItemId);
+            const currentQty = existingItem ? existingItem.quantity : 0;
+            const newQty = currentQty + 1;
+            const totalStockNeeded = newQty * factor;
 
+            if (product.stock_quantity !== undefined && totalStockNeeded > product.stock_quantity) {
+                toast.error(`Maksimal stok tercapai untuk "${product.name}" (${product.stock_quantity} ${product.base_unit || 'pcs'})`, { id: `limit-${product.id}`, duration: 2500 });
+                success = false;
+                return prevCart;
+            }
+
+            const { price, isAutoWholesale } = calculateItemPrice(product, unitName, newQty, activePriceTier);
+
+            if (existingItem) {
                 return prevCart.map(item =>
-                    item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+                    item.cartItemId === cartItemId
+                        ? { ...item, quantity: newQty, price, is_auto_wholesale: isAutoWholesale }
+                        : item
                 );
             } else {
-                return [...prevCart, { ...product, quantity: 1 }];
+                const newItem: CartItem = {
+                    id: product.id,
+                    cartItemId,
+                    name: product.name,
+                    category_name: product.category_name,
+                    image_url: product.image_url,
+                    stock_quantity: product.stock_quantity,
+                    sku: product.sku,
+                    unit_name: unitName,
+                    conversion_factor: factor,
+                    price,
+                    base_retail_price: Number(product.price),
+                    wholesale_price: product.wholesale_price !== null && product.wholesale_price !== undefined ? Number(product.wholesale_price) : null,
+                    reseller_price: product.reseller_price !== null && product.reseller_price !== undefined ? Number(product.reseller_price) : null,
+                    wholesale_min_qty: product.wholesale_min_qty || 12,
+                    price_tier: activePriceTier,
+                    quantity: 1,
+                    is_auto_wholesale: isAutoWholesale,
+                    available_units: product.units || []
+                };
+                return [...prevCart, newItem];
             }
         });
         return success;
     };
 
-    const updateQuantity = (id: string, delta: number) => {
-        setCart(cart.map(item => {
-            if (item.id === id) {
+    const updateQuantity = (cartItemId: string, delta: number) => {
+        setCart(prevCart => prevCart.map(item => {
+            if (item.cartItemId === cartItemId) {
                 const newQty = item.quantity + delta;
-                // Check stock limit for increase
-                if (delta > 0 && newQty > item.stock_quantity) return item;
+                if (newQty <= 0) return { ...item, quantity: 0 };
 
-                return newQty > 0 ? { ...item, quantity: newQty } : item;
+                const totalStockNeeded = newQty * item.conversion_factor;
+                if (delta > 0 && totalStockNeeded > item.stock_quantity) {
+                    toast.error(`Maksimal stok tercapai (${item.stock_quantity} unit dasar)`);
+                    return item;
+                }
+
+                const prod = products.find(p => p.id === item.id) || item;
+                const { price, isAutoWholesale } = calculateItemPrice(prod as Product, item.unit_name, newQty, activePriceTier);
+
+                return {
+                    ...item,
+                    quantity: newQty,
+                    price,
+                    is_auto_wholesale: isAutoWholesale
+                };
             }
             return item;
         }).filter(item => item.quantity > 0));
     };
 
-    const removeFromCart = (id: string) => {
-        setCart(cart.filter(item => item.id !== id));
+    const handleChangeUnit = (cartItemId: string, newUnitName: string) => {
+        setCart(prevCart => prevCart.map(item => {
+            if (item.cartItemId !== cartItemId) return item;
+            const prod = products.find(p => p.id === item.id);
+            if (!prod) return item;
+
+            const matchedUnit = prod.units?.find(u => u.unit_name.toLowerCase() === newUnitName.toLowerCase());
+            const factor = matchedUnit ? (matchedUnit.conversion_factor || 1) : 1;
+            const newCartItemId = `${prod.id}_${newUnitName}`;
+
+            const totalStockNeeded = item.quantity * factor;
+            if (totalStockNeeded > prod.stock_quantity) {
+                toast.error(`Stok tidak mencukupi untuk ${item.quantity} ${newUnitName} (butuh ${totalStockNeeded} pcs, sisa ${prod.stock_quantity} pcs)`);
+                return item;
+            }
+
+            const { price, isAutoWholesale } = calculateItemPrice(prod, newUnitName, item.quantity, activePriceTier);
+
+            return {
+                ...item,
+                cartItemId: newCartItemId,
+                unit_name: newUnitName,
+                conversion_factor: factor,
+                price,
+                is_auto_wholesale: isAutoWholesale
+            };
+        }));
+    };
+
+    const handleSelectPriceTier = (newTier: PriceTier) => {
+        setActivePriceTier(newTier);
+        setCart(prevCart => prevCart.map(item => {
+            const prod = products.find(p => p.id === item.id);
+            if (!prod) return item;
+            const { price, isAutoWholesale } = calculateItemPrice(prod, item.unit_name, item.quantity, newTier);
+            return {
+                ...item,
+                price_tier: newTier,
+                price,
+                is_auto_wholesale: isAutoWholesale
+            };
+        }));
+        const label = newTier === 'retail' ? 'Ecer (Umum)' : newTier === 'wholesale' ? 'Grosir' : 'Reseller';
+        toast.success(`Mode harga beralih ke ${label}`, { id: 'price-tier-switch', duration: 1500 });
+    };
+
+    const removeFromCart = (cartItemId: string) => {
+        setCart(prev => prev.filter(item => item.cartItemId !== cartItemId));
     };
 
     // Calculations
@@ -251,7 +415,10 @@ const POSTerminal = () => {
                 items: cart.map(item => ({
                     product_id: item.id,
                     quantity: item.quantity,
-                    price: item.price
+                    price: item.price,
+                    unit_name: item.unit_name,
+                    conversion_factor: item.conversion_factor,
+                    price_tier: item.price_tier
                 })),
                 payment_method: 'cash',
                 subtotal: subtotal,
@@ -383,31 +550,42 @@ const POSTerminal = () => {
     const isSearching = debouncedSearch.trim().length > 0;
     const cleanSearch = debouncedSearch.trim().toLowerCase();
 
-    // Map pencarian cepat O(1) untuk Barcode / SKU agar proses scan instan tanpa delay loop
+    // Map pencarian cepat O(1) untuk Barcode / SKU (termasuk barcode satuan bertingkat kemasan dus/lusin)
     const productSkuMap = useMemo(() => {
-        const map = new Map<string, Product>();
+        const map = new Map<string, { product: Product; unit?: ProductUnitData }>();
         for (const p of products) {
             if (p.sku) {
                 const clean = String(p.sku).trim().toLowerCase();
-                map.set(clean, p);
+                map.set(clean, { product: p });
                 const noZero = clean.replace(/^0+/, '');
-                if (noZero) map.set(noZero, p);
+                if (noZero) map.set(noZero, { product: p });
                 const noDash = clean.replace(/[-\s]/g, '');
-                if (noDash) map.set(noDash, p);
+                if (noDash) map.set(noDash, { product: p });
             }
             if ((p as any).barcode) {
                 const cleanB = String((p as any).barcode).trim().toLowerCase();
-                map.set(cleanB, p);
+                map.set(cleanB, { product: p });
                 const noZeroB = cleanB.replace(/^0+/, '');
-                if (noZeroB) map.set(noZeroB, p);
+                if (noZeroB) map.set(noZeroB, { product: p });
             }
             if (p.id) {
-                map.set(String(p.id).toLowerCase(), p);
+                map.set(String(p.id).toLowerCase(), { product: p });
                 const skuFallback = `sku-${String(p.id).substring(0, 6).toLowerCase()}`;
-                map.set(skuFallback, p);
+                map.set(skuFallback, { product: p });
             }
             if (p.name) {
-                map.set(p.name.trim().toLowerCase(), p);
+                map.set(p.name.trim().toLowerCase(), { product: p });
+            }
+            // Index Barcode Satuan Bertingkat (Kemasan)
+            if (p.units && Array.isArray(p.units)) {
+                for (const u of p.units) {
+                    if (u.barcode) {
+                        const cleanU = String(u.barcode).trim().toLowerCase();
+                        map.set(cleanU, { product: p, unit: u });
+                        const noZeroU = cleanU.replace(/^0+/, '');
+                        if (noZeroU) map.set(noZeroU, { product: p, unit: u });
+                    }
+                }
             }
         }
         return map;
@@ -510,10 +688,11 @@ const POSTerminal = () => {
             (cleanNoDash ? currentMap.get(cleanNoDash) : undefined);
 
         if (found) {
-            const added = addToCartRef.current(found);
+            const added = addToCartRef.current(found.product, found.unit);
             if (added) {
                 playScanBeep();
-                toast.success(`Ditambahkan: ${found.name}`, { id: 'scan-success', duration: 1500 });
+                const unitBadge = found.unit ? ` (${found.unit.unit_name})` : '';
+                toast.success(`Ditambahkan: ${found.product.name}${unitBadge}`, { id: 'scan-success', duration: 1500 });
             }
             clearSearch();
             return true;
@@ -971,6 +1150,48 @@ const POSTerminal = () => {
                                 </div>
                             </div>
 
+                            {/* Selector Level Harga (Ecer / Grosir / Reseller) */}
+                            <div className="px-3 py-2 bg-slate-50 dark:bg-[#111118] border-b border-slate-200 dark:border-[#282839] shrink-0">
+                                <div className="grid grid-cols-3 gap-1 w-full bg-gray-200/70 dark:bg-[#1c1c27] p-1 rounded-xl">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSelectPriceTier('retail')}
+                                        className={`py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-all ${
+                                            activePriceTier === 'retail'
+                                                ? 'bg-blue-600 text-white shadow-sm'
+                                                : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                                        }`}
+                                    >
+                                        <span className="material-symbols-outlined text-[15px]">person</span>
+                                        <span>Ecer</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSelectPriceTier('wholesale')}
+                                        className={`py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-all ${
+                                            activePriceTier === 'wholesale'
+                                                ? 'bg-purple-600 text-white shadow-sm'
+                                                : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                                        }`}
+                                    >
+                                        <span className="material-symbols-outlined text-[15px]">sell</span>
+                                        <span>Grosir</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSelectPriceTier('reseller')}
+                                        className={`py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-all ${
+                                            activePriceTier === 'reseller'
+                                                ? 'bg-amber-600 text-white shadow-sm'
+                                                : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                                        }`}
+                                    >
+                                        <span className="material-symbols-outlined text-[15px]">verified</span>
+                                        <span>Reseller</span>
+                                    </button>
+                                </div>
+                            </div>
+
                             {/* Cart Items List */}
                             <div className="flex-1 overflow-y-auto min-h-0 p-3 sm:p-4 flex flex-col gap-2.5">
                                 {cart.length === 0 ? (
@@ -983,7 +1204,7 @@ const POSTerminal = () => {
                                     </div>
                                 ) : (
                                     cart.map((item) => (
-                                        <div key={item.id} className="flex gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-xl bg-white dark:bg-[#1c1c27] border border-slate-200 dark:border-[#282839] group hover:border-primary/50 dark:hover:border-[#3b3c54] transition-all relative overflow-hidden shrink-0 shadow-sm dark:shadow-none">
+                                        <div key={item.cartItemId} className="flex gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-xl bg-white dark:bg-[#1c1c27] border border-slate-200 dark:border-[#282839] group hover:border-primary/50 dark:hover:border-[#3b3c54] transition-all relative overflow-hidden shrink-0 shadow-sm dark:shadow-none">
                                             {showProductImages ? (
                                                 <div className="size-12 sm:size-14 rounded-lg bg-gray-200 dark:bg-[#282839] bg-center bg-cover shrink-0" style={{ backgroundImage: `url("${item.image_url || 'https://via.placeholder.com/150'}")` }} />
                                             ) : (
@@ -994,33 +1215,75 @@ const POSTerminal = () => {
 
                                             <div className="flex-1 flex flex-col justify-between py-0.5 min-w-0">
                                                 <div className="flex justify-between items-start gap-1">
-                                                    <h4 className="font-bold text-gray-900 dark:text-white text-xs sm:text-sm line-clamp-1 truncate" title={item.name}>{item.name}</h4>
+                                                    <div>
+                                                        <h4 className="font-bold text-gray-900 dark:text-white text-xs sm:text-sm line-clamp-1 truncate" title={item.name}>
+                                                            {item.name}
+                                                        </h4>
+                                                        {/* Satuan & Badges */}
+                                                        <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                                                            {item.available_units && item.available_units.length > 0 ? (
+                                                                <select
+                                                                    value={item.unit_name}
+                                                                    onChange={(e) => handleChangeUnit(item.cartItemId, e.target.value)}
+                                                                    className="text-[10px] font-bold py-0.5 px-1.5 rounded bg-gray-100 dark:bg-[#111118] border border-slate-200 dark:border-[#282839] text-gray-800 dark:text-gray-200 focus:outline-none focus:border-primary cursor-pointer"
+                                                                >
+                                                                    <option value="pcs">Satuan (Pcs)</option>
+                                                                    {item.available_units.map((u, ui) => (
+                                                                        <option key={ui} value={u.unit_name}>
+                                                                            {u.unit_name} (isi {u.conversion_factor})
+                                                                        </option>
+                                                                    ))}
+                                                                </select>
+                                                            ) : (
+                                                                <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 capitalize">
+                                                                    /{item.unit_name}
+                                                                </span>
+                                                            )}
+
+                                                            {item.is_auto_wholesale && (
+                                                                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300">
+                                                                    Auto Grosir
+                                                                </span>
+                                                            )}
+                                                            {item.price_tier === 'reseller' && (
+                                                                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+                                                                    Reseller
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
                                                     <button
-                                                        onClick={() => removeFromCart(item.id)}
+                                                        onClick={() => removeFromCart(item.cartItemId)}
                                                         className="text-gray-400 dark:text-[#55556d] hover:text-red-500 transition-colors p-0.5 -mt-0.5 -mr-0.5 shrink-0"
                                                         title="Hapus barang"
                                                     >
                                                         <span className="material-symbols-outlined text-[16px] sm:text-[18px]">close</span>
                                                     </button>
                                                 </div>
-                                                <div className="flex items-end justify-between gap-1 mt-1">
+
+                                                <div className="flex items-end justify-between gap-1 mt-1.5">
                                                     <div className="flex items-center gap-1.5 sm:gap-2 bg-gray-100 dark:bg-[#111118] rounded-lg p-0.5 border border-slate-200 dark:border-[#282839]">
                                                         <button
-                                                            onClick={() => updateQuantity(item.id, -1)}
+                                                            onClick={() => updateQuantity(item.cartItemId, -1)}
                                                             className="size-5 sm:size-6 flex items-center justify-center rounded bg-white dark:bg-[#282839] text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-[#3b3c54] transition-colors shadow-sm dark:shadow-none"
                                                         >
                                                             <span className="material-symbols-outlined text-[14px] sm:text-[16px]">remove</span>
                                                         </button>
                                                         <span className="text-xs sm:text-sm font-bold min-w-4 text-center text-gray-900 dark:text-white">{item.quantity}</span>
                                                         <button
-                                                            onClick={() => updateQuantity(item.id, 1)}
+                                                            onClick={() => updateQuantity(item.cartItemId, 1)}
                                                             className="size-5 sm:size-6 flex items-center justify-center rounded bg-primary text-white hover:bg-primary/90 transition-colors"
                                                         >
                                                             <span className="material-symbols-outlined text-[14px] sm:text-[16px]">add</span>
                                                         </button>
                                                     </div>
-                                                    <div className="text-xs sm:text-sm font-extrabold text-gray-900 dark:text-white truncate">
-                                                        {formatRupiah(Number(item.price) * item.quantity)}
+                                                    <div className="text-right">
+                                                        <div className="text-[10px] text-gray-400">
+                                                            {item.quantity} x {formatRupiah(Number(item.price))}
+                                                        </div>
+                                                        <div className="text-xs sm:text-sm font-extrabold text-gray-900 dark:text-white truncate">
+                                                            {formatRupiah(Number(item.price) * item.quantity)}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>

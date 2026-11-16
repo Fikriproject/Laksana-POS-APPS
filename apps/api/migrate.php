@@ -137,7 +137,7 @@ function indexExists(PDO $db, string $driver, string $tableName, string $indexNa
 
 // 2. Status Mode
 $tableNames = [
-    'users', 'categories', 'products', 'customers', 'suppliers',
+    'users', 'categories', 'products', 'product_units', 'customers', 'suppliers',
     'shifts', 'orders', 'order_items', 'inventory_logs', 'expenses', 'stock_reports'
 ];
 
@@ -511,6 +511,34 @@ $tableDefinitions = [
             INDEX idx_sr_product (product_id),
             INDEX idx_sr_user (user_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    ",
+
+    'product_units' => $isPg ? "
+        CREATE TABLE IF NOT EXISTS product_units (
+            id CHAR(36) PRIMARY KEY,
+            product_id CHAR(36) NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+            unit_name VARCHAR(50) NOT NULL,
+            conversion_factor INT NOT NULL DEFAULT 1,
+            price DECIMAL(15, 2) NOT NULL DEFAULT 0,
+            wholesale_price DECIMAL(15, 2) DEFAULT NULL,
+            reseller_price DECIMAL(15, 2) DEFAULT NULL,
+            barcode VARCHAR(100) DEFAULT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    " : "
+        CREATE TABLE IF NOT EXISTS product_units (
+            id CHAR(36) PRIMARY KEY,
+            product_id CHAR(36) NOT NULL,
+            unit_name VARCHAR(50) NOT NULL,
+            conversion_factor INT NOT NULL DEFAULT 1,
+            price DECIMAL(15, 2) NOT NULL DEFAULT 0,
+            wholesale_price DECIMAL(15, 2) DEFAULT NULL,
+            reseller_price DECIMAL(15, 2) DEFAULT NULL,
+            barcode VARCHAR(100) DEFAULT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_pu_product (product_id),
+            INDEX idx_pu_barcode (barcode)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     "
 ];
 
@@ -558,10 +586,52 @@ $columnPatches = [
         'after' => 'price'
     ],
     [
+        'table' => 'products',
+        'column' => 'wholesale_price',
+        'type' => 'DECIMAL(15, 2) DEFAULT NULL',
+        'after' => 'purchase_price'
+    ],
+    [
+        'table' => 'products',
+        'column' => 'wholesale_min_qty',
+        'type' => 'INT DEFAULT 12',
+        'after' => 'wholesale_price'
+    ],
+    [
+        'table' => 'products',
+        'column' => 'reseller_price',
+        'type' => 'DECIMAL(15, 2) DEFAULT NULL',
+        'after' => 'wholesale_min_qty'
+    ],
+    [
+        'table' => 'products',
+        'column' => 'base_unit',
+        'type' => "VARCHAR(20) NOT NULL DEFAULT 'pcs'",
+        'after' => 'reseller_price'
+    ],
+    [
         'table' => 'order_items',
         'column' => 'purchase_price',
         'type' => 'DECIMAL(15, 2) NOT NULL DEFAULT 0',
         'after' => 'unit_price'
+    ],
+    [
+        'table' => 'order_items',
+        'column' => 'unit_name',
+        'type' => "VARCHAR(50) NOT NULL DEFAULT 'pcs'",
+        'after' => 'product_name'
+    ],
+    [
+        'table' => 'order_items',
+        'column' => 'conversion_factor',
+        'type' => 'INT NOT NULL DEFAULT 1',
+        'after' => 'unit_name'
+    ],
+    [
+        'table' => 'order_items',
+        'column' => 'price_tier',
+        'type' => "VARCHAR(20) NOT NULL DEFAULT 'retail'",
+        'after' => 'conversion_factor'
     ],
     [
         'table' => 'orders',
@@ -654,7 +724,9 @@ $indexes = [
     ['table' => 'shifts', 'name' => 'idx_shifts_status', 'column' => 'status'],
     ['table' => 'expenses', 'name' => 'idx_expenses_date', 'column' => 'created_at'],
     ['table' => 'expenses', 'name' => 'idx_expenses_category', 'column' => 'category'],
-    ['table' => 'stock_reports', 'name' => 'idx_stock_reports_status', 'column' => 'status']
+    ['table' => 'stock_reports', 'name' => 'idx_stock_reports_status', 'column' => 'status'],
+    ['table' => 'product_units', 'name' => 'idx_product_units_product', 'column' => 'product_id'],
+    ['table' => 'product_units', 'name' => 'idx_product_units_barcode', 'column' => 'barcode']
 ];
 
 foreach ($indexes as $idx) {

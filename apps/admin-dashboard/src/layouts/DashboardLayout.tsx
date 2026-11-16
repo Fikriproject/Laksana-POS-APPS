@@ -12,16 +12,18 @@ const DashboardLayout = () => {
     const toggleSidebar = () => setIsSidebarOpen(prev => !prev);
 
     return (
-        <div className="flex h-screen w-full overflow-hidden bg-background-light dark:bg-background-dark">
+        <div className="flex h-screen w-full overflow-hidden bg-background-light dark:bg-background-dark print:h-auto print:overflow-visible print:block">
             {/* Sidebar */}
-            <Sidebar
-                isOpen={isSidebarOpen}
-                onClose={() => setIsSidebarOpen(false)}
-            />
+            <div className="print:hidden">
+                <Sidebar
+                    isOpen={isSidebarOpen}
+                    onClose={() => setIsSidebarOpen(false)}
+                />
+            </div>
 
             {/* Main Content */}
-            <main className="flex-1 h-full overflow-y-auto relative flex flex-col">
-                <div className="h-full w-full">
+            <main className="flex-1 h-full overflow-y-auto relative flex flex-col print:h-auto print:overflow-visible print:block print:static">
+                <div className="h-full w-full print:h-auto print:overflow-visible print:block">
                     {/* Page Content */}
                     <Outlet context={{ toggleSidebar }} />
                 </div>

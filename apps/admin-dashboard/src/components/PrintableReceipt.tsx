@@ -7,6 +7,8 @@ interface ReceiptItem {
     unit_price?: number;
     price?: number; // fallback
     subtotal: number;
+    unit_name?: string;
+    price_tier?: string;
 }
 
 interface ReceiptOrder {
@@ -84,7 +86,12 @@ const PrintableReceipt: React.FC<PrintableReceiptProps> = ({ order, className = 
                         <div key={index}>
                             <div className="font-bold">{item.product_name}</div>
                             <div className="flex justify-between">
-                                <span>{item.quantity} x {formatRupiah(Number(item.unit_price || item.price || 0))}</span>
+                                <span>
+                                    {item.quantity} {item.unit_name && item.unit_name !== 'pcs' ? item.unit_name : 'x'} {formatRupiah(Number(item.unit_price || item.price || 0))}
+                                    {item.price_tier && item.price_tier !== 'retail' ? (
+                                        <span className="text-[10px] ml-1 uppercase text-gray-700">({item.price_tier})</span>
+                                    ) : null}
+                                </span>
                                 <span>{formatRupiah(Number(item.subtotal))}</span>
                             </div>
                         </div>
