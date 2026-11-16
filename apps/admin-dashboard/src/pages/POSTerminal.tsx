@@ -166,12 +166,18 @@ const POSTerminal = () => {
                     )
                 }));
 
+                // Filter hanya kategori yang memiliki produk aktif agar kasir tidak terganggu oleh tab kosong
+                const categoriesWithProducts = fetchedCategories.filter((c: any) => {
+                    const count = Number(c.product_count ?? 0);
+                    return count > 0 || (Array.isArray(productsData) && productsData.some((p: any) => p.category_id == c.id));
+                });
+
                 const hasUncategorized = Array.isArray(productsData) && productsData.some((p: any) => !p.category_id);
 
                 setCategories([
                     { id: 'all', name: 'All', icon: 'grid_view' },
                     ...(hasUncategorized ? [{ id: 'uncategorized', name: 'Kitab & Lainnya', icon: 'menu_book' }] : []),
-                    ...fetchedCategories
+                    ...categoriesWithProducts
                 ]);
             } catch (error) {
                 console.error("Failed to fetch POS data", error);

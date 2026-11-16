@@ -798,26 +798,24 @@ if ($userCount === 0) {
 
 // Check Categories
 $catCount = (int) $db->query("SELECT COUNT(*) FROM categories")->fetchColumn();
-$categories = [
-    ['name' => 'Peci', 'icon' => 'domino', 'slug' => 'peci'],
-    ['name' => 'Jam', 'icon' => 'schedule', 'slug' => 'jam'],
-    ['name' => 'Kertas', 'icon' => 'description', 'slug' => 'kertas'],
-    ['name' => 'ATK', 'icon' => 'edit', 'slug' => 'atk'],
-    ['name' => 'Kalkulator', 'icon' => 'calculate', 'slug' => 'kalkulator'],
-    ['name' => 'Jasa', 'icon' => 'design_services', 'slug' => 'jasa'],
-    ['name' => 'Figura', 'icon' => 'crop_original', 'slug' => 'figura'],
-    ['name' => "Al-Qur'an", 'icon' => 'menu_book', 'slug' => 'al-quran'],
-    ['name' => 'Kitab & Buku Agama', 'icon' => 'auto_stories', 'slug' => 'kitab-buku'],
-    ['name' => 'Pramuka & Sekolah', 'icon' => 'school', 'slug' => 'pramuka'],
-    ['name' => 'Aksesoris & Kerajinan', 'icon' => 'palette', 'slug' => 'aksesoris'],
-];
+if ($catCount === 0) {
+    $categories = [
+        ['name' => 'Peci', 'icon' => 'domino', 'slug' => 'peci'],
+        ['name' => 'Jam', 'icon' => 'schedule', 'slug' => 'jam'],
+        ['name' => 'Kertas', 'icon' => 'description', 'slug' => 'kertas'],
+        ['name' => 'ATK', 'icon' => 'edit', 'slug' => 'atk'],
+        ['name' => 'Kalkulator', 'icon' => 'calculate', 'slug' => 'kalkulator'],
+        ['name' => 'Jasa', 'icon' => 'design_services', 'slug' => 'jasa'],
+        ['name' => 'Figura', 'icon' => 'crop_original', 'slug' => 'figura'],
+        ['name' => "Al-Qur'an", 'icon' => 'menu_book', 'slug' => 'al-quran'],
+        ['name' => 'Kitab & Buku Agama', 'icon' => 'auto_stories', 'slug' => 'kitab-buku'],
+        ['name' => 'Pramuka & Sekolah', 'icon' => 'school', 'slug' => 'pramuka'],
+        ['name' => 'Aksesoris & Kerajinan', 'icon' => 'palette', 'slug' => 'aksesoris'],
+    ];
 
-$stmtCatCheck = $db->prepare("SELECT id FROM categories WHERE slug = :slug OR name = :name LIMIT 1");
-$stmtCatInsert = $db->prepare("INSERT INTO categories (name, icon, slug, is_active) VALUES (:name, :icon, :slug, :is_active)");
-$addedCats = 0;
-foreach ($categories as $cat) {
-    $stmtCatCheck->execute(['slug' => $cat['slug'], 'name' => $cat['name']]);
-    if (!$stmtCatCheck->fetch()) {
+    $stmtCatInsert = $db->prepare("INSERT INTO categories (name, icon, slug, is_active) VALUES (:name, :icon, :slug, :is_active)");
+    $addedCats = 0;
+    foreach ($categories as $cat) {
         $stmtCatInsert->execute([
             'name' => $cat['name'],
             'icon' => $cat['icon'],
@@ -826,11 +824,9 @@ foreach ($categories as $cat) {
         ]);
         $addedCats++;
     }
-}
-if ($addedCats > 0) {
-    echo " [✓] Berhasil menambahkan {$addedCats} kategori baru ke tabel categories.\n";
+    echo " [✓] Berhasil menambahkan {$addedCats} kategori standar awal ke tabel categories.\n";
 } else {
-    echo " [•] Seluruh " . count($categories) . " kategori standar sudah terdaftar.\n";
+    echo " [•] Tabel categories sudah memiliki {$catCount} kategori (dilewati).\n";
 }
 
 // Optional sample products if empty and requested or table has 0 products
