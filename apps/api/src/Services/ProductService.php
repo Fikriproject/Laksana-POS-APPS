@@ -217,22 +217,32 @@ class ProductService
         $db->beginTransaction();
 
         try {
-            // 1. Ambil kategori yang ada
-            $stmtCat = $db->query("SELECT id, name FROM categories");
+            // 1. Ambil kategori yang ada (nama dan slug)
+            $stmtCat = $db->query("SELECT id, name, slug FROM categories");
             $categories = $stmtCat->fetchAll(\PDO::FETCH_ASSOC) ?: [];
             $categoryMap = [];
+            $slugMap = [];
             foreach ($categories as $cat) {
-                $categoryMap[strtolower(trim($cat['name']))] = (string)$cat['id'];
+                $normName = strtolower(trim(preg_replace('/\s+/', ' ', $cat['name'] ?? '')));
+                if (!empty($normName)) {
+                    $categoryMap[$normName] = (string)$cat['id'];
+                }
+                if (!empty($cat['slug'])) {
+                    $normSlug = strtolower(trim($cat['slug']));
+                    $slugMap[$normSlug] = (string)$cat['id'];
+                }
             }
 
             $inserted = 0;
             $updated = 0;
             $skipped = 0;
             $categoriesCreated = 0;
+            $isPg = ($db->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'pgsql');
 
             // Prepared statements
             $stmtCheckSku = $db->prepare("SELECT id FROM products WHERE sku = :sku LIMIT 1");
             $stmtCheckName = $db->prepare("SELECT id FROM products WHERE LOWER(TRIM(name)) = LOWER(TRIM(:name)) LIMIT 1");
+            $stmtFindCat = $db->prepare("SELECT id FROM categories WHERE LOWER(TRIM(name)) = LOWER(TRIM(:name)) OR slug = :slug LIMIT 1");
             $stmtInsertCat = $db->prepare("INSERT INTO categories (name, slug, is_active) VALUES (:name, :slug, 1)");
             
             $stmtInsertProd = $db->prepare(
@@ -265,18 +275,74 @@ class ProductService
                 $categoryId = null;
                 $catName = trim($p['category_name'] ?? '');
                 if (!empty($catName)) {
-                    $catKey = strtolower($catName);
-                    if (isset($categoryMap[$catKey])) {
-                        $categoryId = $categoryMap[$catKey];
+                    $normName = strtolower(trim(preg_replace('/\s+/', ' ', $catName)));
+                    $catSlug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $catName), '-'));
+                    if (empty($catSlug)) $catSlug = 'cat-' . substr(md5($catName), 0, 6);
+
+                    // 1. Cek dari peta memori (nama atau slug)
+                    if (isset($categoryMap[$normName])) {
+                        $categoryId = $categoryMap[$normName];
+                    } elseif (isset($slugMap[$catSlug])) {
+                        $categoryId = $slugMap[$catSlug];
+                        $categoryMap[$normName] = $categoryId;
                     } else {
-                        // Buat kategori baru
-                        $catSlug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $catName)));
-                        if (empty($catSlug)) $catSlug = 'cat-' . substr(md5($catName), 0, 6);
-                        $stmtInsertCat->execute(['name' => $catName, 'slug' => $catSlug]);
-                        $newCatId = (string)$db->lastInsertId();
-                        $categoryMap[$catKey] = $newCatId;
-                        $categoryId = $newCatId;
-                        $categoriesCreated++;
+                        // 2. Cek ke database jika belum terpetakan
+                        $stmtFindCat->execute(['name' => $catName, 'slug' => $catSlug]);
+                        $existingCatId = $stmtFindCat->fetchColumn();
+
+                        if ($existingCatId) {
+                            $categoryId = (string)$existingCatId;
+                            $categoryMap[$normName] = $categoryId;
+                            $slugMap[$catSlug] = $categoryId;
+                        } else {
+                            // 3. Buat kategori baru dengan perlindungan benturan slug
+                            $finalSlug = $catSlug;
+                            if (isset($slugMap[$finalSlug])) {
+                                $finalSlug = substr($finalSlug, 0, 40) . '-' . substr(md5(uniqid()), 0, 6);
+                            }
+
+                            if ($isPg) {
+                                $db->exec("SAVEPOINT cat_sp");
+                            }
+
+                            try {
+                                $stmtInsertCat->execute(['name' => $catName, 'slug' => $finalSlug]);
+                                $newCatId = (string)$db->lastInsertId();
+                                if ($isPg) {
+                                    $db->exec("RELEASE SAVEPOINT cat_sp");
+                                }
+                            } catch (\PDOException $e) {
+                                if ($isPg) {
+                                    $db->exec("ROLLBACK TO SAVEPOINT cat_sp");
+                                }
+                                // Cari ulang barangkali ada index duplikat
+                                $stmtFindCat->execute(['name' => $catName, 'slug' => $finalSlug]);
+                                $newCatId = $stmtFindCat->fetchColumn();
+
+                                if (!$newCatId) {
+                                    // Fallback dengan slug unik terjamin
+                                    $uniqueSlug = substr($catSlug, 0, 40) . '-' . substr(md5(microtime()), 0, 6);
+                                    if ($isPg) {
+                                        $db->exec("SAVEPOINT cat_sp_fb");
+                                    }
+                                    try {
+                                        $stmtInsertCat->execute(['name' => $catName, 'slug' => $uniqueSlug]);
+                                        $newCatId = (string)$db->lastInsertId();
+                                        if ($isPg) $db->exec("RELEASE SAVEPOINT cat_sp_fb");
+                                    } catch (\PDOException $e2) {
+                                        if ($isPg) $db->exec("ROLLBACK TO SAVEPOINT cat_sp_fb");
+                                        $newCatId = null;
+                                    }
+                                }
+                            }
+
+                            if ($newCatId) {
+                                $categoryId = (string)$newCatId;
+                                $categoryMap[$normName] = $categoryId;
+                                $slugMap[$finalSlug] = $categoryId;
+                                $categoriesCreated++;
+                            }
+                        }
                     }
                 }
 
