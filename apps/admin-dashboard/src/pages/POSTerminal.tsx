@@ -1319,46 +1319,51 @@ const POSTerminal = () => {
                                 {/* Isi Rincian Pembayaran (Dapat Di-minimize) */}
                                 {!isSummaryCollapsed && (
                                     <div className="space-y-2.5 pt-1 border-t border-slate-200/80 dark:border-[#282839]/80 max-h-[42vh] overflow-y-auto pr-0.5">
-                                        {/* Discount & Tax Controls */}
-                                        <div className="grid grid-cols-2 gap-2.5">
-                                            <div className="space-y-1">
-                                                <label className="text-xs text-gray-500 dark:text-[#9d9db9] font-medium">Diskon</label>
-                                                <div className="flex gap-1.5">
-                                                    <div className="relative flex-1">
-                                                        <input
-                                                            type="number"
-                                                            value={discountValue || ''}
-                                                            onChange={(e) => setDiscountValue(Number(e.target.value))}
-                                                            placeholder="0"
-                                                            className="w-full bg-white dark:bg-[#111118] border border-slate-200 dark:border-[#282839] rounded-lg px-2 py-1 text-xs sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary transition-colors"
-                                                        />
-                                                    </div>
-                                                    <div className="flex bg-white dark:bg-[#111118] rounded-lg border border-slate-200 dark:border-[#282839] p-0.5 shrink-0">
-                                                        <button
-                                                            onClick={() => setDiscountType('percent')}
-                                                            className={`px-1.5 py-0.5 rounded text-xs font-bold ${discountType === 'percent' ? 'bg-primary text-white' : 'text-gray-500 dark:text-[#9d9db9]'}`}
-                                                        >
-                                                            %
-                                                        </button>
-                                                        <button
-                                                            onClick={() => setDiscountType('fixed')}
-                                                            className={`px-1.5 py-0.5 rounded text-xs font-bold ${discountType === 'fixed' ? 'bg-primary text-white' : 'text-gray-500 dark:text-[#9d9db9]'}`}
-                                                        >
-                                                            Rp
-                                                        </button>
-                                                    </div>
-                                                </div>
+                                        {/* Discount Controls (Full width dengan tombol % dan Rp di ujung) */}
+                                        <div className="space-y-1">
+                                            <div className="flex justify-between items-center">
+                                                <label className="text-xs text-gray-500 dark:text-[#9d9db9] font-medium">
+                                                    Diskon {discountType === 'percent' ? '(%)' : '(Rp)'}
+                                                </label>
+                                                {discountAmount > 0 && (
+                                                    <span className="text-[11px] font-bold text-rose-500 dark:text-rose-400">
+                                                        -{formatRupiah(discountAmount)}
+                                                    </span>
+                                                )}
                                             </div>
-                                            <div className="space-y-1">
-                                                <label className="text-xs text-gray-500 dark:text-[#9d9db9] font-medium">Pajak (%)</label>
-                                                <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-1.5 w-full">
+                                                <div className="relative flex-1">
                                                     <input
                                                         type="number"
-                                                        value={taxRate || ''}
-                                                        onChange={(e) => setTaxRate(Number(e.target.value))}
+                                                        value={discountValue || ''}
+                                                        onChange={(e) => setDiscountValue(Number(e.target.value))}
                                                         placeholder="0"
-                                                        className="w-full bg-white dark:bg-[#111118] border border-slate-200 dark:border-[#282839] rounded-lg px-2 py-1 text-xs sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary transition-colors"
+                                                        className="w-full bg-white dark:bg-[#111118] border border-slate-200 dark:border-[#282839] rounded-xl px-3 py-2 text-sm sm:text-base font-bold text-gray-900 dark:text-white focus:outline-none focus:border-primary transition-colors"
                                                     />
+                                                </div>
+                                                <div className="flex bg-gray-200/80 dark:bg-[#1c1c27] rounded-xl p-1 border border-slate-200 dark:border-[#282839] shrink-0">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setDiscountType('percent')}
+                                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                                            discountType === 'percent'
+                                                                ? 'bg-primary text-white shadow-sm'
+                                                                : 'text-gray-500 dark:text-[#9d9db9] hover:text-gray-900 dark:hover:text-white'
+                                                        }`}
+                                                    >
+                                                        %
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setDiscountType('fixed')}
+                                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                                            discountType === 'fixed'
+                                                                ? 'bg-primary text-white shadow-sm'
+                                                                : 'text-gray-500 dark:text-[#9d9db9] hover:text-gray-900 dark:hover:text-white'
+                                                        }`}
+                                                    >
+                                                        Rp
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
