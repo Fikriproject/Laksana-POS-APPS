@@ -628,7 +628,11 @@ const ProductsPage = () => {
                                             <th className="p-4 min-w-[100px]">
                                                 <div className="flex items-center gap-1">
                                                     <span>Harga Jual</span>
-                                                    {productList.some(p => (p.purchase_price || 0) > 0 && (p.price || 0) < (p.purchase_price || 0)) && (
+                                                    {productList.some(p => {
+                                                        const costVal = parseFloat(String(p.purchase_price || 0)) || 0;
+                                                        const priceVal = parseFloat(String(p.price || 0)) || 0;
+                                                        return costVal > 0 && priceVal < costVal;
+                                                    }) && (
                                                         <span className="text-red-500 font-extrabold text-xs" title="Ada produk yang harga jualnya di bawah harga beli modal (*)">(*)</span>
                                                     )}
                                                 </div>
@@ -669,12 +673,12 @@ const ProductsPage = () => {
                                                     <td className="p-4 text-gray-900 dark:text-white font-medium text-sm text-yellow-600 dark:text-yellow-500">{formatRupiah(product.purchase_price || 0)}</td>
                                                     <td className="p-4 text-gray-900 dark:text-white font-medium">
                                                         {(() => {
-                                                            const cost = product.purchase_price || 0;
-                                                            const price = product.price || 0;
+                                                            const cost = parseFloat(String(product.purchase_price || 0)) || 0;
+                                                            const price = parseFloat(String(product.price || 0)) || 0;
                                                             const isLoss = cost > 0 && price < cost;
                                                             const formatted = formatRupiah(price);
                                                             const numOnly = formatted.replace(/^Rp\s?/, '');
-                                                            const lossAmount = cost - price;
+                                                            const lossAmount = Math.max(0, cost - price);
 
                                                             return (
                                                                 <div>
@@ -708,8 +712,10 @@ const ProductsPage = () => {
                                                                     {(product.wholesale_price || product.reseller_price) && (
                                                                         <div className="flex flex-wrap gap-1 text-[10px] font-semibold mt-1">
                                                                             {product.wholesale_price && (() => {
-                                                                                const isWsLoss = cost > 0 && product.wholesale_price < cost;
-                                                                                const wsNum = formatRupiah(product.wholesale_price).replace(/^Rp\s?/, '');
+                                                                                const wsPrice = parseFloat(String(product.wholesale_price || 0)) || 0;
+                                                                                const isWsLoss = cost > 0 && wsPrice > 0 && wsPrice < cost;
+                                                                                const wsNum = formatRupiah(wsPrice).replace(/^Rp\s?/, '');
+                                                                                const wsLossAmount = Math.max(0, cost - wsPrice);
                                                                                 return (
                                                                                     <span
                                                                                         className={`px-1.5 py-0.5 rounded ${
@@ -719,7 +725,7 @@ const ProductsPage = () => {
                                                                                         }`}
                                                                                         title={
                                                                                             isWsLoss
-                                                                                                ? `⚠️ Grosir Rugi: Rp ${wsNum} < Modal ${formatRupiah(cost)}`
+                                                                                                ? `⚠️ Grosir Rugi: Rp ${wsNum} < Modal ${formatRupiah(cost)} (Rugi Rp ${formatRupiah(wsLossAmount).replace(/^Rp\s?/, '')})`
                                                                                                 : `Grosir min ${product.wholesale_min_qty || 12} ${product.base_unit || 'pcs'}`
                                                                                         }
                                                                                     >
@@ -728,8 +734,10 @@ const ProductsPage = () => {
                                                                                 );
                                                                             })()}
                                                                             {product.reseller_price && (() => {
-                                                                                const isRsLoss = cost > 0 && product.reseller_price < cost;
-                                                                                const rsNum = formatRupiah(product.reseller_price).replace(/^Rp\s?/, '');
+                                                                                const rsPrice = parseFloat(String(product.reseller_price || 0)) || 0;
+                                                                                const isRsLoss = cost > 0 && rsPrice > 0 && rsPrice < cost;
+                                                                                const rsNum = formatRupiah(rsPrice).replace(/^Rp\s?/, '');
+                                                                                const rsLossAmount = Math.max(0, cost - rsPrice);
                                                                                 return (
                                                                                     <span
                                                                                         className={`px-1.5 py-0.5 rounded ${
@@ -739,7 +747,7 @@ const ProductsPage = () => {
                                                                                         }`}
                                                                                         title={
                                                                                             isRsLoss
-                                                                                                ? `⚠️ Reseller Rugi: Rp ${rsNum} < Modal ${formatRupiah(cost)}`
+                                                                                                ? `⚠️ Reseller Rugi: Rp ${rsNum} < Modal ${formatRupiah(cost)} (Rugi Rp ${formatRupiah(rsLossAmount).replace(/^Rp\s?/, '')})`
                                                                                                 : 'Reseller'
                                                                                         }
                                                                                     >
