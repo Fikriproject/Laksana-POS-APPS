@@ -625,7 +625,14 @@ const ProductsPage = () => {
                                             <th className="p-4 min-w-[120px]">SKU</th>
                                             <th className="p-4 min-w-[120px]">Kategori</th>
                                             <th className="p-4 min-w-[100px]">Harga Beli</th>
-                                            <th className="p-4 min-w-[100px]">Harga Jual</th>
+                                            <th className="p-4 min-w-[100px]">
+                                                <div className="flex items-center gap-1">
+                                                    <span>Harga Jual</span>
+                                                    {productList.some(p => (p.purchase_price || 0) > 0 && (p.price || 0) < (p.purchase_price || 0)) && (
+                                                        <span className="text-red-500 font-extrabold text-xs" title="Ada produk yang harga jualnya di bawah harga beli modal (*)">(*)</span>
+                                                    )}
+                                                </div>
+                                            </th>
                                             <th className="p-4 min-w-[100px]">Stok</th>
                                             <th className="p-4 text-center min-w-[100px]">Status</th>
                                             <th className="p-4 text-right min-w-[120px]">Aksi</th>
@@ -661,26 +668,95 @@ const ProductsPage = () => {
                                                     </td>
                                                     <td className="p-4 text-gray-900 dark:text-white font-medium text-sm text-yellow-600 dark:text-yellow-500">{formatRupiah(product.purchase_price || 0)}</td>
                                                     <td className="p-4 text-gray-900 dark:text-white font-medium">
-                                                        <div>{formatRupiah(product.price)} <span className="text-[10px] text-gray-400">/{product.base_unit || 'pcs'}</span></div>
-                                                        {(product.wholesale_price || product.reseller_price) && (
-                                                            <div className="flex flex-wrap gap-1 text-[10px] font-semibold mt-0.5">
-                                                                {product.wholesale_price && (
-                                                                    <span className="px-1.5 py-0.5 rounded bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400" title={`Grosir min ${product.wholesale_min_qty || 12} ${product.base_unit || 'pcs'}`}>
-                                                                        G: {formatRupiah(product.wholesale_price)}
-                                                                    </span>
-                                                                )}
-                                                                {product.reseller_price && (
-                                                                    <span className="px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400" title="Reseller">
-                                                                        R: {formatRupiah(product.reseller_price)}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        )}
-                                                        {product.units && product.units.length > 0 && (
-                                                            <span className="inline-block mt-1 text-[9px] px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-bold">
-                                                                +{product.units.length} Satuan ({product.units.map(u => u.unit_name).join(', ')})
-                                                            </span>
-                                                        )}
+                                                        {(() => {
+                                                            const cost = product.purchase_price || 0;
+                                                            const price = product.price || 0;
+                                                            const isLoss = cost > 0 && price < cost;
+                                                            const formatted = formatRupiah(price);
+                                                            const numOnly = formatted.replace(/^Rp\s?/, '');
+                                                            const lossAmount = cost - price;
+
+                                                            return (
+                                                                <div>
+                                                                    {isLoss ? (
+                                                                        <div>
+                                                                            <div
+                                                                                className="inline-flex items-center flex-wrap gap-1 text-red-600 dark:text-red-400 font-bold"
+                                                                                title={`⚠️ PERINGATAN POTENSI RUGI:\nHarga Jual (Rp ${numOnly}) lebih rendah dari Modal Beli (${formatRupiah(cost)}).\nRugi: Rp ${formatRupiah(lossAmount).replace(/^Rp\s?/, '')} per ${product.base_unit || 'pcs'}`}
+                                                                            >
+                                                                                <span className="inline-flex items-center">
+                                                                                    <span>Rp</span>
+                                                                                    <span className="inline-flex items-center justify-center font-black text-xs text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-950/80 px-1 py-0.5 rounded border border-red-300 dark:border-red-700 mx-0.5 shadow-sm animate-pulse">
+                                                                                        (*)
+                                                                                    </span>
+                                                                                    <span>{numOnly}</span>
+                                                                                </span>
+                                                                                <span className="text-[10px] text-red-400 dark:text-red-500 font-normal">/{product.base_unit || 'pcs'}</span>
+                                                                            </div>
+                                                                            <div className="text-[10px] font-bold text-red-600 dark:text-red-400 flex items-center gap-0.5 mt-0.5 animate-pulse">
+                                                                                <span className="material-symbols-outlined text-[13px]">warning</span>
+                                                                                <span>Rugi Rp {formatRupiah(lossAmount).replace(/^Rp\s?/, '')}</span>
+                                                                            </div>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div>
+                                                                            <span>Rp {numOnly}</span>{' '}
+                                                                            <span className="text-[10px] text-gray-400">/{product.base_unit || 'pcs'}</span>
+                                                                        </div>
+                                                                    )}
+
+                                                                    {(product.wholesale_price || product.reseller_price) && (
+                                                                        <div className="flex flex-wrap gap-1 text-[10px] font-semibold mt-1">
+                                                                            {product.wholesale_price && (() => {
+                                                                                const isWsLoss = cost > 0 && product.wholesale_price < cost;
+                                                                                const wsNum = formatRupiah(product.wholesale_price).replace(/^Rp\s?/, '');
+                                                                                return (
+                                                                                    <span
+                                                                                        className={`px-1.5 py-0.5 rounded ${
+                                                                                            isWsLoss
+                                                                                                ? 'bg-red-100 dark:bg-red-950/70 text-red-600 dark:text-red-400 border border-red-300 dark:border-red-800 font-bold'
+                                                                                                : 'bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400'
+                                                                                        }`}
+                                                                                        title={
+                                                                                            isWsLoss
+                                                                                                ? `⚠️ Grosir Rugi: Rp ${wsNum} < Modal ${formatRupiah(cost)}`
+                                                                                                : `Grosir min ${product.wholesale_min_qty || 12} ${product.base_unit || 'pcs'}`
+                                                                                        }
+                                                                                    >
+                                                                                        G: Rp{isWsLoss && <span className="text-red-600 dark:text-red-400 font-black ml-0.5 mr-0.5">(*)</span>}{wsNum}
+                                                                                    </span>
+                                                                                );
+                                                                            })()}
+                                                                            {product.reseller_price && (() => {
+                                                                                const isRsLoss = cost > 0 && product.reseller_price < cost;
+                                                                                const rsNum = formatRupiah(product.reseller_price).replace(/^Rp\s?/, '');
+                                                                                return (
+                                                                                    <span
+                                                                                        className={`px-1.5 py-0.5 rounded ${
+                                                                                            isRsLoss
+                                                                                                ? 'bg-red-100 dark:bg-red-950/70 text-red-600 dark:text-red-400 border border-red-300 dark:border-red-800 font-bold'
+                                                                                                : 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400'
+                                                                                        }`}
+                                                                                        title={
+                                                                                            isRsLoss
+                                                                                                ? `⚠️ Reseller Rugi: Rp ${rsNum} < Modal ${formatRupiah(cost)}`
+                                                                                                : 'Reseller'
+                                                                                        }
+                                                                                    >
+                                                                                        R: Rp{isRsLoss && <span className="text-red-600 dark:text-red-400 font-black ml-0.5 mr-0.5">(*)</span>}{rsNum}
+                                                                                    </span>
+                                                                                );
+                                                                            })()}
+                                                                        </div>
+                                                                    )}
+                                                                    {product.units && product.units.length > 0 && (
+                                                                        <span className="inline-block mt-1 text-[9px] px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-bold">
+                                                                            +{product.units.length} Satuan ({product.units.map(u => u.unit_name).join(', ')})
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })()}
                                                     </td>
                                                     <td className="p-4 text-gray-900 dark:text-white">
                                                         <div className="flex items-center gap-2">
@@ -1010,7 +1086,15 @@ const ProductsPage = () => {
                                                 Harga Ecer <span className="text-red-500">*</span>
                                             </label>
                                             <div className="relative">
-                                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">Rp</span>
+                                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 flex items-center">
+                                                    Rp
+                                                    {(() => {
+                                                        const m = calculateMargin(formData.price, formData.purchase_price);
+                                                        return m?.isLoss ? (
+                                                            <span className="text-red-500 font-black ml-0.5 animate-pulse" title="Harga jual lebih rendah dari modal (*)">(*)</span>
+                                                        ) : null;
+                                                    })()}
+                                                </span>
                                                 <input
                                                     type="number"
                                                     required
@@ -1044,7 +1128,15 @@ const ProductsPage = () => {
                                                 Harga Grosir
                                             </label>
                                             <div className="relative">
-                                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">Rp</span>
+                                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 flex items-center">
+                                                    Rp
+                                                    {(() => {
+                                                        const m = calculateMargin(formData.wholesale_price || formData.price, formData.purchase_price);
+                                                        return m?.isLoss ? (
+                                                            <span className="text-red-500 font-black ml-0.5 animate-pulse" title="Harga grosir lebih rendah dari modal (*)">(*)</span>
+                                                        ) : null;
+                                                    })()}
+                                                </span>
                                                 <input
                                                     type="number"
                                                     min="0"
@@ -1088,7 +1180,15 @@ const ProductsPage = () => {
                                                 Harga Reseller
                                             </label>
                                             <div className="relative">
-                                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">Rp</span>
+                                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 flex items-center">
+                                                    Rp
+                                                    {(() => {
+                                                        const m = calculateMargin(formData.reseller_price || formData.price, formData.purchase_price);
+                                                        return m?.isLoss ? (
+                                                            <span className="text-red-500 font-black ml-0.5 animate-pulse" title="Harga reseller lebih rendah dari modal (*)">(*)</span>
+                                                        ) : null;
+                                                    })()}
+                                                </span>
                                                 <input
                                                     type="number"
                                                     min="0"
