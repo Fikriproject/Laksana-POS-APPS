@@ -345,7 +345,7 @@ const POSTerminal = () => {
                 is_auto_wholesale: isAutoWholesale
             };
         }));
-        const label = newTier === 'retail' ? 'Ecer (Umum)' : newTier === 'wholesale' ? 'Grosir' : 'Reseller';
+        const label = newTier === 'retail' ? 'Ecer (Umum)' : 'Reseller';
         toast.success(`Mode harga beralih ke ${label}`, { id: 'price-tier-switch', duration: 1500 });
     };
 
@@ -1150,13 +1150,13 @@ const POSTerminal = () => {
                                 </div>
                             </div>
 
-                            {/* Selector Level Harga (Ecer / Grosir / Reseller) */}
+                            {/* Selector Level Harga (Ecer / Reseller) */}
                             <div className="px-3 py-2 bg-slate-50 dark:bg-[#111118] border-b border-slate-200 dark:border-[#282839] shrink-0">
-                                <div className="grid grid-cols-3 gap-1 w-full bg-gray-200/70 dark:bg-[#1c1c27] p-1 rounded-xl">
+                                <div className="grid grid-cols-2 gap-1.5 w-full bg-gray-200/70 dark:bg-[#1c1c27] p-1 rounded-xl">
                                     <button
                                         type="button"
                                         onClick={() => handleSelectPriceTier('retail')}
-                                        className={`py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-all ${
+                                        className={`py-1.5 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
                                             activePriceTier === 'retail'
                                                 ? 'bg-blue-600 text-white shadow-sm'
                                                 : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
@@ -1167,20 +1167,8 @@ const POSTerminal = () => {
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() => handleSelectPriceTier('wholesale')}
-                                        className={`py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-all ${
-                                            activePriceTier === 'wholesale'
-                                                ? 'bg-purple-600 text-white shadow-sm'
-                                                : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
-                                        }`}
-                                    >
-                                        <span className="material-symbols-outlined text-[15px]">sell</span>
-                                        <span>Grosir</span>
-                                    </button>
-                                    <button
-                                        type="button"
                                         onClick={() => handleSelectPriceTier('reseller')}
-                                        className={`py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-all ${
+                                        className={`py-1.5 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
                                             activePriceTier === 'reseller'
                                                 ? 'bg-amber-600 text-white shadow-sm'
                                                 : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
