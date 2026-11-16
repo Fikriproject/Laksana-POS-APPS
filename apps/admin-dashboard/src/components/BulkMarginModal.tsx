@@ -15,6 +15,7 @@ export const BulkMarginModal: React.FC<BulkMarginModalProps> = ({
     onSuccess,
     categories
 }) => {
+    const [baseMode, setBaseMode] = useState<'cost' | 'retail_discount'>('cost');
     const [wholesalePercent, setWholesalePercent] = useState<number>(25);
     const [resellerPercent, setResellerPercent] = useState<number>(20);
     const [minQty, setMinQty] = useState<number>(12);
@@ -24,10 +25,40 @@ export const BulkMarginModal: React.FC<BulkMarginModalProps> = ({
 
     if (!isOpen) return null;
 
+    // Hitung simulasi interaktif dengan contoh modal 600 & ecer 2.000
+    const sampleCost = 600;
+    const sampleRetail = 2000;
+    let rawWs = 0;
+    let rawRs = 0;
+
+    if (baseMode === 'retail_discount') {
+        rawWs = sampleRetail * (1 - (wholesalePercent || 0) / 100);
+        rawRs = sampleRetail * (1 - (resellerPercent || 0) / 100);
+    } else {
+        rawWs = sampleCost * (1 + (wholesalePercent || 0) / 100);
+        rawRs = sampleCost * (1 + (resellerPercent || 0) / 100);
+    }
+
+    let previewWs = Math.round(rawWs / 100) * 100;
+    let previewRs = Math.round(rawRs / 100) * 100;
+
+    if (previewWs === previewRs && wholesalePercent !== resellerPercent && Math.abs(rawWs - rawRs) >= 1) {
+        const ws50 = Math.round(rawWs / 50) * 50;
+        const rs50 = Math.round(rawRs / 50) * 50;
+        if (ws50 !== rs50) {
+            previewWs = ws50;
+            previewRs = rs50;
+        } else {
+            previewWs = Math.round(rawWs / 10) * 10;
+            previewRs = Math.round(rawRs / 10) * 10;
+        }
+    }
+
     const handleApply = async () => {
         setLoading(true);
         try {
             const res = await api.post('/products/bulk-margin', {
+                base_mode: baseMode,
                 wholesale_percent: wholesalePercent,
                 reseller_percent: resellerPercent,
                 min_qty: minQty,
@@ -58,7 +89,7 @@ export const BulkMarginModal: React.FC<BulkMarginModalProps> = ({
                         </div>
                         <div>
                             <h3 className="font-bold text-gray-900 dark:text-white text-base">Terapkan Margin Massal</h3>
-                            <p className="text-xs text-gray-500">Hitung otomatis harga grosir & reseller untuk produk yang ada</p>
+                            <p className="text-xs text-gray-500">Hitung otomatis harga grosir & reseller untuk produk toko</p>
                         </div>
                     </div>
                     <button
@@ -72,31 +103,74 @@ export const BulkMarginModal: React.FC<BulkMarginModalProps> = ({
 
                 {/* Form Controls */}
                 <div className="p-5 space-y-4 text-xs">
+                    {/* Metode Perhitungan Basis */}
+                    <div className="space-y-1.5">
+                        <label className="text-gray-700 dark:text-gray-300 font-bold block">Basis Perhitungan:</label>
+                        <div className="grid grid-cols-2 gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setBaseMode('cost')}
+                                className={`p-2.5 rounded-xl border text-left transition-all ${
+                                    baseMode === 'cost'
+                                        ? 'border-purple-500 bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 font-bold shadow-sm'
+                                        : 'border-slate-200 dark:border-[#282839] text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5'
+                                }`}
+                            >
+                                <div className="flex items-center gap-1.5 text-xs">
+                                    <span className="material-symbols-outlined text-[16px]">trending_up</span>
+                                    <span>Markup Modal</span>
+                                </div>
+                                <p className="text-[10px] text-gray-400 mt-0.5 font-normal">Modal + Persen Markup</p>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setBaseMode('retail_discount')}
+                                className={`p-2.5 rounded-xl border text-left transition-all ${
+                                    baseMode === 'retail_discount'
+                                        ? 'border-purple-500 bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 font-bold shadow-sm'
+                                        : 'border-slate-200 dark:border-[#282839] text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5'
+                                }`}
+                            >
+                                <div className="flex items-center gap-1.5 text-xs">
+                                    <span className="material-symbols-outlined text-[16px]">sell</span>
+                                    <span>Diskon dari Ecer</span>
+                                </div>
+                                <p className="text-[10px] text-gray-400 mt-0.5 font-normal">Harga Jual - Diskon %</p>
+                            </button>
+                        </div>
+                    </div>
+
                     {/* Cakupan Target */}
                     <div className="space-y-1.5">
                         <label className="text-gray-700 dark:text-gray-300 font-bold block">Terapkan Ke:</label>
-                        <div className="space-y-1 bg-slate-50 dark:bg-[#111118] p-2.5 rounded-xl border border-slate-200 dark:border-[#282839]">
-                            <label className="flex items-center gap-2 cursor-pointer font-medium text-gray-800 dark:text-gray-200">
+                        <div className="space-y-2 bg-slate-50 dark:bg-[#111118] p-3 rounded-xl border border-slate-200 dark:border-[#282839]">
+                            <label className="flex items-start gap-2 cursor-pointer font-medium text-gray-800 dark:text-gray-200">
                                 <input
                                     type="radio"
                                     name="scope"
                                     value="empty_only"
                                     checked={scope === 'empty_only'}
                                     onChange={() => setScope('empty_only')}
-                                    className="text-primary focus:ring-primary size-3.5"
+                                    className="text-primary focus:ring-primary size-3.5 mt-0.5"
                                 />
-                                <span>Hanya produk yang grosir/resellernya masih kosong (Aman)</span>
+                                <div>
+                                    <span>Hanya produk yang grosir/resellernya masih kosong</span>
+                                    <span className="block text-[10px] text-gray-400 font-normal">Tidak akan mengubah produk yang sudah memiliki harga</span>
+                                </div>
                             </label>
-                            <label className="flex items-center gap-2 cursor-pointer font-medium text-gray-800 dark:text-gray-200">
+                            <label className="flex items-start gap-2 cursor-pointer font-medium text-gray-800 dark:text-gray-200">
                                 <input
                                     type="radio"
                                     name="scope"
                                     value="all"
                                     checked={scope === 'all'}
                                     onChange={() => setScope('all')}
-                                    className="text-primary focus:ring-primary size-3.5"
+                                    className="text-primary focus:ring-primary size-3.5 mt-0.5"
                                 />
-                                <span>Semua produk (timpa harga lama)</span>
+                                <div>
+                                    <span className="font-bold text-purple-700 dark:text-purple-300">Semua produk (timpa & perbarui harga lama)</span>
+                                    <span className="block text-[10px] text-purple-600/80 dark:text-purple-400/80 font-normal">Pilih opsi ini jika ingin merubah ulang harga yang sudah pernah diset</span>
+                                </div>
                             </label>
                         </div>
                     </div>
@@ -116,10 +190,12 @@ export const BulkMarginModal: React.FC<BulkMarginModalProps> = ({
                         </select>
                     </div>
 
-                    {/* Persentase Margin */}
+                    {/* Persentase Margin / Diskon */}
                     <div className="grid grid-cols-2 gap-3 pt-1">
                         <div className="space-y-1">
-                            <label className="text-gray-700 dark:text-gray-300 font-bold block">Margin Grosir (%)</label>
+                            <label className="text-gray-700 dark:text-gray-300 font-bold block">
+                                {baseMode === 'cost' ? 'Margin Grosir (+%)' : 'Diskon Grosir (-%)'}
+                            </label>
                             <div className="flex items-center gap-1.5">
                                 <input
                                     type="number"
@@ -133,7 +209,9 @@ export const BulkMarginModal: React.FC<BulkMarginModalProps> = ({
                         </div>
 
                         <div className="space-y-1">
-                            <label className="text-gray-700 dark:text-gray-300 font-bold block">Margin Reseller (%)</label>
+                            <label className="text-gray-700 dark:text-gray-300 font-bold block">
+                                {baseMode === 'cost' ? 'Margin Reseller (+%)' : 'Diskon Reseller (-%)'}
+                            </label>
                             <div className="flex items-center gap-1.5">
                                 <input
                                     type="number"
@@ -143,14 +221,37 @@ export const BulkMarginModal: React.FC<BulkMarginModalProps> = ({
                                 />
                                 <span className="font-bold text-gray-400">%</span>
                             </div>
-                            <span className="text-[10px] text-gray-400">Dari harga modal</span>
+                            <span className="text-[10px] text-gray-400">
+                                {baseMode === 'cost' ? 'Di atas harga modal' : 'Potongan dari harga ecer'}
+                            </span>
                         </div>
                     </div>
 
-                    <div className="p-3 bg-blue-50 dark:bg-blue-950/20 text-blue-700 dark:text-blue-300 rounded-xl border border-blue-200 dark:border-blue-900/40 text-[11px] leading-relaxed">
-                        💡 <strong>Catatan:</strong> Rumus menghitung otomatis dari harga modal:
-                        <br />• <strong>Grosir:</strong> Modal + {wholesalePercent}% (dibulatkan ke ratusan)
-                        <br />• <strong>Reseller:</strong> Modal + {resellerPercent}% (dibulatkan ke ratusan)
+                    {/* Simulasi Interaktif Instan */}
+                    <div className="p-3 bg-purple-50 dark:bg-purple-950/30 rounded-xl border border-purple-200 dark:border-purple-900/40 text-[11px] space-y-2">
+                        <div className="flex items-center justify-between font-bold text-purple-700 dark:text-purple-300">
+                            <span className="flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[15px]">calculate</span>
+                                <span>Simulasi Hasil Perhitungan:</span>
+                            </span>
+                            <span className="text-[10px] font-normal text-purple-600/80 dark:text-purple-400/80">
+                                (Contoh: Modal Rp 600 · Ecer Rp 2.000)
+                            </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div className="bg-white/80 dark:bg-[#111118] p-2 rounded-lg border border-purple-100 dark:border-purple-900/40">
+                                <span className="text-[10px] text-gray-400 block font-medium">Harga Grosir:</span>
+                                <span className="font-extrabold text-purple-700 dark:text-purple-300 text-sm">
+                                    Rp {previewWs.toLocaleString('id-ID')}
+                                </span>
+                            </div>
+                            <div className="bg-white/80 dark:bg-[#111118] p-2 rounded-lg border border-purple-100 dark:border-purple-900/40">
+                                <span className="text-[10px] text-gray-400 block font-medium">Harga Reseller:</span>
+                                <span className="font-extrabold text-amber-600 dark:text-amber-400 text-sm">
+                                    Rp {previewRs.toLocaleString('id-ID')}
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

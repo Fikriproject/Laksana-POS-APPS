@@ -431,9 +431,16 @@ class ProductService
         $resellerPercent = (float)($options['reseller_percent'] ?? 20);
         $minQty = (int)($options['min_qty'] ?? 12);
         $scope = $options['scope'] ?? 'empty_only'; // 'empty_only' or 'all'
+        $baseMode = $options['base_mode'] ?? ($options['base'] ?? 'cost'); // 'cost' (Modal + X%) atau 'retail_discount' (Ecer - X%)
         $categoryId = !empty($options['category_id']) && $options['category_id'] !== 'all' ? (int)$options['category_id'] : null;
 
-        $where = "is_active = 1 AND purchase_price > 0";
+        $where = "is_active = 1";
+        if ($baseMode === 'cost') {
+            $where .= " AND purchase_price > 0";
+        } else {
+            $where .= " AND price > 0";
+        }
+
         $params = [];
 
         if ($scope === 'empty_only') {
@@ -444,7 +451,7 @@ class ProductService
             $params['category_id'] = $categoryId;
         }
 
-        $stmt = $db->prepare("SELECT id, purchase_price, wholesale_price, reseller_price FROM products WHERE {$where}");
+        $stmt = $db->prepare("SELECT id, price, purchase_price, wholesale_price, reseller_price FROM products WHERE {$where}");
         $stmt->execute($params);
         $products = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
 
@@ -458,12 +465,54 @@ class ProductService
         $db->beginTransaction();
         try {
             foreach ($products as $p) {
-                $cost = (float)$p['purchase_price'];
-                $wsPrice = round(($cost * (1 + $wholesalePercent / 100)) / 100) * 100;
-                $rsPrice = round(($cost * (1 + $resellerPercent / 100)) / 100) * 100;
+                $cost = (float)($p['purchase_price'] ?? 0);
+                $retailPrice = (float)($p['price'] ?? 0);
 
-                $finalWs = ($scope === 'empty_only' && !empty($p['wholesale_price'])) ? (float)$p['wholesale_price'] : $wsPrice;
-                $finalRs = ($scope === 'empty_only' && !empty($p['reseller_price'])) ? (float)$p['reseller_price'] : $rsPrice;
+                if ($baseMode === 'retail_discount' && $retailPrice > 0) {
+                    // Potongan/diskon dari harga ecer
+                    $rawWs = $retailPrice * (1 - $wholesalePercent / 100);
+                    $rawRs = $retailPrice * (1 - $resellerPercent / 100);
+
+                    // Proteksi agar tidak di bawah modal jika harga modal ada
+                    if ($cost > 0) {
+                        $rawWs = max($cost, $rawWs);
+                        $rawRs = max($cost, $rawRs);
+                    }
+                } else {
+                    // Markup persentase dari modal
+                    $baseVal = $cost > 0 ? $cost : $retailPrice;
+                    $rawWs = $baseVal * (1 + $wholesalePercent / 100);
+                    $rawRs = $baseVal * (1 + $resellerPercent / 100);
+
+                    // Proteksi: jangan melebihi harga ecer jika ecer sudah ditetapkan
+                    if ($retailPrice > 0) {
+                        $rawWs = min($retailPrice, $rawWs);
+                        $rawRs = min($retailPrice, $rawRs);
+                    }
+                }
+
+                // 1. Pembulatan standar ratusan
+                $wsPrice = round($rawWs / 100) * 100;
+                $rsPrice = round($rawRs / 100) * 100;
+
+                // 2. Anti Angka Kembar pada barang bernilai kecil/receh
+                // Jika persentase grosir & reseller berbeda namun pembulatan ratusan membuat harganya sama:
+                if ($wsPrice === $rsPrice && $wholesalePercent !== $resellerPercent && abs($rawWs - $rawRs) >= 1) {
+                    // Coba pembulatan ke 50 terdekat
+                    $ws50 = round($rawWs / 50) * 50;
+                    $rs50 = round($rawRs / 50) * 50;
+                    if ($ws50 !== $rs50) {
+                        $wsPrice = $ws50;
+                        $rsPrice = $rs50;
+                    } else {
+                        // Gunakan pembulatan puluhan terdekat agar tetap memiliki selisih berjenjang
+                        $wsPrice = round($rawWs / 10) * 10;
+                        $rsPrice = round($rawRs / 10) * 10;
+                    }
+                }
+
+                $finalWs = ($scope === 'empty_only' && !empty($p['wholesale_price']) && (float)$p['wholesale_price'] > 0) ? (float)$p['wholesale_price'] : $wsPrice;
+                $finalRs = ($scope === 'empty_only' && !empty($p['reseller_price']) && (float)$p['reseller_price'] > 0) ? (float)$p['reseller_price'] : $rsPrice;
 
                 $updateStmt->execute([
                     'wholesale_price' => $finalWs,
