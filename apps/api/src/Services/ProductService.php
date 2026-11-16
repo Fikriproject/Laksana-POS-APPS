@@ -232,18 +232,19 @@ class ProductService
 
             // Prepared statements
             $stmtCheckSku = $db->prepare("SELECT id FROM products WHERE sku = :sku LIMIT 1");
+            $stmtCheckName = $db->prepare("SELECT id FROM products WHERE LOWER(TRIM(name)) = LOWER(TRIM(:name)) LIMIT 1");
             $stmtInsertCat = $db->prepare("INSERT INTO categories (name, slug, is_active) VALUES (:name, :slug, 1)");
             
             $stmtInsertProd = $db->prepare(
-                "INSERT INTO products (id, name, sku, barcode, price, purchase_price, stock_quantity, category_id, wholesale_price, wholesale_min_qty, reseller_price, base_unit, is_active)
-                 VALUES (:id, :name, :sku, :barcode, :price, :purchase_price, :stock_quantity, :category_id, :wholesale_price, :wholesale_min_qty, :reseller_price, :base_unit, 1)"
+                "INSERT INTO products (id, name, sku, price, purchase_price, stock_quantity, category_id, wholesale_price, wholesale_min_qty, reseller_price, base_unit, is_active)
+                 VALUES (:id, :name, :sku, :price, :purchase_price, :stock_quantity, :category_id, :wholesale_price, :wholesale_min_qty, :reseller_price, :base_unit, 1)"
             );
 
             $stmtUpdateProd = $db->prepare(
                 "UPDATE products 
-                 SET name = :name, barcode = :barcode, price = :price, purchase_price = :purchase_price, stock_quantity = :stock_quantity,
+                 SET name = :name, price = :price, purchase_price = :purchase_price, stock_quantity = :stock_quantity,
                      category_id = :category_id, wholesale_price = :wholesale_price, wholesale_min_qty = :wholesale_min_qty,
-                     reseller_price = :reseller_price, is_active = 1
+                     reseller_price = :reseller_price, base_unit = :base_unit, is_active = 1
                  WHERE id = :id"
             );
 
@@ -252,7 +253,6 @@ class ProductService
                 if (empty($name)) continue;
 
                 $sku = trim($p['sku'] ?? '');
-                $barcode = trim($p['barcode'] ?? $sku);
                 $price = (float)($p['price'] ?? 0);
                 $purchasePrice = (float)($p['purchase_price'] ?? 0);
                 $stockQty = (int)($p['stock_quantity'] ?? 0);
@@ -280,11 +280,15 @@ class ProductService
                     }
                 }
 
-                // Cek apakah SKU sudah ada
+                // Cek apakah SKU atau Nama sudah ada di sistem
                 $existingId = null;
                 if (!empty($sku)) {
                     $stmtCheckSku->execute(['sku' => $sku]);
                     $existingId = $stmtCheckSku->fetchColumn();
+                }
+                if (!$existingId && !empty($name)) {
+                    $stmtCheckName->execute(['name' => $name]);
+                    $existingId = $stmtCheckName->fetchColumn();
                 }
 
                 if ($existingId) {
@@ -292,14 +296,14 @@ class ProductService
                         $stmtUpdateProd->execute([
                             'id' => $existingId,
                             'name' => $name,
-                            'barcode' => $barcode,
                             'price' => $price,
                             'purchase_price' => $purchasePrice,
                             'stock_quantity' => $stockQty,
                             'category_id' => $categoryId,
                             'wholesale_price' => $wholesalePrice,
                             'wholesale_min_qty' => $wholesaleMinQty,
-                            'reseller_price' => $resellerPrice
+                            'reseller_price' => $resellerPrice,
+                            'base_unit' => $baseUnit
                         ]);
                         $updated++;
                     } else {
@@ -308,7 +312,6 @@ class ProductService
                 } else {
                     if (empty($sku)) {
                         $sku = $this->generateSku($name);
-                        $barcode = $sku;
                     }
                     // Generate UUID
                     $prodId = sprintf(
@@ -324,7 +327,6 @@ class ProductService
                         'id' => $prodId,
                         'name' => $name,
                         'sku' => $sku,
-                        'barcode' => $barcode,
                         'price' => $price,
                         'purchase_price' => $purchasePrice,
                         'stock_quantity' => $stockQty,
