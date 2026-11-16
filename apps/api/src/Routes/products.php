@@ -111,6 +111,38 @@ return function ($method, $path, $productService, $user) {
         Response::success($product);
     }
     
+    // POST /api/products/bulk-import - Import produk massal
+    if ($method === 'POST' && $path === '/bulk-import') {
+        RoleMiddleware::requireAdmin($user);
+        $data = json_decode(file_get_contents('php://input'), true) ?? [];
+        $products = $data['products'] ?? [];
+        $updateExisting = (bool)($data['update_existing'] ?? true);
+
+        if (empty($products)) {
+            Response::error('Data produk kosong', 400);
+        }
+
+        try {
+            $result = $productService->bulkImport($products, $updateExisting);
+            Response::success($result, 'Import produk berhasil');
+        } catch (\Exception $e) {
+            Response::error('Gagal import: ' . $e->getMessage(), 500);
+        }
+    }
+
+    // POST /api/products/bulk-margin - Terapkan margin massal
+    if ($method === 'POST' && $path === '/bulk-margin') {
+        RoleMiddleware::requireAdmin($user);
+        $data = json_decode(file_get_contents('php://input'), true) ?? [];
+
+        try {
+            $result = $productService->bulkSetMargin($data);
+            Response::success($result, 'Margin massal berhasil diterapkan');
+        } catch (\Exception $e) {
+            Response::error('Gagal menerapkan margin: ' . $e->getMessage(), 500);
+        }
+    }
+
     // POST /api/products - Create product (Admin only)
     if ($method === 'POST' && $path === '') {
         RoleMiddleware::requireAdmin($user);

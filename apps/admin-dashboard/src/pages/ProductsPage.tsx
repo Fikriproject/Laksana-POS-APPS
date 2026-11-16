@@ -7,6 +7,8 @@ import { formatRupiah } from '../utils/format';
 import { DashboardContextType } from '../layouts/DashboardLayout';
 import { BarcodePreview } from '../components/BarcodePreview';
 import { generateBarcodePdf, downloadBlob, openPdfBlob } from '../utils/barcode128';
+import ImportExcelModal from '../components/ImportExcelModal';
+import BulkMarginModal from '../components/BulkMarginModal';
 
 export interface ProductUnitData {
     id?: string;
@@ -75,6 +77,8 @@ const ProductsPage = () => {
         image_url: ''
     });
     const [productUnits, setProductUnits] = useState<ProductUnitData[]>([]);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const [isBulkMarginModalOpen, setIsBulkMarginModalOpen] = useState(false);
 
     useEffect(() => {
         fetchCategories();
@@ -352,9 +356,9 @@ const ProductsPage = () => {
         // Round up to nearest 500
         const roundTo500 = (val: number) => Math.ceil(val / 500) * 500;
         
-        const retail = roundTo500(cost * 1.35); // +35%
-        const wholesale = roundTo500(cost * 1.20); // +20%
-        const reseller = roundTo500(cost * 1.10); // +10%
+        const retail = roundTo500(cost * 1.35); // +35% Ecer
+        const wholesale = roundTo500(cost * 1.25); // +25% Grosir
+        const reseller = roundTo500(cost * 1.20); // +20% Reseller
 
         setFormData(prev => ({
             ...prev,
@@ -576,19 +580,35 @@ const ProductsPage = () => {
                                     </div>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-3">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <button
+                                    onClick={() => setIsBulkMarginModalOpen(true)}
+                                    className="h-10 px-3.5 rounded-lg border border-purple-200 dark:border-purple-900/50 bg-purple-50 dark:bg-purple-950/20 text-purple-700 dark:text-purple-300 text-xs font-bold hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors flex items-center gap-1.5 shadow-sm"
+                                    title="Terapkan rumus margin grosir & reseller massal ke seluruh produk"
+                                >
+                                    <span className="material-symbols-outlined text-[18px]">bolt</span>
+                                    <span>Margin Massal</span>
+                                </button>
+                                <button
+                                    onClick={() => setIsImportModalOpen(true)}
+                                    className="h-10 px-3.5 rounded-lg border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300 text-xs font-bold hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors flex items-center gap-1.5 shadow-sm"
+                                    title="Import data produk dari Excel / CSV"
+                                >
+                                    <span className="material-symbols-outlined text-[18px]">upload_file</span>
+                                    <span>Import Excel</span>
+                                </button>
                                 <button
                                     onClick={handleExportCSV}
-                                    className="h-10 px-4 rounded-lg border border-slate-200 dark:border-[#282839] bg-white dark:bg-[#111118] text-gray-900 dark:text-white text-sm font-medium hover:bg-gray-50 dark:hover:bg-[#1c1c27] transition-colors flex items-center gap-2"
+                                    className="h-10 px-3 rounded-lg border border-slate-200 dark:border-[#282839] bg-white dark:bg-[#111118] text-gray-900 dark:text-white text-xs font-medium hover:bg-gray-50 dark:hover:bg-[#1c1c27] transition-colors flex items-center gap-1.5"
                                 >
-                                    <span className="material-symbols-outlined text-[20px] text-green-500">file_download</span>
-                                    <span className="hidden sm:inline">Export CSV</span>
+                                    <span className="material-symbols-outlined text-[18px] text-green-500">file_download</span>
+                                    <span className="hidden sm:inline">Export</span>
                                 </button>
                                 <button
                                     onClick={openAddModal}
-                                    className="h-10 px-4 rounded-lg bg-primary hover:bg-primary/90 text-white text-sm font-bold shadow-lg shadow-primary/25 transition-all flex items-center gap-2"
+                                    className="h-10 px-4 rounded-lg bg-primary hover:bg-primary/90 text-white text-xs sm:text-sm font-bold shadow-lg shadow-primary/25 transition-all flex items-center gap-1.5"
                                 >
-                                    <span className="material-symbols-outlined text-[20px]">add</span>
+                                    <span className="material-symbols-outlined text-[18px]">add</span>
                                     Tambah Produk
                                 </button>
                             </div>
@@ -1295,6 +1315,21 @@ const ProductsPage = () => {
                         </div>
                     </div>
                 )}
+
+                {/* Modal Import Excel / CSV */}
+                <ImportExcelModal
+                    isOpen={isImportModalOpen}
+                    onClose={() => setIsImportModalOpen(false)}
+                    onSuccess={() => fetchProducts()}
+                />
+
+                {/* Modal Terapkan Margin Massal */}
+                <BulkMarginModal
+                    isOpen={isBulkMarginModalOpen}
+                    onClose={() => setIsBulkMarginModalOpen(false)}
+                    onSuccess={() => fetchProducts()}
+                    categories={categories}
+                />
             </main>
         </div>
     );
