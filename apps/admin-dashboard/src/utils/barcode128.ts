@@ -83,6 +83,10 @@ export interface PdfOptions {
     showPrice?: boolean;
     showStoreName?: boolean;
     copiesPerProduct?: number;
+    barcodeWidthMm?: number; // Lebar barcode khusus stiker (mm)
+    offsetX?: number;        // Kalibrasi geser posisi X (mm)
+    offsetY?: number;        // Kalibrasi geser posisi Y (mm)
+    koalaPaperSize?: 'custom170' | 'a4'; // Ukuran lembar PDF Koala 109
     onProgress?: (processed: number, total: number) => void;
 }
 
@@ -130,19 +134,30 @@ export async function generateBarcodePdf(
     let marginY = 24;
     let gapX = 10;
     let gapY = 8;
+    let cellW = 107.72;
+    let cellH = 36.85;
+
+    const koalaPaperSize = options.koalaPaperSize || 'custom170';
+    const deltaX = (options.offsetX || 0) * 2.83465; // offset horizontal (pt)
+    const deltaY = (options.offsetY || 0) * 2.83465; // offset vertikal (pt)
 
     if (layout === 'koala109') {
         // Stiker Label Koala / Tom & Jerry No. 109 (55 label per lembar: 5 kolom x 11 baris)
-        // Ukuran per stiker: 13 mm x 38 mm (36.85 pt x 107.72 pt)
-        // Ukuran lembar: 210 mm x 170 mm (595.28 pt x 481.89 pt)
+        // Ukuran per stiker: 38.0 mm x 13.0 mm (107.72 pt x 36.85 pt)
+        // Horizontal Pitch: 41.0 mm (116.22 pt) -> gap antar kolom = 3.0 mm (8.50 pt)
+        // Vertical Pitch: 15.0 mm (42.52 pt) -> gap antar baris = 2.0 mm (5.67 pt)
+        // Side Margin (Left): 3.0 mm (8.50 pt)
+        // Top Margin: 3.5 mm (9.92 pt)
         PAGE_W = 595.28; // 210mm
-        PAGE_H = 481.89; // 170mm
+        PAGE_H = koalaPaperSize === 'a4' ? 841.89 : 481.89; // A4 (297mm) atau Kustom Koala (170mm)
         cols = 5;
         rows = 11;
-        marginX = 8.5;   // ~3.0 mm samping kiri & kanan
-        marginY = 9.92;  // ~3.5 mm atas & bawah
-        gapX = 9.92;     // ~3.5 mm gap horizontal antar kolom
-        gapY = 5.67;     // ~2.0 mm gap vertikal antar baris
+        marginX = 8.50; // 3.0 mm
+        marginY = 9.92; // 3.5 mm
+        gapX = 8.50;    // 3.0 mm
+        gapY = 5.67;    // 2.0 mm
+        cellW = 107.72; // 38.0 mm tetap presisi pabrik
+        cellH = 36.85;  // 13.0 mm tetap presisi pabrik
     } else if (layout === 'grid4x10') {
         cols = 4;
         rows = 10;
@@ -150,6 +165,8 @@ export async function generateBarcodePdf(
         marginY = 20;
         gapX = 8;
         gapY = 6;
+        cellW = (PAGE_W - 2 * marginX - (cols - 1) * gapX) / cols;
+        cellH = (PAGE_H - 2 * marginY - (rows - 1) * gapY) / rows;
     } else if (layout === 'grid3x7') {
         // Blueprint GL-A46 (66mm x 40mm - 21 Label per lembar A4)
         cols = 3;
@@ -158,6 +175,8 @@ export async function generateBarcodePdf(
         marginY = 24;
         gapX = 8;
         gapY = 8;
+        cellW = (PAGE_W - 2 * marginX - (cols - 1) * gapX) / cols;
+        cellH = (PAGE_H - 2 * marginY - (rows - 1) * gapY) / rows;
     } else if (layout === 'single') {
         cols = 1;
         rows = 1;
@@ -165,13 +184,15 @@ export async function generateBarcodePdf(
         marginY = 20;
         gapX = 0;
         gapY = 0;
+        cellW = (PAGE_W - 2 * marginX - (cols - 1) * gapX) / cols;
+        cellH = (PAGE_H - 2 * marginY - (rows - 1) * gapY) / rows;
+    } else {
+        cellW = (PAGE_W - 2 * marginX - (cols - 1) * gapX) / cols;
+        cellH = (PAGE_H - 2 * marginY - (rows - 1) * gapY) / rows;
     }
 
     const itemsPerPage = cols * rows;
     const totalPages = Math.max(1, Math.ceil(itemsToPrint.length / itemsPerPage));
-
-    const cellW = (PAGE_W - 2 * marginX - (cols - 1) * gapX) / cols;
-    const cellH = (PAGE_H - 2 * marginY - (rows - 1) * gapY) / rows;
 
     const pageStreams: string[] = [];
     const totalItems = itemsToPrint.length;
@@ -193,37 +214,39 @@ export async function generateBarcodePdf(
             const col = i % cols;
             const row = Math.floor(i / cols);
 
-            const x = marginX + col * (cellW + gapX);
-            const y = PAGE_H - marginY - (row + 1) * cellH - row * gapY;
+            const x = marginX + col * (cellW + gapX) + (layout === 'koala109' ? deltaX : 0);
+            const y = PAGE_H - marginY - (row + 1) * cellH - row * gapY - (layout === 'koala109' ? deltaY : 0);
 
             if (layout === 'koala109') {
                 // Layout khusus Koala 109: Stiker 13 x 38 mm
                 // Hanya Nama Barang + Garis Barcode + SKU (Tanpa Nama Toko & Tanpa Harga)
 
-                // Garis batas luar stiker (0.25 pt abu-abu terang)
-                stream += '0.88 0.88 0.88 RG 0.25 w\n';
+                // Garis batas luar stiker (0.2 pt abu-abu terang)
+                stream += '0.88 0.88 0.88 RG 0.2 w\n';
                 stream += `${x.toFixed(2)} ${y.toFixed(2)} ${cellW.toFixed(2)} ${cellH.toFixed(2)} re S\n`;
 
-                // 1. Nama Barang (Di atas, font 5.5 pt, truncate max 22 karakter)
-                const maxNameLen = 22;
+                // 1. Nama Barang (Di atas, font 5.5 pt, truncate max 20 karakter)
+                const maxNameLen = 20;
                 const truncatedName = product.name.length > maxNameLen
                     ? product.name.substring(0, maxNameLen - 2) + '..'
                     : product.name;
                 const nameFontSize = 5.5;
                 const approxNameW = truncatedName.length * (nameFontSize * 0.48);
                 const nameX = Math.max(x + 2, x + (cellW - approxNameW) / 2);
-                const nameY = y + cellH - 7.5;
+                const nameY = y + cellH - 7.0;
                 stream += '0.1 0.1 0.1 rg\n';
                 stream += `BT /F1 ${nameFontSize} Tf ${nameX.toFixed(2)} ${nameY.toFixed(2)} Td (${escapePdfText(truncatedName)}) Tj ET\n`;
 
-                // 2. Garis Barcode Code 128 (Tinggi 16.5 pt / ~5.8 mm agar mudah discan)
+                // 2. Garis Barcode Code 128 (Dirampingkan agar PAS di tengah stiker dan tidak meluber ke tepi)
+                // Default target lebar: 26 mm (~73.7 pt), menyisakan batas aman 6 mm di kiri dan kanan stiker 38 mm
+                const targetWidthMm = options.barcodeWidthMm || 26;
+                const barcodeMaxW = Math.min(cellW - 16, Math.max(18, targetWidthMm) * 2.83465);
                 const barcode = encodeCode128(product.sku || '0000');
-                const barcodeMaxW = cellW - 10;
                 const unitW = barcodeMaxW / barcode.totalModules;
                 const barcodeActualW = barcode.totalModules * unitW;
                 const barcodeStartX = x + (cellW - barcodeActualW) / 2;
-                const barcodeH = 16.5;
-                const barcodeY = y + 8.5;
+                const barcodeH = 14.5; // ~5.1 mm - tinggi ideal barcode scanner
+                const barcodeY = y + 10.0;
 
                 stream += '0 0 0 rg\n';
                 for (const bar of barcode.bars) {
@@ -232,12 +255,12 @@ export async function generateBarcodePdf(
                     stream += `${barX.toFixed(2)} ${barcodeY.toFixed(2)} ${barW.toFixed(2)} ${barcodeH.toFixed(2)} re f\n`;
                 }
 
-                // 3. Teks SKU di bawah barcode (font 5.5 pt)
+                // 3. Teks SKU di bawah barcode (font 5.5 pt tebal)
                 const skuText = barcode.sku;
                 const skuFontSize = 5.5;
                 const approxSkuW = skuText.length * (skuFontSize * 0.55);
                 const skuX = Math.max(x + 2, x + (cellW - approxSkuW) / 2);
-                const skuY = y + 2.0;
+                const skuY = y + 2.5;
                 stream += `BT /F2 ${skuFontSize} Tf ${skuX.toFixed(2)} ${skuY.toFixed(2)} Td (${escapePdfText(skuText)}) Tj ET\n`;
             } else {
                 // Layout standar A4

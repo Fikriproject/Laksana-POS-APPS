@@ -36,6 +36,12 @@ export const BarcodePage = () => {
     const [showPrice, setShowPrice] = useState(true);
     const [storeName, setStoreName] = useState('TOKO LAKSANA');
 
+    // Fine-Tuning & Calibration for Sticker Labels
+    const [barcodeWidthMm, setBarcodeWidthMm] = useState<number>(26);
+    const [offsetX, setOffsetX] = useState<number>(0);
+    const [offsetY, setOffsetY] = useState<number>(0);
+    const [koalaPaperSize, setKoalaPaperSize] = useState<'custom170' | 'a4'>('custom170');
+
     // Build Progress State
     const [isBuilding, setIsBuilding] = useState(false);
     const [buildProgress, setBuildProgress] = useState(0);
@@ -120,12 +126,17 @@ export const BarcodePage = () => {
         setGeneratedPdfBlob(null);
 
         try {
+            const isKoala = layout === 'koala109';
             const blob = await generateBarcodePdf(selectedItems, {
                 layout,
                 copiesPerProduct,
-                showStoreName,
-                showPrice,
+                showStoreName: !isKoala && showStoreName,
+                showPrice: !isKoala && showPrice,
                 storeName,
+                barcodeWidthMm: isKoala ? barcodeWidthMm : undefined,
+                offsetX: isKoala ? offsetX : undefined,
+                offsetY: isKoala ? offsetY : undefined,
+                koalaPaperSize: isKoala ? koalaPaperSize : undefined,
                 onProgress: (current, total) => {
                     const percent = Math.round((current / total) * 100);
                     setBuildProgress(percent);
@@ -165,7 +176,11 @@ export const BarcodePage = () => {
                 copiesPerProduct: labelCount,
                 showStoreName: !isKoala && showStoreName,
                 showPrice: !isKoala && showPrice,
-                storeName
+                storeName,
+                barcodeWidthMm: isKoala ? barcodeWidthMm : undefined,
+                offsetX: isKoala ? offsetX : undefined,
+                offsetY: isKoala ? offsetY : undefined,
+                koalaPaperSize: isKoala ? koalaPaperSize : undefined
             });
             toast.dismiss('single-pdf');
             downloadBlob(blob, `Barcode-${product.sku}-${product.name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
@@ -285,15 +300,154 @@ export const BarcodePage = () => {
                     </div>
                 </div>
 
-                {/* Banner Info Khusus Koala 109 */}
+                {/* Banner Info Khusus Koala 109 & Panel Kalibrasi */}
                 {layout === 'koala109' && (
-                    <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/25 text-amber-900 dark:text-amber-300 text-xs">
-                        <span className="material-symbols-outlined text-[20px] text-amber-600 dark:text-amber-400 shrink-0">info</span>
-                        <div>
-                            <span className="font-bold">Mode Stiker Koala / Tom & Jerry No. 109 Aktif (55 Label per Lembar - 13x38 mm):</span>
-                            <p className="mt-0.5 text-[11px] text-amber-800/90 dark:text-amber-300/90 leading-relaxed">
-                                Sesuai permintaan Anda, isi label dioptimalkan hanya menampilkan <strong>Nama Barang + Garis Barcode (Code 128) + Nomor SKU</strong> (tanpa nama toko &amp; tanpa harga) agar garis barcode memiliki tinggi maksimal (~5.8 mm) sehingga sangat cepat dan akurat saat discan menggunakan barcode scanner fisik.
-                            </p>
+                    <div className="flex flex-col gap-3">
+                        <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/25 text-amber-900 dark:text-amber-300 text-xs">
+                            <span className="material-symbols-outlined text-[20px] text-amber-600 dark:text-amber-400 shrink-0">info</span>
+                            <div>
+                                <span className="font-bold">Mode Stiker Koala / Tom & Jerry No. 109 Aktif (55 Label per Lembar - 13x38 mm):</span>
+                                <p className="mt-0.5 text-[11px] text-amber-800/90 dark:text-amber-300/90 leading-relaxed">
+                                    Format label dioptimalkan: <strong>Nama Barang + Garis Barcode (Code 128) + Nomor SKU</strong>. Garis barcode kini dirampingkan menjadi <strong>26 mm</strong> (dengan margin aman ~6 mm di kiri-kanan) agar tidak meluber keluar dari batas potongan stiker.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Panel Kalibrasi & Presisi */}
+                        <div className="bg-slate-50 dark:bg-[#1a1a24] border border-slate-200 dark:border-[#282839] rounded-xl p-3.5 flex flex-col gap-3">
+                            <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#282839] pb-2">
+                                <div className="flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-primary text-[18px]">tune</span>
+                                    <span className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">
+                                        Kalibrasi Presisi &amp; Ukuran Barcode
+                                    </span>
+                                </div>
+                                {(offsetX !== 0 || offsetY !== 0 || barcodeWidthMm !== 26 || koalaPaperSize !== 'custom170') && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setOffsetX(0);
+                                            setOffsetY(0);
+                                            setBarcodeWidthMm(26);
+                                            setKoalaPaperSize('custom170');
+                                        }}
+                                        className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-1"
+                                    >
+                                        <span className="material-symbols-outlined text-[13px]">restart_alt</span>
+                                        Reset ke Standar (0 mm / 26 mm)
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                {/* Lebar Barcode */}
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-[11px] font-semibold text-gray-700 dark:text-gray-300 flex items-center justify-between">
+                                        <span>Lebar Barcode Garis</span>
+                                        <span className="font-bold text-primary">{barcodeWidthMm} mm</span>
+                                    </label>
+                                    <div className="flex items-center gap-1">
+                                        {[24, 26, 28].map((w) => (
+                                            <button
+                                                key={w}
+                                                type="button"
+                                                onClick={() => setBarcodeWidthMm(w)}
+                                                className={`flex-1 py-1 px-1.5 text-[11px] font-semibold rounded-lg border transition-all ${
+                                                    barcodeWidthMm === w
+                                                        ? 'bg-primary text-white border-primary shadow-sm'
+                                                        : 'bg-white dark:bg-surface-dark text-gray-700 dark:text-gray-300 border-slate-200 dark:border-[#282839] hover:bg-slate-100 dark:hover:bg-slate-800'
+                                                }`}
+                                            >
+                                                {w === 26 ? `${w} mm (Pas)` : `${w} mm`}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <span className="text-[10px] text-gray-400">
+                                        26 mm sangat pas di stiker 38 mm dengan sisa jarak aman ~6 mm di kiri dan kanan.
+                                    </span>
+                                </div>
+
+                                {/* Kalibrasi Posisi Geser (Offset) */}
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">
+                                        Kalibrasi Geser Printer (Jika Meleset)
+                                    </label>
+                                    <div className="grid grid-cols-2 gap-1.5">
+                                        {/* Geser Horizontal (X) */}
+                                        <div className="flex items-center justify-between bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-lg px-2 py-1">
+                                            <span className="text-[10px] font-medium text-gray-500">Kiri/Kanan:</span>
+                                            <div className="flex items-center gap-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setOffsetX(prev => Math.max(-5, Math.round((prev - 0.5) * 10) / 10))}
+                                                    className="size-5 flex items-center justify-center rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold"
+                                                    title="Geser ke Kiri 0.5 mm"
+                                                >
+                                                    -
+                                                </button>
+                                                <span className="text-[11px] font-mono font-bold w-9 text-center text-gray-900 dark:text-white">
+                                                    {offsetX > 0 ? `+${offsetX}` : offsetX}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setOffsetX(prev => Math.min(5, Math.round((prev + 0.5) * 10) / 10))}
+                                                    className="size-5 flex items-center justify-center rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold"
+                                                    title="Geser ke Kanan 0.5 mm"
+                                                >
+                                                    +
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Geser Vertikal (Y) */}
+                                        <div className="flex items-center justify-between bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-lg px-2 py-1">
+                                            <span className="text-[10px] font-medium text-gray-500">Atas/Bwh:</span>
+                                            <div className="flex items-center gap-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setOffsetY(prev => Math.max(-5, Math.round((prev - 0.5) * 10) / 10))}
+                                                    className="size-5 flex items-center justify-center rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold"
+                                                    title="Geser ke Atas 0.5 mm"
+                                                >
+                                                    -
+                                                </button>
+                                                <span className="text-[11px] font-mono font-bold w-9 text-center text-gray-900 dark:text-white">
+                                                    {offsetY > 0 ? `+${offsetY}` : offsetY}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setOffsetY(prev => Math.min(5, Math.round((prev + 0.5) * 10) / 10))}
+                                                    className="size-5 flex items-center justify-center rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold"
+                                                    title="Geser ke Bawah 0.5 mm"
+                                                >
+                                                    +
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <span className="text-[10px] text-gray-400">
+                                        Klik +/- untuk menggeser posisi jika hasil cetak printer Anda agak melenceng.
+                                    </span>
+                                </div>
+
+                                {/* Ukuran Lembar Halaman PDF */}
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">
+                                        Ukuran Lembar PDF
+                                    </label>
+                                    <select
+                                        value={koalaPaperSize}
+                                        onChange={(e) => setKoalaPaperSize(e.target.value as any)}
+                                        className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-[#282839] bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:border-primary"
+                                    >
+                                        <option value="custom170">Ukuran Asli Koala (210 x 170 mm)</option>
+                                        <option value="a4">Format Kertas A4 (210 x 297 mm - Posisi Atas)</option>
+                                    </select>
+                                    <span className="text-[10px] text-gray-400">
+                                        Pilih "Format Kertas A4" jika printer Anda menolak ukuran 170 mm atau untuk uji coba di kertas A4.
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}
