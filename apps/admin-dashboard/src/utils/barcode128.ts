@@ -76,7 +76,7 @@ export interface ProductForBarcode {
 }
 
 export interface PdfOptions {
-    layout?: 'grid3x8' | 'grid4x10' | 'single';
+    layout?: 'grid3x8' | 'grid4x10' | 'grid3x7' | 'single';
     storeName?: string;
     showPrice?: boolean;
     showStoreName?: boolean;
@@ -136,6 +136,14 @@ export async function generateBarcodePdf(
         marginY = 20;
         gapX = 8;
         gapY = 6;
+    } else if (layout === 'grid3x7') {
+        // Blueprint GL-A46 (66mm x 40mm - 21 Label per lembar A4)
+        cols = 3;
+        rows = 7;
+        marginX = 17;
+        marginY = 24;
+        gapX = 8;
+        gapY = 8;
     } else if (layout === 'single') {
         cols = 1;
         rows = 1;

@@ -30,7 +30,7 @@ export const BarcodePage = () => {
     const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
 
     // Print & PDF Options
-    const [layout, setLayout] = useState<'grid3x8' | 'grid4x10' | 'single'>('grid3x8');
+    const [layout, setLayout] = useState<'grid3x8' | 'grid4x10' | 'grid3x7' | 'single'>('grid3x8');
     const [copiesPerProduct, setCopiesPerProduct] = useState(1);
     const [showStoreName, setShowStoreName] = useState(true);
     const [showPrice, setShowPrice] = useState(true);
@@ -175,7 +175,7 @@ export const BarcodePage = () => {
     };
 
     const selectedCount = selectedProductIds.size;
-    const itemsPerPage = layout === 'grid4x10' ? 40 : (layout === 'single' ? 1 : 24);
+    const itemsPerPage = layout === 'grid4x10' ? 40 : (layout === 'grid3x7' ? 21 : (layout === 'single' ? 1 : 24));
     const estimatedPages = Math.ceil((selectedCount * copiesPerProduct) / itemsPerPage) || 1;
 
     return (
@@ -257,8 +257,9 @@ export const BarcodePage = () => {
                             onChange={(e) => setLayout(e.target.value as any)}
                             className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-[#282839] bg-white dark:bg-[#1a1a24] text-gray-900 dark:text-white focus:outline-none focus:border-primary"
                         >
-                            <option value="grid3x8">A4 Grid 3x8 (24 Label/Lembar - Buku & Kitab)</option>
-                            <option value="grid4x10">A4 Grid 4x10 (40 Label/Lembar - Stiker Kecil)</option>
+                            <option value="grid3x8">A4 Grid 3x8 (24 Label/Lembar - Buku & Kitab Standar)</option>
+                            <option value="grid3x7">A4 Blueprint GL-A46 (21 Label/Lembar - Ukuran 66x40 mm)</option>
+                            <option value="grid4x10">A4 Grid 4x10 (40 Label/Lembar - Stiker Kecil / Polos A4)</option>
                             <option value="single">Stiker Satuan (1 Label per Lembar)</option>
                         </select>
                     </div>
