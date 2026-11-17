@@ -11,6 +11,16 @@ class User extends Model
 {
     protected string $table = 'users';
 
+    public function __construct(PDO $db)
+    {
+        parent::__construct($db);
+        try {
+            $this->db->exec("ALTER TABLE {$this->table} ADD COLUMN permissions TEXT DEFAULT NULL");
+        } catch (\Exception $e) {
+            // Column already exists or handled by DBMS
+        }
+    }
+
     public function findByUsername(string $username): ?array
     {
         $stmt = $this->db->prepare(
@@ -59,6 +69,12 @@ class User extends Model
     {
         $data['password_hash'] = password_hash($data['password'], PASSWORD_BCRYPT);
         unset($data['password']);
+
+        if (isset($data['permissions'])) {
+            if (is_array($data['permissions'])) {
+                $data['permissions'] = json_encode($data['permissions']);
+            }
+        }
         
         return $this->create($data);
     }
@@ -89,7 +105,7 @@ class User extends Model
     }
     public function findAllWithStats(): array
     {
-        $sql = "SELECT u.id, u.username, u.full_name, u.email, u.role, u.employee_id, u.is_active, u.created_at,
+        $sql = "SELECT u.id, u.username, u.full_name, u.email, u.role, u.employee_id, u.is_active, u.created_at, u.permissions,
                 (SELECT COUNT(*) FROM orders o WHERE o.user_id = u.id) as total_transactions
                 FROM {$this->table} u
                 ORDER BY u.full_name ASC";
@@ -97,7 +113,17 @@ class User extends Model
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
         
-        return $stmt->fetchAll();
+        $users = $stmt->fetchAll();
+        foreach ($users as &$u) {
+            if (isset($u['permissions'])) {
+                if (is_string($u['permissions'])) {
+                    $u['permissions'] = json_decode($u['permissions'], true) ?? [];
+                }
+            } else {
+                $u['permissions'] = [];
+            }
+        }
+        return $users;
     }
 
     public function update(string $id, array $data): bool
@@ -105,6 +131,12 @@ class User extends Model
         if (isset($data['password'])) {
             $data['password_hash'] = password_hash($data['password'], PASSWORD_BCRYPT);
             unset($data['password']);
+        }
+
+        if (isset($data['permissions'])) {
+            if (is_array($data['permissions'])) {
+                $data['permissions'] = json_encode($data['permissions']);
+            }
         }
 
         return parent::update($id, $data);

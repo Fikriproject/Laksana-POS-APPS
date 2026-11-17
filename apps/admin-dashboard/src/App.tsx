@@ -69,31 +69,31 @@ function App() {
                   } />
 
                   <Route path="/reports" element={
-                    <ProtectedRoute allowedRoles={['admin', 'manager', 'owner']}>
+                    <ProtectedRoute allowedRoles={['admin', 'manager', 'owner']} requiredPermission="reports.view">
                       <ReportsPage />
                     </ProtectedRoute>
                   } />
 
                   <Route path="/daily-settlement" element={
-                    <ProtectedRoute allowedRoles={['admin', 'manager', 'owner', 'cashier']}>
+                    <ProtectedRoute allowedRoles={['admin', 'manager', 'owner', 'cashier']} requiredPermission="settlement.view">
                       <DailySettlementPage />
                     </ProtectedRoute>
                   } />
 
                   <Route path="/products" element={
-                    <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                    <ProtectedRoute allowedRoles={['admin', 'manager']} requiredPermission="products.view">
                       <ProductsPage />
                     </ProtectedRoute>
                   } />
 
                   <Route path="/barcodes" element={
-                    <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                    <ProtectedRoute allowedRoles={['admin', 'manager']} requiredPermission="barcode.print">
                       <BarcodePage />
                     </ProtectedRoute>
                   } />
 
                   <Route path="/inventory" element={
-                    <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                    <ProtectedRoute allowedRoles={['admin', 'manager']} requiredPermission="inventory.view">
                       <InventoryPage />
                     </ProtectedRoute>
                   } />
@@ -105,7 +105,7 @@ function App() {
                   } />
 
                   <Route path="/settings/printer" element={
-                    <ProtectedRoute allowedRoles={['admin', 'manager', 'cashier']}>
+                    <ProtectedRoute allowedRoles={['admin', 'manager', 'cashier']} requiredPermission="settings.printer">
                       <PrinterSettingsPage />
                     </ProtectedRoute>
                   } />
@@ -115,7 +115,7 @@ function App() {
 
                 {/* POS has its own layout */}
                 <Route path="/pos" element={
-                  <ProtectedRoute allowedRoles={['admin', 'cashier', 'manager']}>
+                  <ProtectedRoute allowedRoles={['admin', 'cashier', 'manager']} requiredPermission="pos.access">
                     <POSTerminal />
                   </ProtectedRoute>
                 } />

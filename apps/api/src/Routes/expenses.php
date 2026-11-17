@@ -19,7 +19,7 @@ return function ($method, $path, $user) {
     // GET /expenses
     if ($method === 'GET' && ($path === '' || $path === '/')) {
         try {
-            RoleMiddleware::requireAdminOrManager($user);
+            RoleMiddleware::requirePermission($user, 'expenses.view');
             
             $startDate = $_GET['start_date'] ?? date('Y-m-01');
             $endDate = $_GET['end_date'] ?? date('Y-m-d 23:59:59');
@@ -41,6 +41,7 @@ return function ($method, $path, $user) {
         if (!$user) {
             Response::error('Otentikasi diperlukan', 401);
         }
+        RoleMiddleware::requirePermission($user, 'expenses.create');
 
         $data = json_decode(file_get_contents('php://input'), true);
 

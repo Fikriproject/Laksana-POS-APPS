@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { useConfirm } from '../context/ConfirmContext';
 import toast from 'react-hot-toast';
 import api from '../services/api';
@@ -88,6 +89,45 @@ const ProductsPage = () => {
     const [productUnits, setProductUnits] = useState<ProductUnitData[]>([]);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [isBulkMarginModalOpen, setIsBulkMarginModalOpen] = useState(false);
+
+    // Granular Permissions Auth
+    const { user, hasPermission } = useAuth();
+    const canViewCost = hasPermission('products.view_cost');
+    const canUpdateStock = hasPermission('products.update_stock') || hasPermission('inventory.adjust');
+    const canEditPrice = hasPermission('products.edit_price');
+    const canCreate = hasPermission('products.create');
+    const canEdit = hasPermission('products.edit');
+    const canDelete = hasPermission('products.delete');
+    const canImportExport = hasPermission('products.import_export');
+    const canPrintBarcode = hasPermission('barcode.print');
+
+    // Quick Stock Modal State (Khusus Kasir / Karyawan input stok fisik)
+    const [stockModalProduct, setStockModalProduct] = useState<Product | null>(null);
+    const [quickStockValue, setQuickStockValue] = useState<number>(0);
+    const [isSavingStock, setIsSavingStock] = useState(false);
+
+    const openQuickStockModal = (product: Product) => {
+        setStockModalProduct(product);
+        setQuickStockValue(Number(product.stock_quantity) || 0);
+    };
+
+    const handleQuickStockSave = async () => {
+        if (!stockModalProduct) return;
+        setIsSavingStock(true);
+        try {
+            await api.patch(`/products/${stockModalProduct.id}/stock`, {
+                stock_quantity: Number(quickStockValue)
+            });
+            toast.success(`Stok "${stockModalProduct.name}" berhasil diperbarui ke ${quickStockValue}!`);
+            setProductList(prev => prev.map(p => p.id === stockModalProduct.id ? { ...p, stock_quantity: Number(quickStockValue) } : p));
+            setStockModalProduct(null);
+            fetchFilterCounts();
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || 'Gagal memperbarui stok');
+        } finally {
+            setIsSavingStock(false);
+        }
+    };
 
     useEffect(() => {
         fetchCategories();
@@ -619,7 +659,7 @@ const ProductsPage = () => {
                                         <option value="all">Semua Kondisi Produk</option>
                                         <option value="out_of_stock">🔴 Barang Habis (Stok 0)</option>
                                         <option value="low_stock">⚠️ Stok Sedikit (Menipis)</option>
-                                        <option value="loss">💥 Penjualan Rugi (Jual &lt; Modal)</option>
+                                        {canViewCost && <option value="loss">💥 Penjualan Rugi (Jual &lt; Modal)</option>}
                                     </select>
                                     <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400 dark:text-[#9d9db9]">
                                         <span className="material-symbols-outlined text-[18px]">expand_more</span>
@@ -629,36 +669,44 @@ const ProductsPage = () => {
 
                             {/* Tombol Aksi Kanan */}
                             <div className="flex flex-wrap items-center gap-2">
-                                <button
-                                    onClick={() => setIsBulkMarginModalOpen(true)}
-                                    className="h-10 px-3.5 rounded-xl border border-purple-200 dark:border-purple-900/50 bg-purple-50 dark:bg-purple-950/20 text-purple-700 dark:text-purple-300 text-xs font-bold hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors flex items-center gap-1.5 shadow-sm"
-                                    title="Terapkan rumus margin grosir & reseller massal ke seluruh produk"
-                                >
-                                    <span className="material-symbols-outlined text-[18px]">bolt</span>
-                                    <span>Margin Massal</span>
-                                </button>
-                                <button
-                                    onClick={() => setIsImportModalOpen(true)}
-                                    className="h-10 px-3.5 rounded-xl border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300 text-xs font-bold hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors flex items-center gap-1.5 shadow-sm"
-                                    title="Import data produk dari Excel / CSV"
-                                >
-                                    <span className="material-symbols-outlined text-[18px]">upload_file</span>
-                                    <span>Import Excel</span>
-                                </button>
-                                <button
-                                    onClick={handleExportCSV}
-                                    className="h-10 px-3.5 rounded-xl border border-slate-200 dark:border-[#282839] bg-white dark:bg-[#111118] text-gray-900 dark:text-white text-xs font-bold hover:bg-gray-50 dark:hover:bg-[#1c1c27] transition-colors flex items-center gap-1.5 shadow-sm"
-                                >
-                                    <span className="material-symbols-outlined text-[18px] text-green-500">file_download</span>
-                                    <span className="hidden sm:inline">Export</span>
-                                </button>
-                                <button
-                                    onClick={openAddModal}
-                                    className="h-10 px-4 rounded-xl bg-primary hover:bg-primary/90 text-white text-xs sm:text-sm font-bold shadow-lg shadow-primary/25 transition-all flex items-center gap-1.5"
-                                >
-                                    <span className="material-symbols-outlined text-[18px]">add</span>
-                                    Tambah Produk
-                                </button>
+                                {canEditPrice && (
+                                    <button
+                                        onClick={() => setIsBulkMarginModalOpen(true)}
+                                        className="h-10 px-3.5 rounded-xl border border-purple-200 dark:border-purple-900/50 bg-purple-50 dark:bg-purple-950/20 text-purple-700 dark:text-purple-300 text-xs font-bold hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors flex items-center gap-1.5 shadow-sm"
+                                        title="Terapkan rumus margin grosir & reseller massal ke seluruh produk"
+                                    >
+                                        <span className="material-symbols-outlined text-[18px]">bolt</span>
+                                        <span>Margin Massal</span>
+                                    </button>
+                                )}
+                                {canImportExport && (
+                                    <button
+                                        onClick={() => setIsImportModalOpen(true)}
+                                        className="h-10 px-3.5 rounded-xl border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300 text-xs font-bold hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors flex items-center gap-1.5 shadow-sm"
+                                        title="Import data produk dari Excel / CSV"
+                                    >
+                                        <span className="material-symbols-outlined text-[18px]">upload_file</span>
+                                        <span>Import Excel</span>
+                                    </button>
+                                )}
+                                {canImportExport && (
+                                    <button
+                                        onClick={handleExportCSV}
+                                        className="h-10 px-3.5 rounded-xl border border-slate-200 dark:border-[#282839] bg-white dark:bg-[#111118] text-gray-900 dark:text-white text-xs font-bold hover:bg-gray-50 dark:hover:bg-[#1c1c27] transition-colors flex items-center gap-1.5 shadow-sm"
+                                    >
+                                        <span className="material-symbols-outlined text-[18px] text-green-500">file_download</span>
+                                        <span className="hidden sm:inline">Export</span>
+                                    </button>
+                                )}
+                                {canCreate && (
+                                    <button
+                                        onClick={openAddModal}
+                                        className="h-10 px-4 rounded-xl bg-primary hover:bg-primary/90 text-white text-xs sm:text-sm font-bold shadow-lg shadow-primary/25 transition-all flex items-center gap-1.5"
+                                    >
+                                        <span className="material-symbols-outlined text-[18px]">add</span>
+                                        Tambah Produk
+                                    </button>
+                                )}
                             </div>
                         </div>
 
@@ -726,23 +774,25 @@ const ProductsPage = () => {
                             </button>
 
                             {/* Chip 4: Live Penjualan Harga Rugi */}
-                            <button
-                                type="button"
-                                onClick={() => setConditionFilter(conditionFilter === 'loss' ? 'all' : 'loss')}
-                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border shadow-sm ${
-                                    conditionFilter === 'loss'
-                                        ? 'bg-rose-600 text-white border-rose-600 shadow-rose-600/25 ring-2 ring-rose-500/20 animate-pulse'
-                                        : 'bg-white dark:bg-[#111118] text-gray-700 dark:text-gray-300 border-slate-200 dark:border-[#282839] hover:border-rose-400 hover:text-rose-500'
-                                }`}
-                            >
-                                <span className="material-symbols-outlined text-[14px] text-rose-500">trending_down</span>
-                                <span>Penjualan Rugi (Jual &lt; Modal)</span>
-                                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
-                                    conditionFilter === 'loss' ? 'bg-white/25 text-white' : 'bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400'
-                                }`}>
-                                    {filterCounts.loss.toLocaleString('id-ID')}
-                                </span>
-                            </button>
+                            {canViewCost && (
+                                <button
+                                    type="button"
+                                    onClick={() => setConditionFilter(conditionFilter === 'loss' ? 'all' : 'loss')}
+                                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border shadow-sm ${
+                                        conditionFilter === 'loss'
+                                            ? 'bg-rose-600 text-white border-rose-600 shadow-rose-600/25 ring-2 ring-rose-500/20 animate-pulse'
+                                            : 'bg-white dark:bg-[#111118] text-gray-700 dark:text-gray-300 border-slate-200 dark:border-[#282839] hover:border-rose-400 hover:text-rose-500'
+                                    }`}
+                                >
+                                    <span className="material-symbols-outlined text-[14px] text-rose-500">trending_down</span>
+                                    <span>Penjualan Rugi (Jual &lt; Modal)</span>
+                                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                                        conditionFilter === 'loss' ? 'bg-white/25 text-white' : 'bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400'
+                                    }`}>
+                                        {filterCounts.loss.toLocaleString('id-ID')}
+                                    </span>
+                                </button>
+                            )}
                         </div>
 
                         {/* Banner Aktif Filter Khusus */}
@@ -782,11 +832,11 @@ const ProductsPage = () => {
                                             <th className="p-4 min-w-[200px]">Nama Produk</th>
                                             <th className="p-4 min-w-[120px]">SKU</th>
                                             <th className="p-4 min-w-[120px]">Kategori</th>
-                                            <th className="p-4 min-w-[100px]">Harga Beli</th>
+                                            {canViewCost && <th className="p-4 min-w-[100px]">Harga Beli</th>}
                                             <th className="p-4 min-w-[100px]">
                                                 <div className="flex items-center gap-1">
                                                     <span>Harga Jual</span>
-                                                    {productList.some(p => {
+                                                    {canViewCost && productList.some(p => {
                                                         const costVal = parseFloat(String(p.purchase_price || 0)) || 0;
                                                         const priceVal = parseFloat(String(p.price || 0)) || 0;
                                                         return costVal > 0 && priceVal < costVal;
@@ -803,7 +853,7 @@ const ProductsPage = () => {
                                     <tbody className="text-sm divide-y divide-slate-200 dark:divide-[#282839]">
                                         {loading ? (
                                             <tr>
-                                                <td colSpan={9} className="p-12 text-center text-gray-500 dark:text-[#9d9db9]">
+                                                <td colSpan={canViewCost ? 9 : 8} className="p-12 text-center text-gray-500 dark:text-[#9d9db9]">
                                                     <div className="flex flex-col items-center justify-center gap-2">
                                                         <span className="material-symbols-outlined animate-spin text-3xl text-primary">progress_activity</span>
                                                         <span className="text-sm font-semibold">Memuat produk...</span>
@@ -812,7 +862,7 @@ const ProductsPage = () => {
                                             </tr>
                                         ) : productList.length === 0 ? (
                                             <tr>
-                                                <td colSpan={9} className="p-12 text-center text-gray-500 dark:text-[#9d9db9]">
+                                                <td colSpan={canViewCost ? 9 : 8} className="p-12 text-center text-gray-500 dark:text-[#9d9db9]">
                                                     <div className="flex flex-col items-center justify-center gap-2">
                                                         <span className="material-symbols-outlined text-4xl text-gray-300 dark:text-gray-600">inventory_2</span>
                                                         <p className="text-sm font-semibold">
@@ -841,7 +891,7 @@ const ProductsPage = () => {
                                                 const price = parseFloat(String(product.price || 0)) || 0;
                                                 const wsPrice = parseFloat(String(product.wholesale_price || 0)) || 0;
                                                 const rsPrice = parseFloat(String(product.reseller_price || 0)) || 0;
-                                                const isRowLoss = cost > 0 && (price < cost || (wsPrice > 0 && wsPrice < cost) || (rsPrice > 0 && rsPrice < cost));
+                                                const isRowLoss = canViewCost && cost > 0 && (price < cost || (wsPrice > 0 && wsPrice < cost) || (rsPrice > 0 && rsPrice < cost));
 
                                                 return (
                                                 <tr key={product.id} className={`hover:bg-gray-50 dark:hover:bg-[#1c1c27] transition-colors group ${isRowLoss ? 'bg-rose-50/40 dark:bg-rose-950/20' : ''}`}>
@@ -868,10 +918,14 @@ const ProductsPage = () => {
                                                             {product.category_name || 'Tanpa Kategori'}
                                                         </span>
                                                     </td>
-                                                    <td className="p-4 text-gray-900 dark:text-white font-medium text-sm text-yellow-600 dark:text-yellow-500">{formatRupiah(product.purchase_price || 0)}</td>
+                                                    {canViewCost && (
+                                                        <td className="p-4 text-gray-900 dark:text-white font-medium text-sm text-yellow-600 dark:text-yellow-500">
+                                                            {formatRupiah(product.purchase_price || 0)}
+                                                        </td>
+                                                    )}
                                                     <td className="p-4 text-gray-900 dark:text-white font-medium">
                                                         {(() => {
-                                                            const isLoss = cost > 0 && price < cost;
+                                                            const isLoss = canViewCost && cost > 0 && price < cost;
                                                             const formatted = formatRupiah(price);
                                                             const numOnly = formatted.replace(/^Rp\s?/, '');
                                                             const lossAmount = Math.max(0, cost - price);
@@ -908,7 +962,7 @@ const ProductsPage = () => {
                                                                     {(product.wholesale_price || product.reseller_price) && (
                                                                         <div className="flex flex-wrap gap-1 text-[10px] font-semibold mt-1">
                                                                             {product.wholesale_price && (() => {
-                                                                                const isWsLoss = cost > 0 && wsPrice > 0 && wsPrice < cost;
+                                                                                const isWsLoss = canViewCost && cost > 0 && wsPrice > 0 && wsPrice < cost;
                                                                                 const wsNum = formatRupiah(wsPrice).replace(/^Rp\s?/, '');
                                                                                 const wsLossAmount = Math.max(0, cost - wsPrice);
                                                                                 return (
@@ -929,7 +983,7 @@ const ProductsPage = () => {
                                                                                 );
                                                                             })()}
                                                                             {product.reseller_price && (() => {
-                                                                                const isRsLoss = cost > 0 && rsPrice > 0 && rsPrice < cost;
+                                                                                const isRsLoss = canViewCost && cost > 0 && rsPrice > 0 && rsPrice < cost;
                                                                                 const rsNum = formatRupiah(rsPrice).replace(/^Rp\s?/, '');
                                                                                 const rsLossAmount = Math.max(0, cost - rsPrice);
                                                                                 return (
@@ -987,15 +1041,28 @@ const ProductsPage = () => {
                                                                         Menipis
                                                                     </span>
                                                                 ) : null}
+
+                                                                {/* Quick Stock Edit Button (Karyawan kasir bisa update stok fisik) */}
+                                                                {canUpdateStock && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => openQuickStockModal(product)}
+                                                                        className="size-6 ml-1 inline-flex items-center justify-center rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all shadow-sm"
+                                                                        title="Input & Update Jumlah Stok Fisik"
+                                                                    >
+                                                                        <span className="material-symbols-outlined text-[14px]">edit_square</span>
+                                                                    </button>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     </td>
                                                     <td className="p-4 text-center">
-                                                        <label className="relative inline-flex items-center cursor-pointer">
+                                                        <label className={`relative inline-flex items-center ${canEdit ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}>
                                                             <input
                                                                 type="checkbox"
                                                                 checked={!!product.is_active}
-                                                                onChange={() => toggleActive(product.id)}
+                                                                disabled={!canEdit}
+                                                                onChange={() => canEdit && toggleActive(product.id)}
                                                                 className="sr-only peer"
                                                             />
                                                             <div className="w-9 h-5 bg-gray-200 dark:bg-[#282839] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary" />
@@ -1003,27 +1070,41 @@ const ProductsPage = () => {
                                                     </td>
                                                     <td className="p-4 text-right">
                                                         <div className="flex items-center justify-end gap-2 opacity-100">
-                                                            <button
-                                                                onClick={() => handleDownloadSingleProductPdf(product)}
-                                                                className="p-2 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20 transition-colors"
-                                                                title="Unduh 1 Lembar Barcode Produk Ini"
-                                                            >
-                                                                <span className="material-symbols-outlined text-[18px]">barcode_scanner</span>
-                                                            </button>
-                                                            <button
-                                                                onClick={() => openEditModal(product)}
-                                                                className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-500 hover:bg-blue-500/20 transition-colors"
-                                                                title="Edit"
-                                                            >
-                                                                <span className="material-symbols-outlined text-[18px]">edit</span>
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleDelete(product.id)}
-                                                                className="p-2 rounded-lg bg-red-500/10 text-red-600 dark:text-red-500 hover:bg-red-500/20 transition-colors"
-                                                                title="Hapus"
-                                                            >
-                                                                <span className="material-symbols-outlined text-[18px]">delete</span>
-                                                            </button>
+                                                            {canPrintBarcode && (
+                                                                <button
+                                                                    onClick={() => handleDownloadSingleProductPdf(product)}
+                                                                    className="p-2 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20 transition-colors"
+                                                                    title="Unduh 1 Lembar Barcode Produk Ini"
+                                                                >
+                                                                    <span className="material-symbols-outlined text-[18px]">barcode_scanner</span>
+                                                                </button>
+                                                            )}
+                                                            {canEdit ? (
+                                                                <button
+                                                                    onClick={() => openEditModal(product)}
+                                                                    className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-500 hover:bg-blue-500/20 transition-colors"
+                                                                    title="Edit Data Produk"
+                                                                >
+                                                                    <span className="material-symbols-outlined text-[18px]">edit</span>
+                                                                </button>
+                                                            ) : canUpdateStock ? (
+                                                                <button
+                                                                    onClick={() => openQuickStockModal(product)}
+                                                                    className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+                                                                    title="Input & Update Stok Fisik"
+                                                                >
+                                                                    <span className="material-symbols-outlined text-[18px]">edit_square</span>
+                                                                </button>
+                                                            ) : null}
+                                                            {canDelete && (
+                                                                <button
+                                                                    onClick={() => handleDelete(product.id)}
+                                                                    className="p-2 rounded-lg bg-red-500/10 text-red-600 dark:text-red-500 hover:bg-red-500/20 transition-colors"
+                                                                    title="Hapus Produk"
+                                                                >
+                                                                    <span className="material-symbols-outlined text-[18px]">delete</span>
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -1652,6 +1733,133 @@ const ProductsPage = () => {
                     onSuccess={() => fetchProducts()}
                     categories={categories}
                 />
+
+                {/* Quick Stock Modal (Kasir / Karyawan input stok fisik) */}
+                {stockModalProduct && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+                        <div className="bg-white dark:bg-[#1a1a26] rounded-2xl border border-slate-200 dark:border-[#282839] shadow-2xl w-full max-w-md overflow-hidden">
+                            {/* Header */}
+                            <div className="p-5 border-b border-slate-100 dark:border-[#282839] flex items-center justify-between bg-slate-50/50 dark:bg-[#161622]">
+                                <div className="flex items-center gap-3">
+                                    <div className="size-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+                                        <span className="material-symbols-outlined text-[22px]">inventory</span>
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-bold text-gray-900 dark:text-white">
+                                            Update Stok Fisik Toko
+                                        </h3>
+                                        <p className="text-xs text-slate-400">
+                                            Input langsung jumlah stok nyata di etalase
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setStockModalProduct(null)}
+                                    className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10"
+                                >
+                                    <span className="material-symbols-outlined text-[20px]">close</span>
+                                </button>
+                            </div>
+
+                            {/* Content */}
+                            <div className="p-6 space-y-4">
+                                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#13131c] border border-slate-200 dark:border-[#282839]">
+                                    <div className="text-xs font-bold text-gray-900 dark:text-white">
+                                        {stockModalProduct.name}
+                                    </div>
+                                    <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1 font-mono">
+                                        <span>SKU: {stockModalProduct.sku}</span>
+                                        <span>Satuan: {stockModalProduct.base_unit || 'pcs'}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between text-xs font-semibold text-slate-600 dark:text-slate-300 mt-2 pt-2 border-t border-slate-200 dark:border-white/5">
+                                        <span>Harga Jual:</span>
+                                        <span className="text-primary font-bold">{formatRupiah(stockModalProduct.price)}</span>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1.5">
+                                        Jumlah Stok Fisik Sekarang ({stockModalProduct.base_unit || 'pcs'}):
+                                    </label>
+                                    <div className="relative">
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            value={quickStockValue}
+                                            onChange={e => setQuickStockValue(Math.max(0, parseInt(e.target.value) || 0))}
+                                            className="w-full pl-4 pr-16 py-3 bg-white dark:bg-[#111118] border-2 border-primary/40 focus:border-primary rounded-xl text-2xl font-black text-gray-900 dark:text-white text-center focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                                            autoFocus
+                                        />
+                                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
+                                            {stockModalProduct.base_unit || 'pcs'}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Quick Increment/Decrement Buttons */}
+                                <div className="grid grid-cols-4 gap-2 pt-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => setQuickStockValue(prev => Math.max(0, prev - 1))}
+                                        className="py-2 rounded-lg bg-slate-100 dark:bg-white/5 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10"
+                                    >
+                                        -1
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setQuickStockValue(prev => Math.max(0, prev - 5))}
+                                        className="py-2 rounded-lg bg-slate-100 dark:bg-white/5 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10"
+                                    >
+                                        -5
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setQuickStockValue(prev => prev + 1)}
+                                        className="py-2 rounded-lg bg-slate-100 dark:bg-white/5 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10"
+                                    >
+                                        +1
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setQuickStockValue(prev => prev + 5)}
+                                        className="py-2 rounded-lg bg-slate-100 dark:bg-white/5 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10"
+                                    >
+                                        +5
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Footer */}
+                            <div className="p-4 border-t border-slate-100 dark:border-[#282839] flex items-center justify-end gap-2 bg-slate-50/50 dark:bg-[#161622]">
+                                <button
+                                    type="button"
+                                    onClick={() => setStockModalProduct(null)}
+                                    className="px-4 py-2 rounded-xl text-xs font-bold border border-slate-200 dark:border-[#282839] text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+                                >
+                                    Batal
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleQuickStockSave}
+                                    disabled={isSavingStock}
+                                    className="px-5 py-2 rounded-xl text-xs font-bold bg-primary text-white hover:bg-primary/90 shadow-md shadow-primary/25 transition-all flex items-center gap-1.5"
+                                >
+                                    {isSavingStock ? (
+                                        <>
+                                            <div className="size-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            <span>Menyimpan...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span className="material-symbols-outlined text-[16px]">check</span>
+                                            <span>Simpan Stok Baru</span>
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </main>
         </div>
     );

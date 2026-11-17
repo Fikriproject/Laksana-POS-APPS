@@ -5,10 +5,11 @@ import { useAuth } from '../context/AuthContext';
 interface ProtectedRouteProps {
     children: ReactNode;
     allowedRoles?: string[];
+    requiredPermission?: string;
 }
 
-const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
-    const { isAuthenticated, user, loading } = useAuth();
+const ProtectedRoute = ({ children, allowedRoles, requiredPermission }: ProtectedRouteProps) => {
+    const { isAuthenticated, user, loading, hasPermission } = useAuth();
     const location = useLocation();
 
     if (loading) {
@@ -19,12 +20,40 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
-    if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-        // User role not authorized
-        if (user.role === 'cashier') {
-            return <Navigate to="/pos" replace />;
+    if (user) {
+        // Admin selalu diizinkan mengakses semua halaman
+        if (user.role === 'admin') {
+            return <>{children}</>;
         }
-        return <Navigate to="/login" replace />;
+
+        // Jika rute membutuhkan permission tertentu
+        if (requiredPermission && hasPermission(requiredPermission)) {
+            return <>{children}</>;
+        }
+
+        // Jika rute mengizinkan berdasarkan role
+        if (allowedRoles && allowedRoles.includes(user.role)) {
+            return <>{children}</>;
+        }
+
+        // Jika ada permission spesifik yang ditolak
+        if (requiredPermission && !hasPermission(requiredPermission)) {
+            if (hasPermission('pos.access')) {
+                return <Navigate to="/pos" replace />;
+            }
+            if (hasPermission('products.view')) {
+                return <Navigate to="/products" replace />;
+            }
+            return <Navigate to="/profile" replace />;
+        }
+
+        // Default role redirect jika tidak diizinkan
+        if (allowedRoles && !allowedRoles.includes(user.role)) {
+            if (user.role === 'cashier') {
+                return <Navigate to="/pos" replace />;
+            }
+            return <Navigate to="/login" replace />;
+        }
     }
 
     return <>{children}</>;

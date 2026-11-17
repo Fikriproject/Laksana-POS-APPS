@@ -16,6 +16,7 @@ return function ($method, $path, $inventoryService, $user) {
     
     // GET /api/inventory/logs - List inventory logs
     if ($method === 'GET' && $path === '/logs') {
+        RoleMiddleware::requirePermission($user, 'inventory.view');
         $page = (int) ($_GET['page'] ?? 1);
         $perPage = (int) ($_GET['per_page'] ?? 20);
         $type = $_GET['type'] ?? null;
@@ -26,18 +27,21 @@ return function ($method, $path, $inventoryService, $user) {
     
     // GET /api/inventory/suppliers - Get all suppliers
     if ($method === 'GET' && $path === '/suppliers') {
+        RoleMiddleware::requirePermission($user, 'inventory.supplier');
         $suppliers = $inventoryService->getSuppliers();
         Response::success($suppliers);
     }
     
     // GET /api/inventory/product/:id - Get product inventory history
     if ($method === 'GET' && preg_match('/^\/product\/([a-f0-9-]+)$/', $path, $matches)) {
+        RoleMiddleware::requirePermission($user, 'inventory.view');
         $history = $inventoryService->getProductHistory($matches[1]);
         Response::success($history);
     }
     
     // POST /api/inventory/stock-in - Record stock in
     if ($method === 'POST' && $path === '/stock-in') {
+        RoleMiddleware::requireAnyPermission($user, ['inventory.adjust', 'products.update_stock']);
         $data = json_decode(file_get_contents('php://input'), true) ?? [];
         
         $validator = new Validator($data);
@@ -61,6 +65,7 @@ return function ($method, $path, $inventoryService, $user) {
     
     // POST /api/inventory/stock-out - Record stock out
     if ($method === 'POST' && $path === '/stock-out') {
+        RoleMiddleware::requireAnyPermission($user, ['inventory.adjust', 'products.update_stock']);
         $data = json_decode(file_get_contents('php://input'), true) ?? [];
         
         $validator = new Validator($data);
@@ -81,9 +86,9 @@ return function ($method, $path, $inventoryService, $user) {
         }
     }
     
-    // POST /api/inventory/adjustment - Record stock adjustment (Admin only)
+    // POST /api/inventory/adjustment - Record stock adjustment
     if ($method === 'POST' && $path === '/adjustment') {
-        RoleMiddleware::requireAdmin($user);
+        RoleMiddleware::requireAnyPermission($user, ['inventory.adjust', 'products.update_stock']);
         
         $data = json_decode(file_get_contents('php://input'), true) ?? [];
         

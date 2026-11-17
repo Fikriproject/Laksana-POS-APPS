@@ -42,7 +42,7 @@ interface SidebarProps {
 }
 
 const Sidebar = ({ className = '', isOpen = false, onClose }: SidebarProps) => {
-    const { logout, user } = useAuth();
+    const { logout, user, hasPermission } = useAuth();
     const location = useLocation();
     const { isInstallable, isInstalled, installApp } = usePWAInstall();
 
@@ -77,23 +77,28 @@ const Sidebar = ({ className = '', isOpen = false, onClose }: SidebarProps) => {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isOpen, onClose]);
 
-    // Define all links
+    // Define all links with permissions
     const allLinks = [
         { icon: "dashboard", label: "Dashboard", to: "/", roles: ['admin', 'manager', 'cashier'] },
-        { icon: "point_of_sale", label: "Kasir", to: "/pos", roles: ['admin', 'manager', 'cashier'] },
-        { icon: "receipt_long", label: "Rekap Harian", to: "/daily-settlement", roles: ['admin', 'manager', 'cashier'] },
-        { icon: "shopping_bag", label: "Produk", to: "/products", roles: ['admin', 'manager'] },
-        { icon: "barcode_scanner", label: "Cetak Barcode", to: "/barcodes", roles: ['admin', 'manager'] },
-        { icon: "inventory_2", label: "Inventaris", to: "/inventory", roles: ['admin', 'manager'] },
-        { icon: "bar_chart", label: "Laporan", to: "/reports", roles: ['admin', 'manager'] },
-        { icon: "print", label: "Pengaturan Printer", to: "/settings/printer", roles: ['admin', 'manager', 'cashier'] },
-        { icon: "person", label: "Profil", to: "/profile", roles: ['admin', 'manager', 'cashier'] },
+        { icon: "point_of_sale", label: "Kasir", to: "/pos", permission: 'pos.access', roles: ['admin', 'manager', 'cashier'] },
+        { icon: "receipt_long", label: "Rekap Harian", to: "/daily-settlement", permission: 'settlement.view', roles: ['admin', 'manager', 'cashier'] },
+        { icon: "shopping_bag", label: "Produk", to: "/products", permission: 'products.view', roles: ['admin', 'manager'] },
+        { icon: "barcode_scanner", label: "Cetak Barcode", to: "/barcodes", permission: 'barcode.print', roles: ['admin', 'manager'] },
+        { icon: "inventory_2", label: "Inventaris", to: "/inventory", permission: 'inventory.view', roles: ['admin', 'manager'] },
+        { icon: "bar_chart", label: "Laporan", to: "/reports", permission: 'reports.view', roles: ['admin', 'manager'] },
+        { icon: "print", label: "Pengaturan Printer", to: "/settings/printer", permission: 'settings.printer', roles: ['admin', 'manager', 'cashier'] },
+        { icon: "person", label: "Profil & Akun", to: "/profile", roles: ['admin', 'manager', 'cashier'] },
     ];
 
-    // Filter links based on user role
-    const filteredLinks = allLinks.filter(link =>
-        user && link.roles.includes(user.role)
-    );
+    // Filter links based on user role and granular permissions
+    const filteredLinks = allLinks.filter(link => {
+        if (!user) return false;
+        if (user.role === 'admin') return true;
+        if (link.permission) {
+            return hasPermission(link.permission);
+        }
+        return link.roles.includes(user.role);
+    });
 
     return (
         <>

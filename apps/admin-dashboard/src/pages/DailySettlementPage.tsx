@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import { formatRupiah } from '../utils/format';
@@ -14,6 +15,11 @@ interface DashboardContextType {
 
 export const DailySettlementPage = () => {
     const { toggleSidebar } = useOutletContext<DashboardContextType>();
+    const { user, hasPermission } = useAuth();
+
+    const canViewProfit = hasPermission('settlement.view_profit');
+    const canViewCash = hasPermission('settlement.view_cash');
+    const canCloseShift = hasPermission('settlement.close_shift');
     
     // Default: Hari ini (YYYY-MM-DD)
     const [selectedDate, setSelectedDate] = useState<string>(() => {
@@ -250,15 +256,17 @@ export const DailySettlementPage = () => {
                             />
                         </div>
 
-                        <button
-                            type="button"
-                            onClick={handlePrintZReport}
-                            disabled={loading || !settlementData}
-                            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-bold shadow-md shadow-primary/25 transition-all disabled:opacity-50"
-                        >
-                            <span className="material-symbols-outlined text-[16px]">print</span>
-                            <span className="hidden sm:inline">Cetak Rekap</span> (Z-Report)
-                        </button>
+                        {canCloseShift && (
+                            <button
+                                type="button"
+                                onClick={handlePrintZReport}
+                                disabled={loading || !settlementData}
+                                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-bold shadow-md shadow-primary/25 transition-all disabled:opacity-50"
+                            >
+                                <span className="material-symbols-outlined text-[16px]">print</span>
+                                <span className="hidden sm:inline">Cetak Rekap</span> (Z-Report)
+                            </button>
+                        )}
 
                         <div className="flex items-center gap-2 ml-auto sm:ml-0">
                             <ThemeToggle />
@@ -298,21 +306,38 @@ export const DailySettlementPage = () => {
                                     </p>
                                 </div>
 
-                                {/* Modal Barang Terjual (HPP) */}
-                                <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl p-4 sm:p-5 shadow-sm">
-                                    <div className="flex items-center justify-between text-gray-500 mb-2">
-                                        <span className="text-xs font-semibold">Modal Barang (HPP)</span>
-                                        <div className="size-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center">
-                                            <span className="material-symbols-outlined text-[18px]">inventory</span>
+                                {/* Modal Barang Terjual (HPP) / Transaksi */}
+                                {canViewProfit ? (
+                                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl p-4 sm:p-5 shadow-sm">
+                                        <div className="flex items-center justify-between text-gray-500 mb-2">
+                                            <span className="text-xs font-semibold">Modal Barang (HPP)</span>
+                                            <div className="size-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                                                <span className="material-symbols-outlined text-[18px]">inventory</span>
+                                            </div>
                                         </div>
+                                        <p className="text-lg sm:text-2xl font-black text-gray-900 dark:text-white">
+                                            {formatRupiah(settlementData.summary.total_cogs)}
+                                        </p>
+                                        <p className="text-[11px] text-gray-400 mt-1">
+                                            Modal kulakan produk
+                                        </p>
                                     </div>
-                                    <p className="text-lg sm:text-2xl font-black text-gray-900 dark:text-white">
-                                        {formatRupiah(settlementData.summary.total_cogs)}
-                                    </p>
-                                    <p className="text-[11px] text-gray-400 mt-1">
-                                        Modal kulakan produk
-                                    </p>
-                                </div>
+                                ) : (
+                                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl p-4 sm:p-5 shadow-sm">
+                                        <div className="flex items-center justify-between text-gray-500 mb-2">
+                                            <span className="text-xs font-semibold">Penjualan Tunai</span>
+                                            <div className="size-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                                                <span className="material-symbols-outlined text-[18px]">attach_money</span>
+                                            </div>
+                                        </div>
+                                        <p className="text-lg sm:text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                                            {formatRupiah(settlementData.summary.cash_sales)}
+                                        </p>
+                                        <p className="text-[11px] text-gray-400 mt-1">
+                                            Uang tunai diterima kasir
+                                        </p>
+                                    </div>
+                                )}
 
                                 {/* Pengeluaran Kasir / Kas Keluar */}
                                 <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl p-4 sm:p-5 shadow-sm">
@@ -330,24 +355,42 @@ export const DailySettlementPage = () => {
                                     </p>
                                 </div>
 
-                                {/* Laba Bersih Hari Ini */}
-                                <div className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-2xl p-4 sm:p-5 shadow-lg shadow-emerald-500/20">
-                                    <div className="flex items-center justify-between text-white/80 mb-2">
-                                        <span className="text-xs font-bold uppercase tracking-wider">Laba Bersih Hari Ini</span>
-                                        <div className="size-8 rounded-lg bg-white/20 text-white flex items-center justify-center">
-                                            <span className="material-symbols-outlined text-[18px]">trending_up</span>
+                                {/* Laba Bersih Hari Ini / Non-Tunai */}
+                                {canViewProfit ? (
+                                    <div className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-2xl p-4 sm:p-5 shadow-lg shadow-emerald-500/20">
+                                        <div className="flex items-center justify-between text-white/80 mb-2">
+                                            <span className="text-xs font-bold uppercase tracking-wider">Laba Bersih Hari Ini</span>
+                                            <div className="size-8 rounded-lg bg-white/20 text-white flex items-center justify-center">
+                                                <span className="material-symbols-outlined text-[18px]">trending_up</span>
+                                            </div>
                                         </div>
+                                        <p className="text-lg sm:text-2xl font-black text-white">
+                                            {formatRupiah(settlementData.summary.net_profit)}
+                                        </p>
+                                        <p className="text-[11px] text-white/80 mt-1">
+                                            Keuntungan riil masuk kantong
+                                        </p>
                                     </div>
-                                    <p className="text-lg sm:text-2xl font-black text-white">
-                                        {formatRupiah(settlementData.summary.net_profit)}
-                                    </p>
-                                    <p className="text-[11px] text-white/80 mt-1">
-                                        Keuntungan riil masuk kantong
-                                    </p>
-                                </div>
+                                ) : (
+                                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl p-4 sm:p-5 shadow-sm">
+                                        <div className="flex items-center justify-between text-gray-500 mb-2">
+                                            <span className="text-xs font-semibold">Non-Tunai (QRIS / Transfer)</span>
+                                            <div className="size-8 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
+                                                <span className="material-symbols-outlined text-[18px]">qr_code_2</span>
+                                            </div>
+                                        </div>
+                                        <p className="text-lg sm:text-2xl font-black text-indigo-600 dark:text-indigo-400">
+                                            {formatRupiah(settlementData.summary.non_cash_sales)}
+                                        </p>
+                                        <p className="text-[11px] text-gray-400 mt-1">
+                                            Pembayaran via QRIS & Transfer
+                                        </p>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Kotak Rekonsiliasi Kas Laci (Sinkronisasi Uang Orang Tua) */}
+                            {canViewCash && (
                             <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl p-5 sm:p-6 shadow-sm">
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-100 dark:border-white/5">
                                     <div className="flex items-center gap-3">
@@ -420,6 +463,7 @@ export const DailySettlementPage = () => {
                                     </div>
                                 </div>
                             </div>
+                            )}
 
                             {/* Tabs Rincian Transaksi, Pengeluaran, dan Shift */}
                             <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl overflow-hidden shadow-sm">

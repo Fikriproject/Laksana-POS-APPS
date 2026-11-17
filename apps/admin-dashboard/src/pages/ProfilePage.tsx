@@ -1,16 +1,21 @@
 import { useState, useEffect } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useSearchParams } from 'react-router-dom';
 import { DashboardContextType } from '../layouts/DashboardLayout';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import UserFormModal from '../components/UserFormModal';
+import UserPermissionsModal from '../components/UserPermissionsModal';
 import ThemeToggle from '../components/ThemeToggle';
 import UserMenu from '../components/UserMenu';
+import toast from 'react-hot-toast';
 
 const ProfilePage = () => {
-    const { user, logout } = useAuth();
+    const { user, logout, updateCurrentUser, hasPermission } = useAuth();
     const { toggleSidebar } = useOutletContext<DashboardContextType>();
-    const [activeTab, setActiveTab] = useState<'profile' | 'management'>('profile');
+    const [searchParams] = useSearchParams();
+    const [activeTab, setActiveTab] = useState<'profile' | 'management'>(
+        searchParams.get('tab') === 'management' ? 'management' : 'profile'
+    );
 
     // Management State
     const [users, setUsers] = useState<any[]>([]);
@@ -20,11 +25,17 @@ const ProfilePage = () => {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<any>(null);
 
+    // Permissions Modal State
+    const [isPermissionsOpen, setIsPermissionsOpen] = useState(false);
+    const [selectedUserForPermissions, setSelectedUserForPermissions] = useState<any>(null);
+
+    const canManageUsers = user?.role === 'admin' || hasPermission('users.manage');
+
     useEffect(() => {
-        if (activeTab === 'management' && user?.role === 'admin') {
+        if (activeTab === 'management' && canManageUsers) {
             fetchUsers();
         }
-    }, [activeTab, user]);
+    }, [activeTab, canManageUsers]);
 
     const fetchUsers = async () => {
         setLoadingUsers(true);
@@ -41,10 +52,10 @@ const ProfilePage = () => {
     const handleCreateUser = async (data: any) => {
         try {
             await api.post('/users', data);
-            alert('User berhasil dibuat');
+            toast.success('Pengguna baru berhasil dibuat!');
             fetchUsers();
         } catch (error: any) {
-            alert(error.response?.data?.message || 'Gagal membuat user');
+            toast.error(error.response?.data?.message || 'Gagal membuat pengguna');
             throw error;
         }
     };
@@ -53,22 +64,44 @@ const ProfilePage = () => {
         if (!editingUser) return;
         try {
             await api.patch(`/users/${editingUser.id}`, data);
-            alert('User berhasil diperbarui');
+            toast.success('Data pengguna berhasil diperbarui!');
             fetchUsers();
+            if (user && user.id === editingUser.id) {
+                updateCurrentUser(data);
+            }
         } catch (error: any) {
-            alert(error.response?.data?.message || 'Gagal memperbarui user');
+            toast.error(error.response?.data?.message || 'Gagal memperbarui pengguna');
             throw error;
         }
     };
 
     const handleDeleteUser = async (id: string) => {
-        if (!confirm('Apakah Anda yakin ingin menghapus pengguna ini?')) return;
+        if (!confirm('Apakah Anda yakin ingin menonaktifkan pengguna ini?')) return;
         try {
             await api.delete(`/users/${id}`);
             fetchUsers();
-            alert('User berhasil dihapus');
+            toast.success('Pengguna berhasil dinonaktifkan');
         } catch (error: any) {
-            alert(error.response?.data?.message || 'Gagal menghapus user');
+            toast.error(error.response?.data?.message || 'Gagal menghapus pengguna');
+        }
+    };
+
+    const openPermissionsModal = (userToManage: any) => {
+        setSelectedUserForPermissions(userToManage);
+        setIsPermissionsOpen(true);
+    };
+
+    const handleSavePermissions = async (userId: string, permissions: Record<string, boolean>) => {
+        try {
+            await api.patch(`/users/${userId}`, { permissions });
+            toast.success('Hak akses pengguna berhasil disimpan!');
+            fetchUsers();
+            if (user && user.id === userId) {
+                updateCurrentUser({ permissions });
+            }
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Gagal menyimpan hak akses');
+            throw error;
         }
     };
 
@@ -164,14 +197,14 @@ const ProfilePage = () => {
                                         <span className="material-symbols-outlined text-[18px]">badge</span>
                                         Detail Profil
                                     </button>
-                                    {user?.role === 'admin' && (
+                                    {canManageUsers && (
                                         <button
                                             onClick={() => setActiveTab('management')}
                                             className={`flex-1 py-4 text-sm font-bold border-b-2 transition-colors flex items-center justify-center gap-2
                                                 ${activeTab === 'management' ? 'border-primary text-primary bg-primary/5 dark:bg-[#1f1f2e]' : 'border-transparent text-gray-500 dark:text-[#9d9db9] hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1f1f2e]'}`}
                                         >
                                             <span className="material-symbols-outlined text-[18px]">manage_accounts</span>
-                                            Manajemen Pengguna
+                                            Manajemen Karyawan & Hak Akses
                                         </button>
                                     )}
                                 </div>
@@ -218,8 +251,9 @@ const ProfilePage = () => {
                                                 <table className="w-full text-left text-sm text-gray-500 dark:text-[#9d9db9]">
                                                     <thead className="bg-gray-100 dark:bg-[#1c1c27] text-gray-900 dark:text-white uppercase text-xs font-semibold">
                                                         <tr>
-                                                            <th className="px-6 py-3">User</th>
-                                                            <th className="px-6 py-3">Role</th>
+                                                            <th className="px-6 py-3">Karyawan</th>
+                                                            <th className="px-6 py-3">Peran (Role)</th>
+                                                            <th className="px-6 py-3">Hak Akses Fitur (Toggle)</th>
                                                             <th className="px-6 py-3">Bergabung</th>
                                                             <th className="px-6 py-3 text-right">Total Transaksi</th>
                                                             <th className="px-6 py-3 text-right">Aksi</th>
@@ -227,40 +261,74 @@ const ProfilePage = () => {
                                                     </thead>
                                                     <tbody className="divide-y divide-slate-200 dark:divide-[#3b3c54]">
                                                         {loadingUsers ? (
-                                                            <tr><td colSpan={5} className="p-6 text-center">Memuat...</td></tr>
-                                                        ) : users.map(u => (
-                                                            <tr key={u.id} className={`hover:bg-gray-50 dark:hover:bg-[#1c1c27] transition-colors ${!u.is_active ? 'opacity-50 grayscale' : ''}`}>
-                                                                <td className="px-6 py-4">
-                                                                    <div className="font-bold text-gray-900 dark:text-white">{u.full_name}</div>
-                                                                    <div className="text-xs">@{u.username}</div>
-                                                                </td>
-                                                                <td className="px-6 py-4 capitalize">{u.role}</td>
-                                                                <td className="px-6 py-4">{new Date(u.created_at).toLocaleDateString('id-ID')}</td>
-                                                                <td className="px-6 py-4 text-right font-mono text-gray-900 dark:text-white">
-                                                                    {u.total_transactions || 0}
-                                                                </td>
-                                                                <td className="px-6 py-4 text-right">
-                                                                    <div className="flex justify-end gap-2">
-                                                                        <button
-                                                                            onClick={() => openEditModal(u)}
-                                                                            className="p-1 text-primary hover:text-white transition-colors"
-                                                                            title="Edit"
-                                                                        >
-                                                                            <span className="material-symbols-outlined text-[20px]">edit</span>
-                                                                        </button>
-                                                                        {u.id !== user?.id && u.is_active && (
+                                                            <tr><td colSpan={6} className="p-6 text-center">Memuat data karyawan...</td></tr>
+                                                        ) : users.map(u => {
+                                                            const activeCount = u.permissions && typeof u.permissions === 'object'
+                                                                ? Object.values(u.permissions).filter(Boolean).length
+                                                                : (u.role === 'admin' ? 30 : u.role === 'manager' ? 29 : 4);
+
+                                                            return (
+                                                                <tr key={u.id} className={`hover:bg-gray-50 dark:hover:bg-[#1c1c27] transition-colors ${!u.is_active ? 'opacity-50 grayscale' : ''}`}>
+                                                                    <td className="px-6 py-4">
+                                                                        <div className="font-bold text-gray-900 dark:text-white">{u.full_name}</div>
+                                                                        <div className="text-xs text-slate-400">@{u.username}</div>
+                                                                    </td>
+                                                                    <td className="px-6 py-4 capitalize font-medium">{u.role}</td>
+                                                                    <td className="px-6 py-4">
+                                                                        {u.role === 'admin' ? (
+                                                                            <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+                                                                                <span className="material-symbols-outlined text-[15px]">admin_panel_settings</span>
+                                                                                Akses Penuh (30/30)
+                                                                            </span>
+                                                                        ) : (
                                                                             <button
-                                                                                onClick={() => handleDeleteUser(u.id)}
-                                                                                className="p-1 text-red-500 hover:text-red-700 transition-colors"
-                                                                                title="Hapus User"
+                                                                                type="button"
+                                                                                onClick={() => openPermissionsModal(u)}
+                                                                                className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 hover:scale-105 transition-all shadow-sm group"
+                                                                                title="Klik untuk membuka 30 toggle izin akun ini"
                                                                             >
-                                                                                <span className="material-symbols-outlined text-[20px]">delete</span>
+                                                                                <span className="material-symbols-outlined text-[15px]">tune</span>
+                                                                                <span>{activeCount} Fitur Aktif</span>
+                                                                                <span className="text-[10px] text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-300 ml-1">Atur Toggle →</span>
                                                                             </button>
                                                                         )}
-                                                                    </div>
-                                                                </td>
-                                                            </tr>
-                                                        ))}
+                                                                    </td>
+                                                                    <td className="px-6 py-4">{new Date(u.created_at).toLocaleDateString('id-ID')}</td>
+                                                                    <td className="px-6 py-4 text-right font-mono text-gray-900 dark:text-white">
+                                                                        {u.total_transactions || 0}
+                                                                    </td>
+                                                                    <td className="px-6 py-4 text-right">
+                                                                        <div className="flex justify-end items-center gap-1">
+                                                                            {u.role !== 'admin' && (
+                                                                                <button
+                                                                                    onClick={() => openPermissionsModal(u)}
+                                                                                    className="p-1.5 text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition-colors"
+                                                                                    title="Atur Hak Akses Fitur (Toggle)"
+                                                                                >
+                                                                                    <span className="material-symbols-outlined text-[20px]">tune</span>
+                                                                                </button>
+                                                                            )}
+                                                                            <button
+                                                                                onClick={() => openEditModal(u)}
+                                                                                className="p-1.5 text-primary hover:text-primary/80 hover:bg-primary/5 rounded-lg transition-colors"
+                                                                                title="Edit Profil / Password"
+                                                                            >
+                                                                                <span className="material-symbols-outlined text-[20px]">edit</span>
+                                                                            </button>
+                                                                            {u.id !== user?.id && u.is_active && (
+                                                                                <button
+                                                                                    onClick={() => handleDeleteUser(u.id)}
+                                                                                    className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                                                                                    title="Nonaktifkan Karyawan"
+                                                                                >
+                                                                                    <span className="material-symbols-outlined text-[20px]">delete</span>
+                                                                                </button>
+                                                                            )}
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
                                                     </tbody>
                                                 </table>
                                             </div>
@@ -278,6 +346,13 @@ const ProfilePage = () => {
                     onSubmit={editingUser ? handleUpdateUser : handleCreateUser}
                     initialData={editingUser}
                     isEditing={!!editingUser}
+                />
+
+                <UserPermissionsModal
+                    isOpen={isPermissionsOpen}
+                    onClose={() => setIsPermissionsOpen(false)}
+                    user={selectedUserForPermissions}
+                    onSave={handleSavePermissions}
                 />
             </main>
         </div>

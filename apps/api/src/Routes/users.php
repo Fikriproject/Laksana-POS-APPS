@@ -8,9 +8,11 @@ use App\Utils\Validator;
 use App\Middleware\RoleMiddleware;
 
 return function ($method, $path, $userService, $user = null) {
-    // Middleware: All these routes require Admin role
+    // Middleware: All these routes require Admin role or users.manage permission
     if ($user) {
-        RoleMiddleware::requireAdmin($user);
+        if (!RoleMiddleware::hasPermission($user, 'users.manage') && ($user['role'] ?? '') !== 'admin') {
+            Response::error('Akses ditolak. Anda tidak memiliki izin mengelola pengguna.', 403);
+        }
     } else {
         Response::error('Otentikasi diperlukan', 401);
     }

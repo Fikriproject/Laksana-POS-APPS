@@ -1,13 +1,14 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import api from '../services/api';
 
-interface User {
+export interface User {
     id: string;
     username: string;
     full_name: string;
     role: 'admin' | 'cashier' | 'manager';
     email?: string;
     employee_id?: string;
+    permissions?: Record<string, boolean>;
     created_at?: string;
 }
 
@@ -17,6 +18,8 @@ interface AuthContextType {
     isAuthenticated: boolean;
     login: (token: string, user: User) => void;
     logout: () => void;
+    updateCurrentUser: (updatedData: Partial<User>) => void;
+    hasPermission: (permissionKey: string) => boolean;
     loading: boolean;
 }
 
@@ -54,6 +57,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         api.post('/auth/logout').catch(() => { }); // Attempt API logout but ignore errors
     };
 
+    const updateCurrentUser = (updatedData: Partial<User>) => {
+        if (!user) return;
+        const merged = { ...user, ...updatedData };
+        localStorage.setItem('user', JSON.stringify(merged));
+        setUser(merged);
+    };
+
+    const hasPermission = (permissionKey: string): boolean => {
+        if (!user) return false;
+        // Admin selalu punya hak akses penuh untuk seluruh fitur
+        if (user.role === 'admin') return true;
+
+        // Jika user memiliki permissions object, periksa key tersebut
+        if (user.permissions && typeof user.permissions === 'object') {
+            if (permissionKey in user.permissions) {
+                return !!user.permissions[permissionKey];
+            }
+        }
+
+        // Fallback default berdasarkan peran jika permission belum pernah diatur
+        if (user.role === 'manager') {
+            return permissionKey !== 'users.manage';
+        }
+
+        if (user.role === 'cashier') {
+            // Default kasir jika belum disetel toggle: akses kasir & printer
+            return ['pos.access', 'settings.printer'].includes(permissionKey);
+        }
+
+        return false;
+    };
+
     return (
         <AuthContext.Provider value={{
             user,
@@ -61,6 +96,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             isAuthenticated: !!token,
             login,
             logout,
+            updateCurrentUser,
+            hasPermission,
             loading
         }}>
             {children}

@@ -23,6 +23,10 @@ return function ($method, $path, $productService, $user) {
 
     // GET /api/products - List all products
     if ($method === 'GET' && $path === '') {
+        if (!RoleMiddleware::hasPermission($user, 'products.view')) {
+            Response::error('Akses ditolak. Anda tidak memiliki izin melihat daftar produk.', 403);
+        }
+
         $page = (int) ($_GET['page'] ?? 1);
         $perPage = (int) ($_GET['per_page'] ?? 20);
         $categoryId = isset($_GET['category_id']) && $_GET['category_id'] !== 'all' ? (int) $_GET['category_id'] : null;
@@ -30,11 +34,25 @@ return function ($method, $path, $productService, $user) {
         $condition = isset($_GET['condition']) && $_GET['condition'] !== 'all' ? (string) $_GET['condition'] : (isset($_GET['filter']) && $_GET['filter'] !== 'all' ? (string) $_GET['filter'] : null);
         
         $result = $productService->getAll($page, $perPage, $categoryId, $activeOnly, $condition);
+
+        // Keamanan: Hapus harga modal (purchase_price) dari API jika user tidak punya izin
+        if (!RoleMiddleware::hasPermission($user, 'products.view_cost')) {
+            if (isset($result['products']) && is_array($result['products'])) {
+                foreach ($result['products'] as &$p) {
+                    $p['purchase_price'] = null;
+                }
+            }
+        }
+
         Response::success($result);
     }
     
     // GET /api/products/search?q=query - Search products
     if ($method === 'GET' && $path === '/search') {
+        if (!RoleMiddleware::hasPermission($user, 'products.view') && !RoleMiddleware::hasPermission($user, 'pos.access')) {
+            Response::error('Akses ditolak. Anda tidak memiliki izin mencari produk.', 403);
+        }
+
         $query = $_GET['q'] ?? '';
         $condition = isset($_GET['condition']) && $_GET['condition'] !== 'all' ? (string) $_GET['condition'] : null;
         
@@ -47,6 +65,14 @@ return function ($method, $path, $productService, $user) {
         try {
             $products = $productService->search($query, 100, $condition);
             error_log("Search found " . count($products) . " items");
+
+            // Keamanan: Sembunyikan harga beli jika tidak punya izin
+            if (!RoleMiddleware::hasPermission($user, 'products.view_cost')) {
+                foreach ($products as &$p) {
+                    $p['purchase_price'] = null;
+                }
+            }
+
             Response::success($products);
         } catch (\Exception $e) {
             error_log("Search Error: " . $e->getMessage());
@@ -76,9 +102,9 @@ return function ($method, $path, $productService, $user) {
         Response::success($categories);
     }
     
-    // POST /api/products/categories - Create category (Admin only)
+    // POST /api/products/categories - Create category
     if ($method === 'POST' && $path === '/categories') {
-        RoleMiddleware::requireAdmin($user);
+        RoleMiddleware::requirePermission($user, 'products.edit');
         
         $data = json_decode(file_get_contents('php://input'), true) ?? [];
         
@@ -105,6 +131,10 @@ return function ($method, $path, $productService, $user) {
         if (!$product) {
             Response::error('Produk tidak ditemukan', 404);
         }
+
+        if (!RoleMiddleware::hasPermission($user, 'products.view_cost')) {
+            $product['purchase_price'] = null;
+        }
         
         Response::success($product);
     }
@@ -116,13 +146,17 @@ return function ($method, $path, $productService, $user) {
         if (!$product) {
             Response::error('Produk tidak ditemukan', 404);
         }
+
+        if (!RoleMiddleware::hasPermission($user, 'products.view_cost')) {
+            $product['purchase_price'] = null;
+        }
         
         Response::success($product);
     }
     
     // POST /api/products/bulk-import - Import produk massal
     if ($method === 'POST' && $path === '/bulk-import') {
-        RoleMiddleware::requireAdmin($user);
+        RoleMiddleware::requirePermission($user, 'products.import_export');
         $data = json_decode(file_get_contents('php://input'), true) ?? [];
         $products = $data['products'] ?? [];
         $updateExisting = (bool)($data['update_existing'] ?? true);
@@ -141,7 +175,7 @@ return function ($method, $path, $productService, $user) {
 
     // POST /api/products/bulk-margin - Terapkan margin massal
     if ($method === 'POST' && $path === '/bulk-margin') {
-        RoleMiddleware::requireAdmin($user);
+        RoleMiddleware::requirePermission($user, 'products.edit_price');
         $data = json_decode(file_get_contents('php://input'), true) ?? [];
 
         try {
@@ -152,9 +186,9 @@ return function ($method, $path, $productService, $user) {
         }
     }
 
-    // POST /api/products - Create product (Admin only)
+    // POST /api/products - Create product
     if ($method === 'POST' && $path === '') {
-        RoleMiddleware::requireAdmin($user);
+        RoleMiddleware::requirePermission($user, 'products.create');
         
         $data = json_decode(file_get_contents('php://input'), true) ?? [];
         
@@ -164,34 +198,84 @@ return function ($method, $path, $productService, $user) {
         
         $productId = $productService->create($data);
         $product = $productService->getById($productId);
+
+        if (!RoleMiddleware::hasPermission($user, 'products.view_cost')) {
+            $product['purchase_price'] = null;
+        }
         
         Response::success($product, 'Produk dibuat', 201);
     }
+
+    // PATCH /api/products/:id/stock - Quick stock update (Kasir / Staff with update_stock)
+    if ($method === 'PATCH' && preg_match('/^\/([a-zA-Z0-9-]+)\/stock$/', $path, $matches)) {
+        if (!RoleMiddleware::hasPermission($user, 'products.update_stock') && !RoleMiddleware::hasPermission($user, 'inventory.adjust')) {
+            Response::error('Akses ditolak. Anda tidak memiliki izin memperbarui stok.', 403);
+        }
+
+        $data = json_decode(file_get_contents('php://input'), true) ?? [];
+        if (!isset($data['stock_quantity'])) {
+            Response::error('Jumlah stok wajib diisi', 400);
+        }
+
+        $productService->update($matches[1], ['stock_quantity' => (int)$data['stock_quantity']]);
+        Response::success(['stock_quantity' => (int)$data['stock_quantity']], 'Stok berhasil diperbarui');
+    }
     
-    // PUT /api/products/:id - Update product (Admin only)
+    // PUT /api/products/:id - Update product
     if ($method === 'PUT' && preg_match('/^\/([a-zA-Z0-9-]+)$/', $path, $matches)) {
-        RoleMiddleware::requireAdmin($user);
+        $canEdit = RoleMiddleware::hasPermission($user, 'products.edit');
+        $canStock = RoleMiddleware::hasPermission($user, 'products.update_stock') || RoleMiddleware::hasPermission($user, 'inventory.adjust');
+
+        if (!$canEdit && !$canStock) {
+            Response::error('Akses ditolak. Anda tidak memiliki izin mengedit produk atau stok.', 403);
+        }
         
         $data = json_decode(file_get_contents('php://input'), true) ?? [];
+
+        if (!$canEdit && $canStock) {
+            // Kasir hanya memiliki akses update stok -> amankan hanya field stock_quantity yang diubah!
+            if (!isset($data['stock_quantity'])) {
+                Response::error('Hanya diizinkan memperbarui jumlah stok.', 403);
+            }
+            $data = ['stock_quantity' => (int)$data['stock_quantity']];
+        } else {
+            // Jika user tidak berhak ubah harga jual, buang perubahan harga
+            if (!RoleMiddleware::hasPermission($user, 'products.edit_price')) {
+                unset($data['price'], $data['wholesale_price'], $data['reseller_price']);
+            }
+            // Jika user tidak berhak lihat harga beli, buang perubahan modal
+            if (!RoleMiddleware::hasPermission($user, 'products.view_cost')) {
+                unset($data['purchase_price']);
+            }
+        }
+
         $productService->update($matches[1], $data);
         $product = $productService->getById($matches[1]);
+
+        if (!RoleMiddleware::hasPermission($user, 'products.view_cost')) {
+            $product['purchase_price'] = null;
+        }
         
         Response::success($product, 'Produk diperbarui');
     }
     
-    // PATCH /api/products/:id/status - Toggle product status (Admin only)
+    // PATCH /api/products/:id/status - Toggle product status
     if ($method === 'PATCH' && preg_match('/^\/([a-zA-Z0-9-]+)\/status$/', $path, $matches)) {
-        RoleMiddleware::requireAdmin($user);
+        RoleMiddleware::requirePermission($user, 'products.edit');
         
         $productService->toggleStatus($matches[1]);
         $product = $productService->getById($matches[1]);
         
+        if (!RoleMiddleware::hasPermission($user, 'products.view_cost')) {
+            $product['purchase_price'] = null;
+        }
+
         Response::success($product, 'Status produk diperbarui');
     }
     
-    // DELETE /api/products/:id - Delete product (Admin only)
+    // DELETE /api/products/:id - Delete product
     if ($method === 'DELETE' && preg_match('/^\/([a-zA-Z0-9-]+)$/', $path, $matches)) {
-        RoleMiddleware::requireAdmin($user);
+        RoleMiddleware::requirePermission($user, 'products.delete');
         
         $productService->delete($matches[1]);
         Response::success(null, 'Produk dihapus');

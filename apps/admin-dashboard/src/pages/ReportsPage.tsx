@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { formatRupiah } from '../utils/format';
 import { useTheme } from '../context/ThemeContext';
@@ -105,6 +106,12 @@ const ReportsPage = () => {
     const { toggleSidebar } = useOutletContext<DashboardContextType>();
     const { theme } = useTheme();
     const isDark = theme === 'dark';
+    const { user, hasPermission } = useAuth();
+
+    const canViewProfit = hasPermission('reports.view_profit');
+    const canExport = hasPermission('reports.export');
+    const canCreateExpense = hasPermission('expenses.create');
+    const canManageUsers = user?.role === 'admin' || hasPermission('users.manage');
     const [activeTab, setActiveTab] = useState<'sales' | 'inventory' | 'employees' | 'tax'>('sales');
     const [dateRange, setDateRange] = useState(() => {
         const now = new Date();
@@ -520,13 +527,15 @@ const ReportsPage = () => {
                                 </div>
                             </div>
 
-                            <button
-                                onClick={handleExport}
-                                className="flex items-center gap-1.5 px-3.5 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl transition-all text-xs font-bold shadow-md shadow-primary/25 w-full sm:w-auto justify-center"
-                            >
-                                <span className="material-symbols-outlined text-[18px]">download</span>
-                                <span>Ekspor CSV</span>
-                            </button>
+                            {canExport && (
+                                <button
+                                    onClick={handleExport}
+                                    className="flex items-center gap-1.5 px-3.5 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl transition-all text-xs font-bold shadow-md shadow-primary/25 w-full sm:w-auto justify-center"
+                                >
+                                    <span className="material-symbols-outlined text-[18px]">download</span>
+                                    <span>Ekspor CSV</span>
+                                </button>
+                            )}
 
                             <div className="flex items-center gap-2 shrink-0 ml-auto sm:ml-0">
                                 <ThemeToggle />
@@ -1227,13 +1236,15 @@ const ReportsPage = () => {
                                                     Total {expenses.length} transaksi pengeluaran tercatat dalam rentang tanggal terpilih
                                                 </p>
                                             </div>
-                                            <button
-                                                onClick={() => setIsAddingExpense(true)}
-                                                className="flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-all text-xs font-bold shadow-md shadow-red-600/20"
-                                            >
-                                                <span className="material-symbols-outlined text-[18px]">add</span>
-                                                Catat Pengeluaran Baru
-                                            </button>
+                                            {canCreateExpense && (
+                                                <button
+                                                    onClick={() => setIsAddingExpense(true)}
+                                                    className="flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-all text-xs font-bold shadow-md shadow-red-600/20"
+                                                >
+                                                    <span className="material-symbols-outlined text-[18px]">add</span>
+                                                    Catat Pengeluaran Baru
+                                                </button>
+                                            )}
                                         </div>
 
                                         <div className="overflow-x-auto">

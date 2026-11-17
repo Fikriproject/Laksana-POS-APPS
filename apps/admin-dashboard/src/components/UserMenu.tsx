@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 export const UserMenu: React.FC = () => {
-    const { user, logout } = useAuth();
+    const { user, logout, hasPermission } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
@@ -123,6 +123,20 @@ export const UserMenu: React.FC = () => {
 
                     {/* Menu Aksi */}
                     <div className="p-2 space-y-1">
+                        {(user?.role === 'admin' || hasPermission('users.manage')) && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setIsOpen(false);
+                                    navigate('/profile?tab=management');
+                                }}
+                                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors"
+                            >
+                                <span className="material-symbols-outlined text-[18px]">admin_panel_settings</span>
+                                <span>Kelola Karyawan & Hak Akses</span>
+                            </button>
+                        )}
+
                         <button
                             type="button"
                             onClick={() => {

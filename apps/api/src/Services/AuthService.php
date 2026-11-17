@@ -135,6 +135,13 @@ class AuthService
     private function sanitizeUser(array $user): array
     {
         unset($user['password_hash'], $user['pin_code']);
+        if (isset($user['permissions'])) {
+            if (is_string($user['permissions'])) {
+                $user['permissions'] = json_decode($user['permissions'], true) ?? [];
+            }
+        } else {
+            $user['permissions'] = [];
+        }
         return $user;
     }
 }

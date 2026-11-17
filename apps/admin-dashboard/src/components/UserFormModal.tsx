@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { PRESET_CASHIER_STOCK_HELPER, PRESET_MANAGER } from '../utils/permissions';
 
 interface UserFormModalProps {
     isOpen: boolean;
@@ -57,6 +58,14 @@ const UserFormModal = ({ isOpen, onClose, onSubmit, initialData, isEditing }: Us
             }
             if (dataToSend.role !== 'cashier') {
                 delete dataToSend.pin_code;
+            }
+
+            if (!isEditing) {
+                if (dataToSend.role === 'cashier') {
+                    dataToSend.permissions = PRESET_CASHIER_STOCK_HELPER;
+                } else if (dataToSend.role === 'manager') {
+                    dataToSend.permissions = PRESET_MANAGER;
+                }
             }
 
             await onSubmit(dataToSend);

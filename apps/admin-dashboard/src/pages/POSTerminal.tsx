@@ -76,7 +76,12 @@ interface CartItem {
 
 
 const POSTerminal = () => {
-    const { user } = useAuth();
+    const { user, hasPermission } = useAuth();
+    const canDiscount = hasPermission('pos.discount');
+    const canVoidItem = hasPermission('pos.void_item');
+    const canCustomItem = hasPermission('pos.custom_item');
+    const canReprint = hasPermission('pos.reprint');
+    const canChangePrice = hasPermission('pos.change_price');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [showMobileCart, setShowMobileCart] = useState(false);
     const [activeCategory, setActiveCategory] = useState<number | string>('all');
@@ -1242,13 +1247,15 @@ const POSTerminal = () => {
                                                             )}
                                                         </div>
                                                     </div>
-                                                    <button
-                                                        onClick={() => removeFromCart(item.cartItemId)}
-                                                        className="text-gray-400 dark:text-[#55556d] hover:text-red-500 transition-colors p-0.5 -mt-0.5 -mr-0.5 shrink-0"
-                                                        title="Hapus barang"
-                                                    >
-                                                        <span className="material-symbols-outlined text-[16px] sm:text-[18px]">close</span>
-                                                    </button>
+                                                    {canVoidItem && (
+                                                        <button
+                                                            onClick={() => removeFromCart(item.cartItemId)}
+                                                            className="text-gray-400 dark:text-[#55556d] hover:text-red-500 transition-colors p-0.5 -mt-0.5 -mr-0.5 shrink-0"
+                                                            title="Hapus barang"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[16px] sm:text-[18px]">close</span>
+                                                        </button>
+                                                    )}
                                                 </div>
 
                                                 <div className="flex items-end justify-between gap-1 mt-1.5">
@@ -1322,53 +1329,55 @@ const POSTerminal = () => {
                                 {!isSummaryCollapsed && (
                                     <div className="space-y-2.5 pt-1 border-t border-slate-200/80 dark:border-[#282839]/80 max-h-[42vh] overflow-y-auto pr-0.5">
                                         {/* Discount Controls (Full width dengan tombol % dan Rp di ujung) */}
-                                        <div className="space-y-1">
-                                            <div className="flex justify-between items-center">
-                                                <label className="text-xs text-gray-500 dark:text-[#9d9db9] font-medium">
-                                                    Diskon {discountType === 'percent' ? '(%)' : '(Rp)'}
-                                                </label>
-                                                {discountAmount > 0 && (
-                                                    <span className="text-[11px] font-bold text-rose-500 dark:text-rose-400">
-                                                        -{formatRupiah(discountAmount)}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div className="flex items-center gap-1.5 w-full">
-                                                <div className="relative flex-1">
-                                                    <input
-                                                        type="number"
-                                                        value={discountValue || ''}
-                                                        onChange={(e) => setDiscountValue(Number(e.target.value))}
-                                                        placeholder="0"
-                                                        className="w-full bg-white dark:bg-[#111118] border border-slate-200 dark:border-[#282839] rounded-xl px-3 py-2 text-sm sm:text-base font-bold text-gray-900 dark:text-white focus:outline-none focus:border-primary transition-colors"
-                                                    />
+                                        {canDiscount && (
+                                            <div className="space-y-1">
+                                                <div className="flex justify-between items-center">
+                                                    <label className="text-xs text-gray-500 dark:text-[#9d9db9] font-medium">
+                                                        Diskon {discountType === 'percent' ? '(%)' : '(Rp)'}
+                                                    </label>
+                                                    {discountAmount > 0 && (
+                                                        <span className="text-[11px] font-bold text-rose-500 dark:text-rose-400">
+                                                            -{formatRupiah(discountAmount)}
+                                                        </span>
+                                                    )}
                                                 </div>
-                                                <div className="flex bg-gray-200/80 dark:bg-[#1c1c27] rounded-xl p-1 border border-slate-200 dark:border-[#282839] shrink-0">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setDiscountType('percent')}
-                                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                                                            discountType === 'percent'
-                                                                ? 'bg-primary text-white shadow-sm'
-                                                                : 'text-gray-500 dark:text-[#9d9db9] hover:text-gray-900 dark:hover:text-white'
-                                                        }`}
-                                                    >
-                                                        %
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setDiscountType('fixed')}
-                                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                                                            discountType === 'fixed'
-                                                                ? 'bg-primary text-white shadow-sm'
-                                                                : 'text-gray-500 dark:text-[#9d9db9] hover:text-gray-900 dark:hover:text-white'
-                                                        }`}
-                                                    >
-                                                        Rp
-                                                    </button>
+                                                <div className="flex items-center gap-1.5 w-full">
+                                                    <div className="relative flex-1">
+                                                        <input
+                                                            type="number"
+                                                            value={discountValue || ''}
+                                                            onChange={(e) => setDiscountValue(Number(e.target.value))}
+                                                            placeholder="0"
+                                                            className="w-full bg-white dark:bg-[#111118] border border-slate-200 dark:border-[#282839] rounded-xl px-3 py-2 text-sm sm:text-base font-bold text-gray-900 dark:text-white focus:outline-none focus:border-primary transition-colors"
+                                                        />
+                                                    </div>
+                                                    <div className="flex bg-gray-200/80 dark:bg-[#1c1c27] rounded-xl p-1 border border-slate-200 dark:border-[#282839] shrink-0">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setDiscountType('percent')}
+                                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                                                discountType === 'percent'
+                                                                    ? 'bg-primary text-white shadow-sm'
+                                                                    : 'text-gray-500 dark:text-[#9d9db9] hover:text-gray-900 dark:hover:text-white'
+                                                            }`}
+                                                        >
+                                                            %
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setDiscountType('fixed')}
+                                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                                                discountType === 'fixed'
+                                                                    ? 'bg-primary text-white shadow-sm'
+                                                                    : 'text-gray-500 dark:text-[#9d9db9] hover:text-gray-900 dark:hover:text-white'
+                                                            }`}
+                                                        >
+                                                            Rp
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
+                                        )}
 
                                         {/* Breakdown Subtotal & Diskon */}
                                         <div className="space-y-1.5 pt-1.5 border-t border-slate-200 dark:border-[#282839]/50 text-xs sm:text-sm">
