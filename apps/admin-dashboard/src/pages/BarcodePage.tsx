@@ -311,7 +311,7 @@ export const BarcodePage = () => {
                             <div>
                                 <span className="font-bold">Mode Stiker Koala / Tom & Jerry No. 109 Aktif (55 Label per Lembar - 13x38 mm):</span>
                                 <p className="mt-0.5 text-[11px] text-amber-800/90 dark:text-amber-300/90 leading-relaxed">
-                                    Format label dipadatkan: <strong>Nama Barang + Garis Barcode (30 mm) + Nomor SKU</strong> tersusun rapat di bagian tengah stiker. Tata letak ini menyisakan ruang aman $\approx 2\text{ mm}$ di atas dan bawah serta $4\text{ mm}$ di kiri-kanan agar tidak terpotong pisau stiker.
+                                    Format label dipadatkan: <strong>Nama Barang + Garis Barcode (30 mm) + Nomor SKU</strong> tersusun rapat di bagian tengah stiker. Tata letak ini menyisakan ruang aman sekitar 2 mm di atas dan bawah serta 4 mm di kiri-kanan agar tidak terpotong pisau stiker.
                                 </p>
                             </div>
                         </div>
