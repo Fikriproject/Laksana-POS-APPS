@@ -454,6 +454,14 @@ const ReportsPage = () => {
     // --- Colors for Charts ---
     const COLORS = ['#6467f2', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
+    // Calculated Summaries
+    const totalExpenses = expenses.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+    const totalEmployeeSales = employeeStats.reduce((sum, e) => sum + (Number(e.total_sales) || 0), 0);
+    const totalEmployeeTransactions = employeeStats.reduce((sum, e) => sum + (Number(e.transactions) || 0), 0);
+    const topEmployee = employeeStats.length > 0
+        ? [...employeeStats].sort((a, b) => Number(b.total_sales) - Number(a.total_sales))[0]
+        : null;
+
     return (
         <div className="flex h-screen w-full overflow-hidden bg-background-light dark:bg-background-dark font-display text-white">
 
@@ -474,7 +482,7 @@ const ReportsPage = () => {
 
                         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                             {/* Date Filter */}
-                            <div className="flex flex-wrap items-center bg-gray-50 dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-lg p-1 w-full sm:w-auto transition-colors">
+                            <div className="flex flex-wrap items-center bg-gray-100/80 dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-xl p-1 gap-1 w-full sm:w-auto transition-colors">
                                 {[
                                     { id: 'today', label: 'Hari Ini' },
                                     { id: 'week', label: 'Minggu Ini' },
@@ -483,13 +491,13 @@ const ReportsPage = () => {
                                     <button
                                         key={t.id}
                                         onClick={() => handleFilterChange(t.id as any)}
-                                        className={`px-3 py-1.5 text-xs font-medium capitalize rounded transition-colors flex-1 sm:flex-none ${filterType === t.id ? 'bg-primary text-white shadow-sm' : 'text-gray-500 dark:text-text-secondary hover:text-gray-900 dark:hover:text-white'}`}
+                                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all flex-1 sm:flex-none ${filterType === t.id ? 'bg-primary text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
                                     >
                                         {t.label}
                                     </button>
                                 ))}
-                                <div className="w-px h-4 bg-slate-300 dark:bg-[#282839] mx-1 hidden sm:block" />
-                                <div className="flex items-center gap-2 px-3 w-full sm:w-auto border-t border-slate-200 dark:border-[#282839] sm:border-t-0 pt-2 sm:pt-0 mt-1 sm:mt-0 justify-between sm:justify-start">
+                                <div className="w-px h-4 bg-slate-300 dark:bg-[#282839] mx-0.5 hidden sm:block" />
+                                <div className="flex items-center gap-2 px-2.5 w-full sm:w-auto border-t border-slate-200 dark:border-[#282839] sm:border-t-0 pt-2 sm:pt-0 mt-1 sm:mt-0 justify-between sm:justify-start">
                                     <input
                                         type="date"
                                         value={dateRange.start}
@@ -497,9 +505,9 @@ const ReportsPage = () => {
                                             setFilterType('custom');
                                             setDateRange(prev => ({ ...prev, start: e.target.value }));
                                         }}
-                                        className="bg-transparent text-xs text-gray-900 dark:text-white focus:outline-none w-[110px]"
+                                        className="bg-transparent text-xs font-semibold text-gray-900 dark:text-white focus:outline-none w-[110px]"
                                     />
-                                    <span className="text-gray-400 dark:text-text-secondary">-</span>
+                                    <span className="text-gray-400 dark:text-text-secondary font-bold">-</span>
                                     <input
                                         type="date"
                                         value={dateRange.end}
@@ -507,7 +515,7 @@ const ReportsPage = () => {
                                             setFilterType('custom');
                                             setDateRange(prev => ({ ...prev, end: e.target.value }));
                                         }}
-                                        className="bg-transparent text-xs text-gray-900 dark:text-white focus:outline-none w-[110px]"
+                                        className="bg-transparent text-xs font-semibold text-gray-900 dark:text-white focus:outline-none w-[110px]"
                                     />
                                 </div>
                             </div>
@@ -634,7 +642,7 @@ const ReportsPage = () => {
                                     {/* Charts Row */}
                                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                                         {/* Revenue Trend */}
-                                        <div className="lg:col-span-2 bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-xl p-6 shadow-sm min-h-[400px] transition-colors">
+                                        <div className="lg:col-span-2 bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl p-6 shadow-sm min-h-[400px] transition-colors">
                                             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6">Tren Pendapatan</h3>
                                             <div className="h-[300px] w-full">
                                                 <ResponsiveContainer width="100%" height="100%">
@@ -655,7 +663,7 @@ const ReportsPage = () => {
                                         </div>
 
                                         {/* Sales by Category */}
-                                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-xl p-6 shadow-sm min-h-[400px] transition-colors">
+                                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl p-6 shadow-sm min-h-[400px] transition-colors">
                                             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6">Penjualan per Kategori</h3>
                                             <div className="h-[300px] w-full flex items-center justify-center">
                                                 {salesByCategory.length > 0 ? (
@@ -691,7 +699,7 @@ const ReportsPage = () => {
                                     </div>
 
                                     {/* Top Selling Products */}
-                                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-xl overflow-hidden shadow-sm transition-colors">
+                                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl overflow-hidden shadow-sm transition-colors">
                                         <div className="p-6 border-b border-slate-200 dark:border-[#282839]">
                                             <h3 className="text-lg font-bold text-gray-900 dark:text-white">Produk Terlaris</h3>
                                         </div>
@@ -722,10 +730,10 @@ const ReportsPage = () => {
                                     </div>
 
                                     {/* Daily Financial Breakdown */}
-                                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-xl overflow-hidden shadow-sm transition-colors mt-6">
+                                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl overflow-hidden shadow-sm transition-colors mt-6">
                                         <div className="p-6 border-b border-slate-200 dark:border-[#282839] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                             <h3 className="text-lg font-bold text-gray-900 dark:text-white">Rincian Keuangan</h3>
-                                            <div className="flex bg-gray-100 dark:bg-[#16161f] p-1 rounded-lg">
+                                            <div className="flex bg-gray-100 dark:bg-[#16161f] p-1 rounded-xl">
                                                 {[
                                                     { id: 'day', label: 'Harian' },
                                                     { id: 'week', label: 'Mingguan' },
@@ -804,29 +812,67 @@ const ReportsPage = () => {
                             {/* INVENTORY TAB */}
                             {activeTab === 'inventory' && inventoryStatus && (
                                 <div className="flex flex-col gap-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                        {[
-                                            { label: 'Total Nilai', value: formatRupiah(inventoryStatus.total_inventory_value), icon: 'monetization_on', color: 'text-green-500', bg: 'bg-green-500/10' },
-                                            { label: 'Total Barang', value: inventoryStatus.total_products, icon: 'inventory_2', color: 'text-blue-500', bg: 'bg-blue-500/10' },
-                                            { label: 'Stok Tipis', value: inventoryStatus.low_stock_products, icon: 'warning', color: 'text-orange-500', bg: 'bg-orange-500/10' },
-                                            { label: 'Stok Habis', value: inventoryStatus.out_of_stock_products, icon: 'remove_shopping_cart', color: 'text-red-500', bg: 'bg-red-500/10' },
-                                        ].map((stat, i) => (
-                                            <div key={i} className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-xl p-5 shadow-sm transition-colors">
-                                                <div className="flex justify-between items-start">
-                                                    <div>
-                                                        <p className="text-gray-500 dark:text-text-secondary text-sm font-medium mb-1">{stat.label}</p>
-                                                        <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{stat.value}</h3>
-                                                    </div>
-                                                    <div className={`size-10 rounded-lg ${stat.bg} flex items-center justify-center ${stat.color}`}>
-                                                        <span className="material-symbols-outlined">{stat.icon}</span>
-                                                    </div>
+                                    {/* Stats Cards Inventaris (Seragam dengan Rekap Harian) */}
+                                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                                        {/* Card 1: Total Produk */}
+                                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col justify-between">
+                                            <div className="flex items-center justify-between text-gray-500 mb-2">
+                                                <span className="text-xs font-semibold">Total Produk Terdaftar</span>
+                                                <div className="size-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center">
+                                                    <span className="material-symbols-outlined text-[18px]">inventory_2</span>
                                                 </div>
                                             </div>
-                                        ))}
+                                            <p className="text-lg sm:text-2xl font-black text-gray-900 dark:text-white">
+                                                {inventoryStatus.total_products.toLocaleString('id-ID')} Produk
+                                            </p>
+                                            <p className="text-[11px] text-gray-400 mt-1">Data master barang toko</p>
+                                        </div>
+
+                                        {/* Card 2: Stok Menipis */}
+                                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col justify-between">
+                                            <div className="flex items-center justify-between text-gray-500 mb-2">
+                                                <span className="text-xs font-semibold">Stok Menipis</span>
+                                                <div className="size-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                                                    <span className="material-symbols-outlined text-[18px]">warning</span>
+                                                </div>
+                                            </div>
+                                            <p className="text-lg sm:text-2xl font-black text-amber-600 dark:text-amber-400">
+                                                {inventoryStatus.low_stock_products} Produk
+                                            </p>
+                                            <p className="text-[11px] text-gray-400 mt-1">Perlu segera restock/kulakan</p>
+                                        </div>
+
+                                        {/* Card 3: Stok Habis */}
+                                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col justify-between">
+                                            <div className="flex items-center justify-between text-gray-500 mb-2">
+                                                <span className="text-xs font-semibold">Stok Habis (Kosong)</span>
+                                                <div className="size-8 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center">
+                                                    <span className="material-symbols-outlined text-[18px]">remove_shopping_cart</span>
+                                                </div>
+                                            </div>
+                                            <p className="text-lg sm:text-2xl font-black text-red-600 dark:text-red-400">
+                                                {inventoryStatus.out_of_stock_products} Produk
+                                            </p>
+                                            <p className="text-[11px] text-gray-400 mt-1">Barang tidak bisa dijual kasir</p>
+                                        </div>
+
+                                        {/* Card 4: Total Nilai Inventaris (HERO HIJAU KONTRAS) */}
+                                        <div className="bg-emerald-600 dark:bg-emerald-600 rounded-2xl p-4 sm:p-5 text-white shadow-lg shadow-emerald-600/25 relative overflow-hidden flex flex-col justify-between">
+                                            <div className="flex items-center justify-between text-emerald-100 mb-2">
+                                                <span className="text-xs font-bold uppercase tracking-wider">TOTAL ASET INVENTARIS</span>
+                                                <div className="size-8 rounded-lg bg-white/20 text-white flex items-center justify-center">
+                                                    <span className="material-symbols-outlined text-[18px]">monetization_on</span>
+                                                </div>
+                                            </div>
+                                            <p className="text-lg sm:text-2xl font-black text-white">
+                                                {formatRupiah(inventoryStatus.total_inventory_value)}
+                                            </p>
+                                            <p className="text-[11px] text-emerald-100 mt-1">Estimasi modal barang fisik</p>
+                                        </div>
                                     </div>
 
-                                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-xl p-6 shadow-sm min-h-[400px] transition-colors">
-                                        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6">Distribusi Stok</h3>
+                                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl p-6 shadow-sm min-h-[400px] transition-colors">
+                                        <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white mb-6">Distribusi Status Stok</h3>
                                         <div className="h-[300px] w-full">
                                             <ResponsiveContainer width="100%" height="100%">
                                                 <PieChart>
@@ -858,9 +904,72 @@ const ReportsPage = () => {
                             {/* EMPLOYEES TAB */}
                             {activeTab === 'employees' && (
                                 <div className="flex flex-col gap-6">
-                                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-xl overflow-hidden shadow-sm transition-colors">
-                                        <div className="p-6 border-b border-slate-200 dark:border-[#282839]">
-                                            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Kinerja Karyawan</h3>
+                                    {/* Stats Cards Karyawan (Seragam dengan Rekap Harian) */}
+                                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                                        {/* Card 1: Total Karyawan */}
+                                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col justify-between">
+                                            <div className="flex items-center justify-between text-gray-500 mb-2">
+                                                <span className="text-xs font-semibold">Total Karyawan Aktif</span>
+                                                <div className="size-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center">
+                                                    <span className="material-symbols-outlined text-[18px]">group</span>
+                                                </div>
+                                            </div>
+                                            <p className="text-lg sm:text-2xl font-black text-gray-900 dark:text-white">
+                                                {employeeStats.length} Karyawan
+                                            </p>
+                                            <p className="text-[11px] text-gray-400 mt-1">Staf kasir bertugas</p>
+                                        </div>
+
+                                        {/* Card 2: Total Transaksi Kasir */}
+                                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col justify-between">
+                                            <div className="flex items-center justify-between text-gray-500 mb-2">
+                                                <span className="text-xs font-semibold">Total Transaksi Kasir</span>
+                                                <div className="size-8 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
+                                                    <span className="material-symbols-outlined text-[18px]">receipt_long</span>
+                                                </div>
+                                            </div>
+                                            <p className="text-lg sm:text-2xl font-black text-gray-900 dark:text-white">
+                                                {totalEmployeeTransactions.toLocaleString('id-ID')}
+                                            </p>
+                                            <p className="text-[11px] text-gray-400 mt-1">Total nota ditangani</p>
+                                        </div>
+
+                                        {/* Card 3: Rata-rata Penjualan */}
+                                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col justify-between">
+                                            <div className="flex items-center justify-between text-gray-500 mb-2">
+                                                <span className="text-xs font-semibold">Rata-rata Penjualan</span>
+                                                <div className="size-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                                                    <span className="material-symbols-outlined text-[18px]">query_stats</span>
+                                                </div>
+                                            </div>
+                                            <p className="text-lg sm:text-2xl font-black text-gray-900 dark:text-white">
+                                                {formatRupiah(employeeStats.length > 0 ? (totalEmployeeSales / employeeStats.length) : 0)}
+                                            </p>
+                                            <p className="text-[11px] text-gray-400 mt-1">Omset rata-rata per staf</p>
+                                        </div>
+
+                                        {/* Card 4: Top Performer (Hero Hijau) */}
+                                        <div className="bg-emerald-600 dark:bg-emerald-600 rounded-2xl p-4 sm:p-5 text-white shadow-lg shadow-emerald-600/25 relative overflow-hidden flex flex-col justify-between">
+                                            <div className="flex items-center justify-between text-emerald-100 mb-2">
+                                                <span className="text-xs font-bold uppercase tracking-wider">KASIR TERBAIK</span>
+                                                <div className="size-8 rounded-lg bg-white/20 text-white flex items-center justify-center">
+                                                    <span className="material-symbols-outlined text-[18px]">workspace_premium</span>
+                                                </div>
+                                            </div>
+                                            <p className="text-lg sm:text-2xl font-black text-white truncate">
+                                                {topEmployee ? topEmployee.full_name : '-'}
+                                            </p>
+                                            <p className="text-[11px] text-emerald-100 mt-1">
+                                                {topEmployee ? `${formatRupiah(topEmployee.total_sales)} omset` : 'Belum ada data'}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Table Kinerja Karyawan */}
+                                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl overflow-hidden shadow-sm transition-colors">
+                                        <div className="p-4 sm:p-6 border-b border-slate-200 dark:border-[#282839]">
+                                            <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">Tabel Kinerja Karyawan</h3>
+                                            <p className="text-xs text-gray-500 dark:text-text-secondary mt-0.5">Rincian performa penjualan setiap staf kasir</p>
                                         </div>
                                         <div className="overflow-x-auto">
                                             <table className="w-full text-left text-sm text-gray-500 dark:text-text-secondary">
@@ -876,7 +985,7 @@ const ReportsPage = () => {
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-slate-200 dark:divide-[#282839]">
-                                                    {employeeStats.map((emp) => (
+                                                    {employeeStats.length > 0 ? employeeStats.map((emp) => (
                                                         <tr key={emp.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                                                             <td className="px-6 py-4 font-medium text-gray-900 dark:text-white flex items-center gap-3">
                                                                 <div className="size-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
@@ -885,7 +994,7 @@ const ReportsPage = () => {
                                                                 {emp.full_name}
                                                             </td>
                                                             <td className="px-6 py-4">{emp.employee_id}</td>
-                                                            <td className="px-6 py-4 text-right">{emp.transactions}</td>
+                                                            <td className="px-6 py-4 text-right font-medium text-gray-900 dark:text-white">{emp.transactions}</td>
                                                             <td className="px-6 py-4 text-right">{formatRupiah(emp.avg_sale)}</td>
                                                             <td className="px-6 py-4 text-right font-bold text-gray-900 dark:text-white">{formatRupiah(emp.total_sales)}</td>
                                                             <td className="px-6 py-4">
@@ -910,106 +1019,167 @@ const ReportsPage = () => {
                                                                 </button>
                                                             </td>
                                                         </tr>
-                                                    ))}
+                                                    )) : (
+                                                        <tr>
+                                                            <td colSpan={7} className="px-6 py-8 text-center text-gray-400">Belum ada data kinerja karyawan pada rentang tanggal ini.</td>
+                                                        </tr>
+                                                    )}
                                                 </tbody>
                                             </table>
                                         </div>
                                     </div>
 
-                                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-xl p-6 shadow-sm min-h-[400px] transition-colors">
-                                        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6">Penjualan per Karyawan</h3>
+                                    {/* Chart Penjualan per Karyawan */}
+                                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl p-6 shadow-sm min-h-[400px] transition-colors">
+                                        <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white mb-6">Grafik Penjualan per Karyawan</h3>
                                         <div className="h-[300px] w-full">
-                                            <ResponsiveContainer width="100%" height="100%">
-                                                <BarChart data={employeeStats} layout="vertical">
-                                                    <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#282839" : "#e2e8f0"} horizontal={false} />
-                                                    <XAxis type="number" stroke={isDark ? "#9d9db9" : "#94a3b8"} fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `Rp${(value / 1000).toFixed(0)}k`} />
-                                                    <YAxis dataKey="full_name" type="category" stroke={isDark ? "#9d9db9" : "#94a3b8"} fontSize={12} tickLine={false} axisLine={false} width={100} />
-                                                    <Tooltip
-                                                        cursor={{ fill: isDark ? '#282839' : '#e2e8f0' }}
-                                                        contentStyle={{ backgroundColor: isDark ? '#1c1c27' : '#ffffff', borderColor: isDark ? '#3b3c54' : '#e2e8f0', color: isDark ? '#fff' : '#1e293b' }}
-                                                        formatter={(value: any) => formatRupiah(value)}
-                                                    />
-                                                    <Bar dataKey="total_sales" fill="#6467f2" radius={[0, 4, 4, 0]} barSize={20} name="Total Penjualan" />
-                                                </BarChart>
-                                            </ResponsiveContainer>
+                                            {employeeStats.length > 0 ? (
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <BarChart data={employeeStats} layout="vertical">
+                                                        <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#282839" : "#e2e8f0"} horizontal={false} />
+                                                        <XAxis type="number" stroke={isDark ? "#9d9db9" : "#94a3b8"} fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `Rp${(value / 1000).toFixed(0)}k`} />
+                                                        <YAxis dataKey="full_name" type="category" stroke={isDark ? "#9d9db9" : "#94a3b8"} fontSize={12} tickLine={false} axisLine={false} width={100} />
+                                                        <Tooltip
+                                                            cursor={{ fill: isDark ? '#282839' : '#e2e8f0' }}
+                                                            contentStyle={{ backgroundColor: isDark ? '#1c1c27' : '#ffffff', borderColor: isDark ? '#3b3c54' : '#e2e8f0', color: isDark ? '#fff' : '#1e293b' }}
+                                                            formatter={(value: any) => formatRupiah(value)}
+                                                        />
+                                                        <Bar dataKey="total_sales" fill="#6467f2" radius={[0, 4, 4, 0]} barSize={20} name="Total Penjualan" />
+                                                    </BarChart>
+                                                </ResponsiveContainer>
+                                            ) : (
+                                                <div className="h-full flex items-center justify-center text-gray-400 text-sm">Tidak ada data grafik karyawan</div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
                             )}
 
-                            {/* TAX TAB */}
-                            {activeTab === 'tax' && salesSummary && (<div>
+                            {/* TAX & EXPENSES TAB */}
+                            {activeTab === 'tax' && (
                                 <div className="flex flex-col gap-6">
-                                    {/* Stats Cards */}
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                        {[
-                                            { label: 'Total Pajak Terkumpul', value: formatRupiah(salesSummary.total_tax), icon: 'account_balance', color: 'text-red-500', bg: 'bg-red-500/10' },
-                                            { label: 'Total Diskon Diberikan', value: formatRupiah(salesSummary.total_discounts), icon: 'sell', color: 'text-orange-500', bg: 'bg-orange-500/10' },
-                                            { label: 'Total Pengembalian', value: salesSummary.refunded_orders, icon: 'keyboard_return', color: 'text-purple-500', bg: 'bg-purple-500/10' },
-                                        ].map((stat, i) => (
-                                            <div key={i} className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-xl p-5 shadow-sm transition-colors">
-                                                <div className="flex justify-between items-start">
-                                                    <div>
-                                                        <p className="text-gray-500 dark:text-text-secondary text-sm font-medium mb-1">{stat.label}</p>
-                                                        <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{stat.value}</h3>
-                                                    </div>
-                                                    <div className={`size-10 rounded-lg ${stat.bg} flex items-center justify-center ${stat.color}`}>
-                                                        <span className="material-symbols-outlined">{stat.icon}</span>
-                                                    </div>
+                                    {/* Row 1: Stats Cards (4 Kartu Seragam dengan Hero Merah Kontras) */}
+                                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                                        {/* Card 1: Total Pajak Terkumpul */}
+                                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col justify-between">
+                                            <div className="flex items-center justify-between text-gray-500 mb-2">
+                                                <span className="text-xs font-semibold">Total Pajak Terkumpul</span>
+                                                <div className="size-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center">
+                                                    <span className="material-symbols-outlined text-[18px]">account_balance</span>
                                                 </div>
                                             </div>
-                                        ))}
-                                    </div>
+                                            <p className="text-lg sm:text-2xl font-black text-gray-900 dark:text-white">
+                                                {formatRupiah(salesSummary?.total_tax || 0)}
+                                            </p>
+                                            <p className="text-[11px] text-gray-400 mt-1">Pajak penjualan (PPN)</p>
+                                        </div>
 
-                                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-xl p-6 shadow-sm min-h-[400px] max-w-2xl mx-auto w-full transition-colors">
-                                        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6">Rincian Potongan Keuangan</h3>
-                                        <div className="h-[300px] w-full">
-                                            <ResponsiveContainer width="100%" height="100%">
-                                                <PieChart>
-                                                    <Pie
-                                                        data={[
-                                                            { name: 'Pajak', value: Number(salesSummary.total_tax) },
-                                                            { name: 'Diskon', value: Number(salesSummary.total_discounts) },
-                                                        ]}
-                                                        cx="50%"
-                                                        cy="50%"
-                                                        innerRadius={60}
-                                                        outerRadius={100}
-                                                        dataKey="value"
-                                                    >
-                                                        <Cell fill="#ef4444" />
-                                                        <Cell fill="#f59e0b" />
-                                                    </Pie>
-                                                    <Tooltip
-                                                        contentStyle={{ backgroundColor: isDark ? '#1c1c27' : '#ffffff', borderColor: isDark ? '#3b3c54' : '#e2e8f0' }}
-                                                        itemStyle={{ color: isDark ? '#fff' : '#1e293b' }}
-                                                        formatter={(value: any) => formatRupiah(value)}
-                                                    />
-                                                    <Legend />
-                                                </PieChart>
-                                            </ResponsiveContainer>
+                                        {/* Card 2: Total Diskon Diberikan */}
+                                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col justify-between">
+                                            <div className="flex items-center justify-between text-gray-500 mb-2">
+                                                <span className="text-xs font-semibold">Total Diskon Diberikan</span>
+                                                <div className="size-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                                                    <span className="material-symbols-outlined text-[18px]">sell</span>
+                                                </div>
+                                            </div>
+                                            <p className="text-lg sm:text-2xl font-black text-gray-900 dark:text-white">
+                                                {formatRupiah(salesSummary?.total_discounts || 0)}
+                                            </p>
+                                            <p className="text-[11px] text-gray-400 mt-1">Potongan harga promo</p>
+                                        </div>
+
+                                        {/* Card 3: Total Pengembalian / Refund */}
+                                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col justify-between">
+                                            <div className="flex items-center justify-between text-gray-500 mb-2">
+                                                <span className="text-xs font-semibold">Total Retur (Refund)</span>
+                                                <div className="size-8 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center">
+                                                    <span className="material-symbols-outlined text-[18px]">keyboard_return</span>
+                                                </div>
+                                            </div>
+                                            <p className="text-lg sm:text-2xl font-black text-gray-900 dark:text-white">
+                                                {(salesSummary?.refunded_orders || 0).toLocaleString('id-ID')}
+                                            </p>
+                                            <p className="text-[11px] text-gray-400 mt-1">Transaksi nota dibatalkan</p>
+                                        </div>
+
+                                        {/* Card 4: TOTAL BIAYA PENGELUARAN (HERO MERAH KONTRAS) */}
+                                        <div className="bg-gradient-to-br from-rose-600 to-red-700 text-white rounded-2xl p-4 sm:p-5 shadow-lg shadow-rose-600/25 relative overflow-hidden flex flex-col justify-between">
+                                            <div className="flex items-center justify-between text-rose-100 mb-2">
+                                                <span className="text-xs font-bold uppercase tracking-wider">TOTAL BIAYA PENGELUARAN</span>
+                                                <div className="size-8 rounded-lg bg-white/20 text-white flex items-center justify-center">
+                                                    <span className="material-symbols-outlined text-[18px]">shopping_cart_checkout</span>
+                                                </div>
+                                            </div>
+                                            <p className="text-lg sm:text-2xl font-black text-white">
+                                                {formatRupiah(totalExpenses)}
+                                            </p>
+                                            <p className="text-[11px] text-rose-100 mt-1">
+                                                {expenses.length} Catatan pos biaya toko
+                                            </p>
                                         </div>
                                     </div>
-                                </div>
 
-                                {/* Expenses Section */}
-                                <div className="mt-8 border-t border-slate-200 dark:border-[#282839] pt-8">
-                                    <div className="flex justify-between items-center mb-6">
-                                        <h3 className="text-xl font-bold text-gray-900 dark:text-white">Pengeluaran Harian</h3>
-                                        <button
-                                            onClick={() => setIsAddingExpense(true)}
-                                            className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors text-sm font-medium"
-                                        >
-                                            <span className="material-symbols-outlined text-[20px]">add</span>
-                                            Catat Pengeluaran
-                                        </button>
-                                    </div>
+                                    {/* Row 2: Charts Row (2 Kolom Seimbang) */}
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                        {/* Chart 1: Rincian Potongan Keuangan */}
+                                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl p-6 shadow-sm min-h-[380px] flex flex-col transition-colors">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div>
+                                                    <h3 className="text-base font-bold text-gray-900 dark:text-white">Rincian Potongan Keuangan</h3>
+                                                    <p className="text-xs text-gray-500 dark:text-text-secondary mt-0.5">Perbandingan potongan diskon vs pajak terhimpun</p>
+                                                </div>
+                                                <div className="size-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                                                    <span className="material-symbols-outlined text-[18px]">pie_chart</span>
+                                                </div>
+                                            </div>
+                                            <div className="h-[280px] w-full flex-1 flex items-center justify-center">
+                                                {((Number(salesSummary?.total_tax) || 0) > 0 || (Number(salesSummary?.total_discounts) || 0) > 0) ? (
+                                                    <ResponsiveContainer width="100%" height="100%">
+                                                        <PieChart>
+                                                            <Pie
+                                                                data={[
+                                                                    { name: 'Pajak', value: Number(salesSummary?.total_tax || 0) },
+                                                                    { name: 'Diskon', value: Number(salesSummary?.total_discounts || 0) },
+                                                                ]}
+                                                                cx="50%"
+                                                                cy="50%"
+                                                                innerRadius={65}
+                                                                outerRadius={95}
+                                                                paddingAngle={4}
+                                                                dataKey="value"
+                                                            >
+                                                                <Cell fill="#6467f2" />
+                                                                <Cell fill="#f59e0b" />
+                                                            </Pie>
+                                                            <Tooltip
+                                                                contentStyle={{ backgroundColor: isDark ? '#1c1c27' : '#ffffff', borderColor: isDark ? '#3b3c54' : '#e2e8f0', borderRadius: '12px' }}
+                                                                itemStyle={{ color: isDark ? '#fff' : '#1e293b' }}
+                                                                formatter={(value: any) => formatRupiah(value)}
+                                                            />
+                                                            <Legend verticalAlign="bottom" height={36} />
+                                                        </PieChart>
+                                                    </ResponsiveContainer>
+                                                ) : (
+                                                    <div className="flex flex-col items-center justify-center text-gray-400 dark:text-text-secondary gap-2 py-8">
+                                                        <span className="material-symbols-outlined text-4xl text-gray-300 dark:text-gray-600">donut_large</span>
+                                                        <p className="text-xs font-medium">Tidak ada data potongan pajak & diskon pada periode ini</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
 
-                                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                        {/* Expense Summary Chart */}
-                                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-xl p-6 shadow-sm min-h-[400px]">
-                                            <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-6">Total per Kategori</h4>
-                                            <div className="h-[300px] w-full">
+                                        {/* Chart 2: Komposisi Pengeluaran per Kategori */}
+                                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl p-6 shadow-sm min-h-[380px] flex flex-col transition-colors">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div>
+                                                    <h3 className="text-base font-bold text-gray-900 dark:text-white">Komposisi Pengeluaran per Kategori</h3>
+                                                    <p className="text-xs text-gray-500 dark:text-text-secondary mt-0.5">Alokasi pos belanja dan beban operasional toko</p>
+                                                </div>
+                                                <div className="size-8 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center">
+                                                    <span className="material-symbols-outlined text-[18px]">account_balance_wallet</span>
+                                                </div>
+                                            </div>
+                                            <div className="h-[280px] w-full flex-1 flex items-center justify-center">
                                                 {expenseSummary.length > 0 ? (
                                                     <ResponsiveContainer width="100%" height="100%">
                                                         <PieChart>
@@ -1017,9 +1187,9 @@ const ReportsPage = () => {
                                                                 data={expenseSummary}
                                                                 cx="50%"
                                                                 cy="50%"
-                                                                innerRadius={60}
-                                                                outerRadius={80}
-                                                                paddingAngle={5}
+                                                                innerRadius={65}
+                                                                outerRadius={95}
+                                                                paddingAngle={4}
                                                                 dataKey="total"
                                                                 nameKey="category"
                                                             >
@@ -1028,123 +1198,172 @@ const ReportsPage = () => {
                                                                 ))}
                                                             </Pie>
                                                             <Tooltip
-                                                                contentStyle={{ backgroundColor: isDark ? '#1c1c27' : '#ffffff', borderColor: isDark ? '#3b3c54' : '#e2e8f0' }}
+                                                                contentStyle={{ backgroundColor: isDark ? '#1c1c27' : '#ffffff', borderColor: isDark ? '#3b3c54' : '#e2e8f0', borderRadius: '12px' }}
                                                                 itemStyle={{ color: isDark ? '#fff' : '#1e293b' }}
                                                                 formatter={(value: any) => formatRupiah(value)}
                                                             />
-                                                            <Legend />
+                                                            <Legend verticalAlign="bottom" height={36} />
                                                         </PieChart>
                                                     </ResponsiveContainer>
                                                 ) : (
-                                                    <div className="h-full flex items-center justify-center text-gray-500">Belum ada pengeluaran</div>
+                                                    <div className="flex flex-col items-center justify-center text-gray-400 dark:text-text-secondary gap-2 py-8">
+                                                        <span className="material-symbols-outlined text-4xl text-gray-300 dark:text-gray-600">pie_chart</span>
+                                                        <p className="text-xs font-medium">Belum ada catatan pengeluaran operasional pada periode ini</p>
+                                                    </div>
                                                 )}
                                             </div>
                                         </div>
+                                    </div>
 
-                                        {/* Expenses List */}
-                                        <div className="lg:col-span-2 bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-xl overflow-hidden shadow-sm">
-                                            <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
-                                                <table className="w-full text-left text-sm text-gray-500 dark:text-text-secondary">
-                                                    <thead className="bg-gray-50 dark:bg-[#16161f] text-xs uppercase font-semibold text-gray-500 dark:text-text-secondary sticky top-0">
-                                                        <tr>
-                                                            <th className="px-6 py-4">Tanggal</th>
-                                                            <th className="px-6 py-4">Kategori</th>
-                                                            <th className="px-6 py-4">Keterangan</th>
-                                                            <th className="px-6 py-4">Dicatat Oleh</th>
-                                                            <th className="px-6 py-4 text-right">Jumlah</th>
+                                    {/* Row 3: Expenses Table Card (Full Width) */}
+                                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl overflow-hidden shadow-sm transition-colors">
+                                        <div className="p-4 sm:p-6 border-b border-slate-200 dark:border-[#282839] flex flex-wrap items-center justify-between gap-3">
+                                            <div>
+                                                <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                                    <span className="material-symbols-outlined text-red-500 text-[20px]">receipt_long</span>
+                                                    Daftar Riwayat Pengeluaran Toko
+                                                </h3>
+                                                <p className="text-xs text-gray-500 dark:text-text-secondary mt-0.5">
+                                                    Total {expenses.length} transaksi pengeluaran tercatat dalam rentang tanggal terpilih
+                                                </p>
+                                            </div>
+                                            <button
+                                                onClick={() => setIsAddingExpense(true)}
+                                                className="flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-all text-xs font-bold shadow-md shadow-red-600/20"
+                                            >
+                                                <span className="material-symbols-outlined text-[18px]">add</span>
+                                                Catat Pengeluaran Baru
+                                            </button>
+                                        </div>
+
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left text-sm text-gray-500 dark:text-text-secondary">
+                                                <thead className="bg-gray-50 dark:bg-[#16161f] text-xs uppercase font-semibold text-gray-500 dark:text-text-secondary">
+                                                    <tr>
+                                                        <th className="px-6 py-3.5">Tanggal</th>
+                                                        <th className="px-6 py-3.5">Kategori</th>
+                                                        <th className="px-6 py-3.5">Keterangan</th>
+                                                        <th className="px-6 py-3.5">Dicatat Oleh</th>
+                                                        <th className="px-6 py-3.5 text-right">Jumlah Biaya</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-200 dark:divide-[#282839]">
+                                                    {expenses.length > 0 ? expenses.map((exp) => (
+                                                        <tr key={exp.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                                                            <td className="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">
+                                                                {new Date(exp.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                            </td>
+                                                            <td className="px-6 py-4">
+                                                                <span className="px-2.5 py-1 bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg text-xs font-semibold">
+                                                                    {exp.category}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-6 py-4 text-xs text-gray-700 dark:text-gray-300">
+                                                                {exp.description || '-'}
+                                                            </td>
+                                                            <td className="px-6 py-4 text-xs font-medium">
+                                                                {exp.user_name || 'Administrator'}
+                                                            </td>
+                                                            <td className="px-6 py-4 text-right font-bold text-red-600 dark:text-red-400 whitespace-nowrap">
+                                                                {formatRupiah(exp.amount)}
+                                                            </td>
                                                         </tr>
-                                                    </thead>
-                                                    <tbody className="divide-y divide-slate-200 dark:divide-[#282839]">
-                                                        {expenses.length > 0 ? expenses.map((exp) => (
-                                                            <tr key={exp.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-                                                                <td className="px-6 py-4">{new Date(exp.created_at).toLocaleDateString('id-ID')}</td>
-                                                                <td className="px-6 py-4">
-                                                                    <span className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-xs font-medium">
-                                                                        {exp.category}
-                                                                    </span>
-                                                                </td>
-                                                                <td className="px-6 py-4 text-xs">{exp.description || '-'}</td>
-                                                                <td className="px-6 py-4">{exp.user_name || 'System'}</td>
-                                                                <td className="px-6 py-4 text-right font-medium text-red-500">{formatRupiah(exp.amount)}</td>
-                                                            </tr>
-                                                        )) : (
-                                                            <tr>
-                                                                <td colSpan={5} className="px-6 py-8 text-center text-gray-500">Tidak ada data pengeluaran</td>
-                                                            </tr>
-                                                        )}
-                                                    </tbody>
-                                                </table>
-                                            </div>
+                                                    )) : (
+                                                        <tr>
+                                                            <td colSpan={5} className="px-6 py-12 text-center text-gray-400 dark:text-text-secondary">
+                                                                <div className="flex flex-col items-center justify-center gap-2">
+                                                                    <span className="material-symbols-outlined text-4xl text-gray-300 dark:text-gray-600">receipt</span>
+                                                                    <p className="text-sm font-medium">Belum ada data pengeluaran pada rentang tanggal ini.</p>
+                                                                    <p className="text-xs text-gray-400">Klik tombol "Catat Pengeluaran Baru" untuk menambahkan pos biaya.</p>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                </tbody>
+                                                {expenses.length > 0 && (
+                                                    <tfoot className="bg-gray-50/80 dark:bg-[#16161f] font-bold text-gray-900 dark:text-white border-t border-slate-200 dark:border-[#282839]">
+                                                        <tr>
+                                                            <td colSpan={4} className="px-6 py-4 text-right text-xs uppercase tracking-wider text-gray-500 dark:text-text-secondary">
+                                                                Total Pengeluaran:
+                                                            </td>
+                                                            <td className="px-6 py-4 text-right text-base text-red-600 dark:text-red-400 font-black">
+                                                                {formatRupiah(totalExpenses)}
+                                                            </td>
+                                                        </tr>
+                                                    </tfoot>
+                                                )}
+                                            </table>
                                         </div>
                                     </div>
+
+                                    {/* Add Expense Modal */}
+                                    {isAddingExpense && (
+                                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                                            <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl shadow-2xl w-full max-w-md p-6 animate-in fade-in zoom-in duration-200">
+                                                <div className="flex justify-between items-center mb-5 pb-3 border-b border-slate-200 dark:border-[#282839]">
+                                                    <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                                        <span className="material-symbols-outlined text-red-500 text-[20px]">add_circle</span>
+                                                        Catat Pengeluaran Baru
+                                                    </h3>
+                                                    <button onClick={() => setIsAddingExpense(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white">
+                                                        <span className="material-symbols-outlined text-[20px]">close</span>
+                                                    </button>
+                                                </div>
+                                                <form onSubmit={handleAddExpense} className="space-y-4">
+                                                    <div>
+                                                        <label className="block text-xs font-semibold text-gray-700 dark:text-text-secondary mb-1.5">Kategori Beban</label>
+                                                        <select
+                                                            value={newExpense.category}
+                                                            onChange={e => setNewExpense({ ...newExpense, category: e.target.value })}
+                                                            className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-[#282839] rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-900 dark:text-white text-sm"
+                                                        >
+                                                            {expenseCategories.map(cat => (
+                                                                <option key={cat} value={cat}>{cat}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs font-semibold text-gray-700 dark:text-text-secondary mb-1.5">Nominal Biaya (Rp)</label>
+                                                        <input
+                                                            type="number"
+                                                            value={newExpense.amount}
+                                                            onChange={e => setNewExpense({ ...newExpense, amount: e.target.value })}
+                                                            placeholder="0"
+                                                            required
+                                                            min="0"
+                                                            className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-[#282839] rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-900 dark:text-white text-sm"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs font-semibold text-gray-700 dark:text-text-secondary mb-1.5">Keterangan / Keperluan</label>
+                                                        <textarea
+                                                            value={newExpense.description}
+                                                            onChange={e => setNewExpense({ ...newExpense, description: e.target.value })}
+                                                            placeholder="Contoh: Beli pulsa token listrik, beli kantong plastik..."
+                                                            rows={3}
+                                                            className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-[#282839] rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-900 dark:text-white text-sm resize-none"
+                                                        />
+                                                    </div>
+                                                    <div className="flex justify-end gap-2.5 pt-4 border-t border-slate-100 dark:border-white/5">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setIsAddingExpense(false)}
+                                                            className="px-4 py-2.5 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl border border-slate-200 dark:border-[#282839] transition-colors"
+                                                        >
+                                                            Batal
+                                                        </button>
+                                                        <button
+                                                            type="submit"
+                                                            className="px-5 py-2.5 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-all shadow-md shadow-red-600/25"
+                                                        >
+                                                            Simpan Pengeluaran
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
-
-
-                                {/* Add Expense Modal */}
-                                {isAddingExpense && (
-                                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                                        <div className="bg-white dark:bg-surface-dark rounded-xl shadow-xl w-full max-w-md p-6 animate-in fade-in zoom-in duration-200">
-                                            <div className="flex justify-between items-center mb-4">
-                                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Catat Pengeluaran</h3>
-                                                <button onClick={() => setIsAddingExpense(false)} className="text-gray-500 hover:text-gray-700 dark:text-text-secondary">
-                                                    <span className="material-symbols-outlined">close</span>
-                                                </button>
-                                            </div>
-                                            <form onSubmit={handleAddExpense} className="space-y-4">
-                                                <div>
-                                                    <label className="block text-xs font-medium text-gray-700 dark:text-text-secondary mb-1">Kategori</label>
-                                                    <select
-                                                        value={newExpense.category}
-                                                        onChange={e => setNewExpense({ ...newExpense, category: e.target.value })}
-                                                        className="w-full px-3 py-2 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-[#282839] rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-900 dark:text-white"
-                                                    >
-                                                        {expenseCategories.map(cat => (
-                                                            <option key={cat} value={cat}>{cat}</option>
-                                                        ))}
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <label className="block text-xs font-medium text-gray-700 dark:text-text-secondary mb-1">Jumlah (Rp)</label>
-                                                    <input
-                                                        type="number"
-                                                        value={newExpense.amount}
-                                                        onChange={e => setNewExpense({ ...newExpense, amount: e.target.value })}
-                                                        placeholder="0"
-                                                        required
-                                                        min="0"
-                                                        className="w-full px-3 py-2 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-[#282839] rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-900 dark:text-white"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-xs font-medium text-gray-700 dark:text-text-secondary mb-1">Keterangan</label>
-                                                    <textarea
-                                                        value={newExpense.description}
-                                                        onChange={e => setNewExpense({ ...newExpense, description: e.target.value })}
-                                                        placeholder="Contoh: Beli sabun cuci piring"
-                                                        rows={3}
-                                                        className="w-full px-3 py-2 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-[#282839] rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-900 dark:text-white resize-none"
-                                                    />
-                                                </div>
-                                                <div className="flex justify-end gap-3 pt-4">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setIsAddingExpense(false)}
-                                                        className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-text-secondary hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-colors"
-                                                    >
-                                                        Batal
-                                                    </button>
-                                                    <button
-                                                        type="submit"
-                                                        className="px-4 py-2 text-sm font-bold text-white bg-primary hover:bg-primary-dark rounded-lg transition-colors shadow-lg shadow-primary/25"
-                                                    >
-                                                        Simpan
-                                                    </button>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
                             )}
                         </>
                     )}
