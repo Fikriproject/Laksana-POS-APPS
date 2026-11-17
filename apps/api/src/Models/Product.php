@@ -25,7 +25,7 @@ class Product extends Model
         return $result ?: null;
     }
 
-    public function findAllWithCategory(int $limit = 100, int $offset = 0, ?int $categoryId = null, ?bool $activeOnly = null): array
+    public function findAllWithCategory(int $limit = 100, int $offset = 0, ?int $categoryId = null, ?bool $activeOnly = null, ?string $condition = null): array
     {
         $where = '1=1';
         $params = [];
@@ -39,6 +39,14 @@ class Product extends Model
             $isPg = ($this->db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql');
             $where .= ' AND p.is_active = :is_active';
             $params['is_active'] = $isPg ? ($activeOnly ? 'true' : 'false') : ($activeOnly ? 1 : 0);
+        }
+
+        if ($condition === 'out_of_stock' || $condition === 'habis') {
+            $where .= ' AND p.stock_quantity <= 0';
+        } elseif ($condition === 'low_stock' || $condition === 'sedikit') {
+            $where .= ' AND p.stock_quantity > 0 AND p.stock_quantity <= COALESCE(NULLIF(p.low_stock_threshold, 0), 5)';
+        } elseif ($condition === 'loss' || $condition === 'rugi') {
+            $where .= ' AND p.purchase_price > 0 AND (p.price < p.purchase_price OR (p.wholesale_price > 0 AND p.wholesale_price < p.purchase_price) OR (p.reseller_price > 0 AND p.reseller_price < p.purchase_price))';
         }
         
         $stmt = $this->db->prepare(
@@ -60,7 +68,7 @@ class Product extends Model
         return $stmt->fetchAll();
     }
 
-    public function countWithFilter(?int $categoryId = null, ?bool $activeOnly = null): int
+    public function countWithFilter(?int $categoryId = null, ?bool $activeOnly = null, ?string $condition = null): int
     {
         $where = '1=1';
         $params = [];
@@ -75,22 +83,80 @@ class Product extends Model
             $where .= ' AND is_active = :is_active';
             $params['is_active'] = $isPg ? ($activeOnly ? 'true' : 'false') : ($activeOnly ? 1 : 0);
         }
+
+        if ($condition === 'out_of_stock' || $condition === 'habis') {
+            $where .= ' AND stock_quantity <= 0';
+        } elseif ($condition === 'low_stock' || $condition === 'sedikit') {
+            $where .= ' AND stock_quantity > 0 AND stock_quantity <= COALESCE(NULLIF(low_stock_threshold, 0), 5)';
+        } elseif ($condition === 'loss' || $condition === 'rugi') {
+            $where .= ' AND purchase_price > 0 AND (price < purchase_price OR (wholesale_price > 0 AND wholesale_price < purchase_price) OR (reseller_price > 0 AND reseller_price < purchase_price))';
+        }
         
         return $this->count($where, $params);
     }
 
-    public function search(string $query, int $limit = 100): array
+    public function getFilterCounts(?int $categoryId = null): array
+    {
+        $isPg = ($this->db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql');
+        $activeCheck = $isPg ? "is_active = true" : "is_active = 1";
+        
+        $where = $activeCheck;
+        $params = [];
+        if ($categoryId !== null) {
+            $where .= " AND category_id = :category_id";
+            $params['category_id'] = $categoryId;
+        }
+
+        $sql = "SELECT 
+            COUNT(*) as total,
+            COUNT(CASE WHEN stock_quantity <= 0 THEN 1 END) as out_of_stock,
+            COUNT(CASE WHEN stock_quantity > 0 AND stock_quantity <= COALESCE(NULLIF(low_stock_threshold, 0), 5) THEN 1 END) as low_stock,
+            COUNT(CASE WHEN purchase_price > 0 AND (price < purchase_price OR (wholesale_price > 0 AND wholesale_price < purchase_price) OR (reseller_price > 0 AND reseller_price < purchase_price)) THEN 1 END) as loss
+        FROM {$this->table}
+        WHERE {$where}";
+
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            $counts = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+            return [
+                'total' => (int) ($counts['total'] ?? 0),
+                'out_of_stock' => (int) ($counts['out_of_stock'] ?? 0),
+                'low_stock' => (int) ($counts['low_stock'] ?? 0),
+                'loss' => (int) ($counts['loss'] ?? 0),
+            ];
+        } catch (\Exception $e) {
+            return [
+                'total' => 0,
+                'out_of_stock' => 0,
+                'low_stock' => 0,
+                'loss' => 0,
+            ];
+        }
+    }
+
+    public function search(string $query, int $limit = 100, ?string $condition = null): array
     {
         $searchTerm = "%{$query}%";
         // Check driver for Case Insensitivity
         $driver = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME);
         $operator = $driver === 'pgsql' ? 'ILIKE' : 'LIKE';
 
+        $where = "(p.name {$operator} :name_query OR p.sku {$operator} :sku_query)";
+        if ($condition === 'out_of_stock' || $condition === 'habis') {
+            $where .= ' AND p.stock_quantity <= 0';
+        } elseif ($condition === 'low_stock' || $condition === 'sedikit') {
+            $where .= ' AND p.stock_quantity > 0 AND p.stock_quantity <= COALESCE(NULLIF(p.low_stock_threshold, 0), 5)';
+        } elseif ($condition === 'loss' || $condition === 'rugi') {
+            $where .= ' AND p.purchase_price > 0 AND (p.price < p.purchase_price OR (p.wholesale_price > 0 AND p.wholesale_price < p.purchase_price) OR (p.reseller_price > 0 AND p.reseller_price < p.purchase_price))';
+        }
+
         $stmt = $this->db->prepare(
             "SELECT p.*, c.name as category_name 
              FROM {$this->table} p 
              LEFT JOIN categories c ON p.category_id = c.id 
-             WHERE (p.name {$operator} :name_query OR p.sku {$operator} :sku_query)
+             WHERE {$where}
              ORDER BY p.name 
              LIMIT :limit"
         );

@@ -14,20 +14,29 @@ return function ($method, $path, $productService, $user) {
         Response::error('Otentikasi diperlukan', 401);
     }
     
+    // GET /api/products/filter-counts - Get stock & price issue statistics
+    if ($method === 'GET' && $path === '/filter-counts') {
+        $categoryId = isset($_GET['category_id']) && $_GET['category_id'] !== 'all' ? (int) $_GET['category_id'] : null;
+        $counts = $productService->getFilterCounts($categoryId);
+        Response::success($counts);
+    }
+
     // GET /api/products - List all products
     if ($method === 'GET' && $path === '') {
         $page = (int) ($_GET['page'] ?? 1);
         $perPage = (int) ($_GET['per_page'] ?? 20);
-        $categoryId = isset($_GET['category_id']) ? (int) $_GET['category_id'] : null;
-        $activeOnly = isset($_GET['active']) ? filter_var($_GET['active'], FILTER_VALIDATE_BOOLEAN) : null;
+        $categoryId = isset($_GET['category_id']) && $_GET['category_id'] !== 'all' ? (int) $_GET['category_id'] : null;
+        $activeOnly = isset($_GET['active']) && $_GET['active'] !== 'all' ? filter_var($_GET['active'], FILTER_VALIDATE_BOOLEAN) : null;
+        $condition = isset($_GET['condition']) && $_GET['condition'] !== 'all' ? (string) $_GET['condition'] : (isset($_GET['filter']) && $_GET['filter'] !== 'all' ? (string) $_GET['filter'] : null);
         
-        $result = $productService->getAll($page, $perPage, $categoryId, $activeOnly);
+        $result = $productService->getAll($page, $perPage, $categoryId, $activeOnly, $condition);
         Response::success($result);
     }
     
     // GET /api/products/search?q=query - Search products
     if ($method === 'GET' && $path === '/search') {
         $query = $_GET['q'] ?? '';
+        $condition = isset($_GET['condition']) && $_GET['condition'] !== 'all' ? (string) $_GET['condition'] : null;
         
         error_log("Search requested: " . $query);
 
@@ -36,7 +45,7 @@ return function ($method, $path, $productService, $user) {
         }
         
         try {
-            $products = $productService->search($query);
+            $products = $productService->search($query, 100, $condition);
             error_log("Search found " . count($products) . " items");
             Response::success($products);
         } catch (\Exception $e) {

@@ -48,13 +48,13 @@ class ProductService
         return $products;
     }
 
-    public function getAll(int $page = 1, int $perPage = 20, ?int $categoryId = null, ?bool $activeOnly = null): array
+    public function getAll(int $page = 1, int $perPage = 20, ?int $categoryId = null, ?bool $activeOnly = null, ?string $condition = null): array
     {
         $perPage = max(1, min(5000, $perPage));
         $offset = ($page - 1) * $perPage;
         
-        $products = $this->productModel->findAllWithCategory($perPage, $offset, $categoryId, $activeOnly);
-        $total = $this->productModel->countWithFilter($categoryId, $activeOnly);
+        $products = $this->productModel->findAllWithCategory($perPage, $offset, $categoryId, $activeOnly, $condition);
+        $total = $this->productModel->countWithFilter($categoryId, $activeOnly, $condition);
         
         return [
             'products' => $this->attachUnits($this->transformImageUrls($products)),
@@ -63,7 +63,8 @@ class ProductService
                 'per_page' => $perPage,
                 'total' => $total,
                 'total_pages' => $perPage > 0 ? (int) ceil($total / $perPage) : 1
-            ]
+            ],
+            'counts' => $this->productModel->getFilterCounts($categoryId)
         ];
     }
 
@@ -107,10 +108,15 @@ class ProductService
         return null;
     }
 
-    public function search(string $query): array
+    public function search(string $query, int $limit = 100, ?string $condition = null): array
     {
-        $products = $this->productModel->search($query);
+        $products = $this->productModel->search($query, $limit, $condition);
         return $this->attachUnits($this->transformImageUrls($products));
+    }
+
+    public function getFilterCounts(?int $categoryId = null): array
+    {
+        return $this->productModel->getFilterCounts($categoryId);
     }
 
     public function create(array $data): string

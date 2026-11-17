@@ -53,6 +53,13 @@ const ProductsPage = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
+    const [conditionFilter, setConditionFilter] = useState<'all' | 'out_of_stock' | 'low_stock' | 'loss'>('all');
+    const [filterCounts, setFilterCounts] = useState({
+        total: 0,
+        out_of_stock: 0,
+        low_stock: 0,
+        loss: 0
+    });
     const [categories, setCategories] = useState<any[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [perPage, setPerPage] = useState(50);
@@ -88,13 +95,13 @@ const ProductsPage = () => {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [categoryFilter, statusFilter]);
+    }, [categoryFilter, statusFilter, conditionFilter]);
 
     useEffect(() => {
         if (!searchQuery.trim()) {
             fetchProducts();
         }
-    }, [currentPage, perPage, categoryFilter, statusFilter, searchQuery]);
+    }, [currentPage, perPage, categoryFilter, statusFilter, conditionFilter, searchQuery]);
 
     const fetchCategories = async () => {
         try {
@@ -116,6 +123,7 @@ const ProductsPage = () => {
             params.append('per_page', perPage.toString());
             if (categoryFilter && categoryFilter !== 'all') params.append('category_id', categoryFilter);
             if (statusFilter && statusFilter !== 'all') params.append('active', statusFilter === 'active' ? 'true' : 'false');
+            if (conditionFilter && conditionFilter !== 'all') params.append('condition', conditionFilter);
 
             const url = `/products?${params.toString()}`;
             const response = await api.get(url);
@@ -125,6 +133,9 @@ const ProductsPage = () => {
                 setProductList(response.data.data.products);
                 if (response.data.data.pagination) {
                     setPaginationInfo(response.data.data.pagination);
+                }
+                if (response.data.data.counts) {
+                    setFilterCounts(response.data.data.counts);
                 }
             } else {
                 setProductList(response.data.data);
@@ -150,7 +161,11 @@ const ProductsPage = () => {
         }
         setLoading(true);
         try {
-            const response = await api.get(`/products/search?q=${encodeURIComponent(searchQuery)}`);
+            let searchUrl = `/products/search?q=${encodeURIComponent(searchQuery)}`;
+            if (conditionFilter && conditionFilter !== 'all') {
+                searchUrl += `&condition=${encodeURIComponent(conditionFilter)}`;
+            }
+            const response = await api.get(searchUrl);
             const data = response.data.data;
             if (Array.isArray(data)) {
                 setProductList(data);
@@ -179,6 +194,7 @@ const ProductsPage = () => {
             }
         } catch (error) {
             console.error('Error searching products:', error);
+            setProductList([]);
         } finally {
             setLoading(false);
         }
@@ -548,15 +564,16 @@ const ProductsPage = () => {
 
                 {/* Content */}
                 <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
-                    <div className="flex flex-col gap-6 max-w-[1400px] mx-auto">
+                    <div className="flex flex-col gap-5 max-w-[1400px] mx-auto">
                         {/* Action Bar */}
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                            <div className="flex items-center gap-2">
+                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                            <div className="flex flex-wrap items-center gap-2.5">
+                                {/* Dropdown 1: Kategori */}
                                 <div className="relative">
                                     <select
                                         value={categoryFilter}
                                         onChange={(e) => setCategoryFilter(e.target.value)}
-                                        className="appearance-none h-10 pl-4 pr-10 rounded-lg bg-white dark:bg-[#111118] border border-slate-200 dark:border-[#282839] text-gray-900 dark:text-white text-sm focus:ring-primary focus:border-primary transition-colors"
+                                        className="appearance-none h-10 pl-4 pr-10 rounded-xl bg-white dark:bg-[#111118] border border-slate-200 dark:border-[#282839] text-gray-900 dark:text-white text-xs sm:text-sm font-semibold focus:ring-primary focus:border-primary transition-colors cursor-pointer shadow-sm"
                                     >
                                         <option value="all">Semua Kategori</option>
                                         {categories.map(cat => (
@@ -567,11 +584,13 @@ const ProductsPage = () => {
                                         <span className="material-symbols-outlined text-[20px]">expand_more</span>
                                     </div>
                                 </div>
+
+                                {/* Dropdown 2: Status */}
                                 <div className="relative">
                                     <select
                                         value={statusFilter}
                                         onChange={(e) => setStatusFilter(e.target.value)}
-                                        className="appearance-none h-10 pl-4 pr-10 rounded-lg bg-white dark:bg-[#111118] border border-slate-200 dark:border-[#282839] text-gray-900 dark:text-white text-sm focus:ring-primary focus:border-primary transition-colors"
+                                        className="appearance-none h-10 pl-4 pr-10 rounded-xl bg-white dark:bg-[#111118] border border-slate-200 dark:border-[#282839] text-gray-900 dark:text-white text-xs sm:text-sm font-semibold focus:ring-primary focus:border-primary transition-colors cursor-pointer shadow-sm"
                                     >
                                         <option value="all">Status: Semua</option>
                                         <option value="active">Aktif</option>
@@ -581,11 +600,38 @@ const ProductsPage = () => {
                                         <span className="material-symbols-outlined text-[20px]">expand_more</span>
                                     </div>
                                 </div>
+
+                                {/* Dropdown 3: Filter Kondisi Stok & Harga Rugi */}
+                                <div className="relative">
+                                    <select
+                                        value={conditionFilter}
+                                        onChange={(e) => setConditionFilter(e.target.value as any)}
+                                        className={`appearance-none h-10 pl-3.5 pr-9 rounded-xl border text-xs sm:text-sm font-semibold transition-all cursor-pointer shadow-sm ${
+                                            conditionFilter === 'out_of_stock'
+                                                ? 'bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-800 text-red-600 dark:text-red-400'
+                                                : conditionFilter === 'low_stock'
+                                                ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800 text-amber-600 dark:text-amber-400'
+                                                : conditionFilter === 'loss'
+                                                ? 'bg-rose-50 dark:bg-rose-950/30 border-rose-300 dark:border-rose-800 text-rose-600 dark:text-rose-400'
+                                                : 'bg-white dark:bg-[#111118] border-slate-200 dark:border-[#282839] text-gray-900 dark:text-white'
+                                        }`}
+                                    >
+                                        <option value="all">Semua Kondisi Produk</option>
+                                        <option value="out_of_stock">🔴 Barang Habis (Stok 0)</option>
+                                        <option value="low_stock">⚠️ Stok Sedikit (Menipis)</option>
+                                        <option value="loss">💥 Penjualan Rugi (Jual &lt; Modal)</option>
+                                    </select>
+                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400 dark:text-[#9d9db9]">
+                                        <span className="material-symbols-outlined text-[18px]">expand_more</span>
+                                    </div>
+                                </div>
                             </div>
+
+                            {/* Tombol Aksi Kanan */}
                             <div className="flex flex-wrap items-center gap-2">
                                 <button
                                     onClick={() => setIsBulkMarginModalOpen(true)}
-                                    className="h-10 px-3.5 rounded-lg border border-purple-200 dark:border-purple-900/50 bg-purple-50 dark:bg-purple-950/20 text-purple-700 dark:text-purple-300 text-xs font-bold hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors flex items-center gap-1.5 shadow-sm"
+                                    className="h-10 px-3.5 rounded-xl border border-purple-200 dark:border-purple-900/50 bg-purple-50 dark:bg-purple-950/20 text-purple-700 dark:text-purple-300 text-xs font-bold hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors flex items-center gap-1.5 shadow-sm"
                                     title="Terapkan rumus margin grosir & reseller massal ke seluruh produk"
                                 >
                                     <span className="material-symbols-outlined text-[18px]">bolt</span>
@@ -593,7 +639,7 @@ const ProductsPage = () => {
                                 </button>
                                 <button
                                     onClick={() => setIsImportModalOpen(true)}
-                                    className="h-10 px-3.5 rounded-lg border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300 text-xs font-bold hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors flex items-center gap-1.5 shadow-sm"
+                                    className="h-10 px-3.5 rounded-xl border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300 text-xs font-bold hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors flex items-center gap-1.5 shadow-sm"
                                     title="Import data produk dari Excel / CSV"
                                 >
                                     <span className="material-symbols-outlined text-[18px]">upload_file</span>
@@ -601,14 +647,14 @@ const ProductsPage = () => {
                                 </button>
                                 <button
                                     onClick={handleExportCSV}
-                                    className="h-10 px-3 rounded-lg border border-slate-200 dark:border-[#282839] bg-white dark:bg-[#111118] text-gray-900 dark:text-white text-xs font-medium hover:bg-gray-50 dark:hover:bg-[#1c1c27] transition-colors flex items-center gap-1.5"
+                                    className="h-10 px-3.5 rounded-xl border border-slate-200 dark:border-[#282839] bg-white dark:bg-[#111118] text-gray-900 dark:text-white text-xs font-bold hover:bg-gray-50 dark:hover:bg-[#1c1c27] transition-colors flex items-center gap-1.5 shadow-sm"
                                 >
                                     <span className="material-symbols-outlined text-[18px] text-green-500">file_download</span>
                                     <span className="hidden sm:inline">Export</span>
                                 </button>
                                 <button
                                     onClick={openAddModal}
-                                    className="h-10 px-4 rounded-lg bg-primary hover:bg-primary/90 text-white text-xs sm:text-sm font-bold shadow-lg shadow-primary/25 transition-all flex items-center gap-1.5"
+                                    className="h-10 px-4 rounded-xl bg-primary hover:bg-primary/90 text-white text-xs sm:text-sm font-bold shadow-lg shadow-primary/25 transition-all flex items-center gap-1.5"
                                 >
                                     <span className="material-symbols-outlined text-[18px]">add</span>
                                     Tambah Produk
@@ -616,8 +662,118 @@ const ProductsPage = () => {
                             </div>
                         </div>
 
+                        {/* Quick Filter Chips (Pill Badges Interaktif) */}
+                        <div className="flex flex-wrap items-center gap-2 pt-1 pb-0.5">
+                            <span className="text-xs font-semibold text-gray-500 dark:text-[#9d9db9] flex items-center gap-1 mr-1">
+                                <span className="material-symbols-outlined text-[16px]">tune</span>
+                                Filter Khusus:
+                            </span>
+
+                            {/* Chip 1: Semua Produk */}
+                            <button
+                                type="button"
+                                onClick={() => setConditionFilter('all')}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border shadow-sm ${
+                                    conditionFilter === 'all'
+                                        ? 'bg-primary text-white border-primary shadow-primary/25'
+                                        : 'bg-white dark:bg-[#111118] text-gray-600 dark:text-gray-300 border-slate-200 dark:border-[#282839] hover:border-primary/50'
+                                }`}
+                            >
+                                <span>Semua Produk</span>
+                                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${
+                                    conditionFilter === 'all' ? 'bg-white/20 text-white' : 'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400'
+                                }`}>
+                                    {filterCounts.total.toLocaleString('id-ID')}
+                                </span>
+                            </button>
+
+                            {/* Chip 2: Barang Habis */}
+                            <button
+                                type="button"
+                                onClick={() => setConditionFilter(conditionFilter === 'out_of_stock' ? 'all' : 'out_of_stock')}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border shadow-sm ${
+                                    conditionFilter === 'out_of_stock'
+                                        ? 'bg-red-600 text-white border-red-600 shadow-red-600/25 ring-2 ring-red-500/20'
+                                        : 'bg-white dark:bg-[#111118] text-gray-700 dark:text-gray-300 border-slate-200 dark:border-[#282839] hover:border-red-400 hover:text-red-500'
+                                }`}
+                            >
+                                <span className="size-2 rounded-full bg-red-500 animate-pulse" />
+                                <span>Barang Habis</span>
+                                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                                    conditionFilter === 'out_of_stock' ? 'bg-white/25 text-white' : 'bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400'
+                                }`}>
+                                    {filterCounts.out_of_stock.toLocaleString('id-ID')}
+                                </span>
+                            </button>
+
+                            {/* Chip 3: Stok Sedikit */}
+                            <button
+                                type="button"
+                                onClick={() => setConditionFilter(conditionFilter === 'low_stock' ? 'all' : 'low_stock')}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border shadow-sm ${
+                                    conditionFilter === 'low_stock'
+                                        ? 'bg-amber-500 text-white border-amber-500 shadow-amber-500/25 ring-2 ring-amber-500/20'
+                                        : 'bg-white dark:bg-[#111118] text-gray-700 dark:text-gray-300 border-slate-200 dark:border-[#282839] hover:border-amber-400 hover:text-amber-500'
+                                }`}
+                            >
+                                <span className="material-symbols-outlined text-[14px] text-amber-500">warning</span>
+                                <span>Stok Sedikit</span>
+                                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                                    conditionFilter === 'low_stock' ? 'bg-white/25 text-white' : 'bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400'
+                                }`}>
+                                    {filterCounts.low_stock.toLocaleString('id-ID')}
+                                </span>
+                            </button>
+
+                            {/* Chip 4: Live Penjualan Harga Rugi */}
+                            <button
+                                type="button"
+                                onClick={() => setConditionFilter(conditionFilter === 'loss' ? 'all' : 'loss')}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border shadow-sm ${
+                                    conditionFilter === 'loss'
+                                        ? 'bg-rose-600 text-white border-rose-600 shadow-rose-600/25 ring-2 ring-rose-500/20 animate-pulse'
+                                        : 'bg-white dark:bg-[#111118] text-gray-700 dark:text-gray-300 border-slate-200 dark:border-[#282839] hover:border-rose-400 hover:text-rose-500'
+                                }`}
+                            >
+                                <span className="material-symbols-outlined text-[14px] text-rose-500">trending_down</span>
+                                <span>Penjualan Rugi (Jual &lt; Modal)</span>
+                                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                                    conditionFilter === 'loss' ? 'bg-white/25 text-white' : 'bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400'
+                                }`}>
+                                    {filterCounts.loss.toLocaleString('id-ID')}
+                                </span>
+                            </button>
+                        </div>
+
+                        {/* Banner Aktif Filter Khusus */}
+                        {conditionFilter !== 'all' && (
+                            <div className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-[#1c1c27] border border-slate-200 dark:border-[#282839] text-xs">
+                                <div className="flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-[18px] text-primary">filter_list</span>
+                                    <span className="text-gray-700 dark:text-gray-200 font-medium">
+                                        Menampilkan filter khusus:{' '}
+                                        <strong className="text-primary font-bold">
+                                            {conditionFilter === 'out_of_stock'
+                                                ? 'Barang Habis (Stok 0)'
+                                                : conditionFilter === 'low_stock'
+                                                ? 'Barang Stok Sedikit (Menipis)'
+                                                : 'Barang Penjualan Harga Rugi (Jual < Modal)'}
+                                        </strong>{' '}
+                                        ({paginationInfo.total.toLocaleString('id-ID')} produk ditemukan)
+                                    </span>
+                                </div>
+                                <button
+                                    onClick={() => setConditionFilter('all')}
+                                    className="text-primary hover:underline font-bold flex items-center gap-1"
+                                >
+                                    <span className="material-symbols-outlined text-[14px]">close</span>
+                                    Reset Filter
+                                </button>
+                            </div>
+                        )}
+
                         {/* Table */}
-                        <div className="rounded-xl border border-slate-200 dark:border-[#282839] bg-white dark:bg-[#111118] overflow-hidden shadow-sm transition-colors">
+                        <div className="rounded-2xl border border-slate-200 dark:border-[#282839] bg-white dark:bg-[#111118] overflow-hidden shadow-sm transition-colors">
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left border-collapse">
                                     <thead>
@@ -647,15 +803,48 @@ const ProductsPage = () => {
                                     <tbody className="text-sm divide-y divide-slate-200 dark:divide-[#282839]">
                                         {loading ? (
                                             <tr>
-                                                <td colSpan={8} className="p-8 text-center text-gray-500 dark:text-[#9d9db9]">Memuat produk...</td>
+                                                <td colSpan={9} className="p-12 text-center text-gray-500 dark:text-[#9d9db9]">
+                                                    <div className="flex flex-col items-center justify-center gap-2">
+                                                        <span className="material-symbols-outlined animate-spin text-3xl text-primary">progress_activity</span>
+                                                        <span className="text-sm font-semibold">Memuat produk...</span>
+                                                    </div>
+                                                </td>
                                             </tr>
                                         ) : productList.length === 0 ? (
                                             <tr>
-                                                <td colSpan={8} className="p-8 text-center text-gray-500 dark:text-[#9d9db9]">Tidak ada produk ditemukan.</td>
+                                                <td colSpan={9} className="p-12 text-center text-gray-500 dark:text-[#9d9db9]">
+                                                    <div className="flex flex-col items-center justify-center gap-2">
+                                                        <span className="material-symbols-outlined text-4xl text-gray-300 dark:text-gray-600">inventory_2</span>
+                                                        <p className="text-sm font-semibold">
+                                                            {conditionFilter === 'out_of_stock'
+                                                                ? 'Bagus! Tidak ada barang yang habis stok.'
+                                                                : conditionFilter === 'low_stock'
+                                                                ? 'Aman! Tidak ada produk dengan stok menipis.'
+                                                                : conditionFilter === 'loss'
+                                                                ? 'Bagus! Semua harga jual produk sudah di atas modal (tidak ada yang rugi).'
+                                                                : 'Tidak ada produk ditemukan.'}
+                                                        </p>
+                                                        {conditionFilter !== 'all' && (
+                                                            <button
+                                                                onClick={() => setConditionFilter('all')}
+                                                                className="mt-2 px-3 py-1.5 text-xs font-bold rounded-lg bg-primary text-white hover:bg-primary/90"
+                                                            >
+                                                                Tampilkan Semua Produk
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </td>
                                             </tr>
                                         ) : (
-                                            productList.map((product) => (
-                                                <tr key={product.id} className="hover:bg-gray-50 dark:hover:bg-[#1c1c27] transition-colors group">
+                                            productList.map((product) => {
+                                                const cost = parseFloat(String(product.purchase_price || 0)) || 0;
+                                                const price = parseFloat(String(product.price || 0)) || 0;
+                                                const wsPrice = parseFloat(String(product.wholesale_price || 0)) || 0;
+                                                const rsPrice = parseFloat(String(product.reseller_price || 0)) || 0;
+                                                const isRowLoss = cost > 0 && (price < cost || (wsPrice > 0 && wsPrice < cost) || (rsPrice > 0 && rsPrice < cost));
+
+                                                return (
+                                                <tr key={product.id} className={`hover:bg-gray-50 dark:hover:bg-[#1c1c27] transition-colors group ${isRowLoss ? 'bg-rose-50/40 dark:bg-rose-950/20' : ''}`}>
                                                     <td className="p-4">
                                                         <div
                                                             className="size-10 rounded-lg bg-gray-200 dark:bg-[#282839] bg-center bg-cover border border-slate-300 dark:border-[#3b3c54]"
@@ -663,7 +852,14 @@ const ProductsPage = () => {
                                                         />
                                                     </td>
                                                     <td className="p-4">
-                                                        <div className="font-medium text-gray-900 dark:text-white">{product.name}</div>
+                                                        <div className="font-medium text-gray-900 dark:text-white flex items-center gap-1.5">
+                                                            <span>{product.name}</span>
+                                                            {isRowLoss && (
+                                                                <span className="px-1.5 py-0.2 rounded text-[10px] font-black bg-rose-100 dark:bg-rose-950/80 text-rose-600 dark:text-rose-400 border border-rose-300 dark:border-rose-800" title="Harga jual di bawah harga beli modal">
+                                                                    RUGI
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                         <div className="text-gray-500 dark:text-[#55556d] text-xs mt-0.5">Diperbarui {new Date(product.updated_at).toLocaleDateString('id-ID')}</div>
                                                     </td>
                                                     <td className="p-4 text-gray-500 dark:text-[#9d9db9] font-mono">{product.sku}</td>
@@ -675,8 +871,6 @@ const ProductsPage = () => {
                                                     <td className="p-4 text-gray-900 dark:text-white font-medium text-sm text-yellow-600 dark:text-yellow-500">{formatRupiah(product.purchase_price || 0)}</td>
                                                     <td className="p-4 text-gray-900 dark:text-white font-medium">
                                                         {(() => {
-                                                            const cost = parseFloat(String(product.purchase_price || 0)) || 0;
-                                                            const price = parseFloat(String(product.price || 0)) || 0;
                                                             const isLoss = cost > 0 && price < cost;
                                                             const formatted = formatRupiah(price);
                                                             const numOnly = formatted.replace(/^Rp\s?/, '');
@@ -714,7 +908,6 @@ const ProductsPage = () => {
                                                                     {(product.wholesale_price || product.reseller_price) && (
                                                                         <div className="flex flex-wrap gap-1 text-[10px] font-semibold mt-1">
                                                                             {product.wholesale_price && (() => {
-                                                                                const wsPrice = parseFloat(String(product.wholesale_price || 0)) || 0;
                                                                                 const isWsLoss = cost > 0 && wsPrice > 0 && wsPrice < cost;
                                                                                 const wsNum = formatRupiah(wsPrice).replace(/^Rp\s?/, '');
                                                                                 const wsLossAmount = Math.max(0, cost - wsPrice);
@@ -736,7 +929,6 @@ const ProductsPage = () => {
                                                                                 );
                                                                             })()}
                                                                             {product.reseller_price && (() => {
-                                                                                const rsPrice = parseFloat(String(product.reseller_price || 0)) || 0;
                                                                                 const isRsLoss = cost > 0 && rsPrice > 0 && rsPrice < cost;
                                                                                 const rsNum = formatRupiah(rsPrice).replace(/^Rp\s?/, '');
                                                                                 const rsLossAmount = Math.max(0, cost - rsPrice);
@@ -776,7 +968,26 @@ const ProductsPage = () => {
                                                                     style={{ width: `${getStockPercentage(product.stock_quantity)}%` }}
                                                                 />
                                                             </div>
-                                                            <span className="text-xs text-gray-500 dark:text-[#9d9db9]">{product.stock_quantity}</span>
+                                                            <div className="flex items-center gap-1.5 whitespace-nowrap">
+                                                                <span className={`text-xs font-bold ${
+                                                                    Number(product.stock_quantity) <= 0
+                                                                        ? 'text-red-600 dark:text-red-400'
+                                                                        : Number(product.stock_quantity) <= (Number(product.low_stock_threshold) || 5)
+                                                                        ? 'text-amber-600 dark:text-amber-400'
+                                                                        : 'text-gray-700 dark:text-[#9d9db9]'
+                                                                }`}>
+                                                                    {product.stock_quantity}
+                                                                </span>
+                                                                {Number(product.stock_quantity) <= 0 ? (
+                                                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-red-100 dark:bg-red-950/80 text-red-600 dark:text-red-400">
+                                                                        Habis
+                                                                    </span>
+                                                                ) : Number(product.stock_quantity) <= (Number(product.low_stock_threshold) || 5) ? (
+                                                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 dark:bg-amber-950/80 text-amber-600 dark:text-amber-400">
+                                                                        Menipis
+                                                                    </span>
+                                                                ) : null}
+                                                            </div>
                                                         </div>
                                                     </td>
                                                     <td className="p-4 text-center">
@@ -816,7 +1027,8 @@ const ProductsPage = () => {
                                                         </div>
                                                     </td>
                                                 </tr>
-                                            ))
+                                                );
+                                            })
                                         )}
                                     </tbody>
                                 </table>
