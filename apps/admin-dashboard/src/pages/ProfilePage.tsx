@@ -4,6 +4,8 @@ import { DashboardContextType } from '../layouts/DashboardLayout';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import UserFormModal from '../components/UserFormModal';
+import ThemeToggle from '../components/ThemeToggle';
+import UserMenu from '../components/UserMenu';
 
 const ProfilePage = () => {
     const { user, logout } = useAuth();
@@ -86,20 +88,26 @@ const ProfilePage = () => {
             <main className="flex-1 flex flex-col h-full overflow-hidden relative">
                 {/* Header */}
                 <header className="flex-shrink-0 px-4 md:px-8 py-4 md:py-6 flex flex-col gap-4 border-b border-slate-200 dark:border-[#282839] bg-white dark:bg-background-dark transition-colors">
-                    <div className="flex items-center gap-2 text-sm">
-                        <button
-                            onClick={toggleSidebar}
-                            className="p-1.5 mr-2 text-gray-500 dark:text-text-secondary hover:text-primary transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 shrink-0" title="Buka Menu"
-                        >
-                            <span className="material-symbols-outlined">menu</span>
-                        </button>
-                        <span className="text-gray-400 dark:text-[#9d9db9]">Beranda</span>
-                        <span className="text-gray-300 dark:text-[#585870]">/</span>
-                        <span className="text-gray-900 dark:text-white font-medium">Profil</span>
+                    <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-2 text-sm">
+                            <button
+                                onClick={toggleSidebar}
+                                className="p-1.5 mr-2 text-gray-500 dark:text-text-secondary hover:text-primary transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 shrink-0" title="Buka Menu"
+                            >
+                                <span className="material-symbols-outlined">menu</span>
+                            </button>
+                            <span className="text-gray-400 dark:text-[#9d9db9]">Beranda</span>
+                            <span className="text-gray-300 dark:text-[#585870]">/</span>
+                            <span className="text-gray-900 dark:text-white font-medium">Profil</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <ThemeToggle />
+                            <UserMenu />
+                        </div>
                     </div>
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Profil Pengguna</h1>
-                        <p className="text-gray-500 dark:text-[#9d9db9] text-sm">Kelola informasi akun dan pengguna sistem.</p>
+                        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Profil Pengguna</h1>
+                        <p className="text-gray-500 dark:text-[#9d9db9] text-xs sm:text-sm mt-0.5">Kelola informasi akun dan pengguna sistem.</p>
                     </div>
                 </header>
 

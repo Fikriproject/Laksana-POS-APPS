@@ -5,6 +5,8 @@ import api from '../services/api';
 import { formatRupiah } from '../utils/format';
 import PrintableZReport, { ZReportData } from '../components/PrintableZReport';
 import PrintableReceipt from '../components/PrintableReceipt';
+import ThemeToggle from '../components/ThemeToggle';
+import UserMenu from '../components/UserMenu';
 
 interface DashboardContextType {
     toggleSidebar: () => void;
@@ -218,41 +220,50 @@ export const DailySettlementPage = () => {
                         </div>
                     </div>
 
-                    {/* Filter Tanggal & Tombol Cetak */}
-                    <div className="flex items-center flex-wrap gap-2">
-                        <button
-                            type="button"
-                            onClick={handleSetToday}
-                            className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all ${
-                                selectedDate === new Date().toISOString().split('T')[0]
-                                    ? 'bg-primary text-white border-primary shadow-sm'
-                                    : 'bg-white dark:bg-surface-dark text-gray-700 dark:text-gray-300 border-slate-200 dark:border-[#282839] hover:border-primary/50'
-                            }`}
-                        >
-                            Hari Ini
-                        </button>
-                        <button
-                            type="button"
-                            onClick={handleSetYesterday}
-                            className="px-3 py-1.5 text-xs font-semibold rounded-xl border bg-white dark:bg-surface-dark text-gray-700 dark:text-gray-300 border-slate-200 dark:border-[#282839] hover:border-primary/50 transition-all"
-                        >
-                            Kemarin
-                        </button>
-                        <input
-                            type="date"
-                            value={selectedDate}
-                            onChange={(e) => setSelectedDate(e.target.value)}
-                            className="px-3 py-1.5 text-xs font-semibold rounded-xl border border-slate-200 dark:border-[#282839] bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:border-primary"
-                        />
+                    {/* Filter Tanggal & Tombol Cetak & Theme & User */}
+                    <div className="flex items-center flex-wrap gap-2 sm:gap-2.5">
+                        <div className="flex items-center bg-gray-100/80 dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-xl p-1 gap-1">
+                            <button
+                                type="button"
+                                onClick={handleSetToday}
+                                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                                    selectedDate === new Date().toISOString().split('T')[0]
+                                        ? 'bg-primary text-white shadow-sm'
+                                        : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                                }`}
+                            >
+                                Hari Ini
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleSetYesterday}
+                                className="px-3 py-1.5 text-xs font-semibold rounded-lg text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-all"
+                            >
+                                Kemarin
+                            </button>
+                            <div className="w-px h-4 bg-slate-300 dark:bg-[#282839] mx-0.5" />
+                            <input
+                                type="date"
+                                value={selectedDate}
+                                onChange={(e) => setSelectedDate(e.target.value)}
+                                className="px-2 py-1 text-xs font-semibold bg-transparent text-gray-900 dark:text-white focus:outline-none"
+                            />
+                        </div>
+
                         <button
                             type="button"
                             onClick={handlePrintZReport}
                             disabled={loading || !settlementData}
-                            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-bold shadow-md shadow-primary/25 transition-all disabled:opacity-50"
+                            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-bold shadow-md shadow-primary/25 transition-all disabled:opacity-50"
                         >
                             <span className="material-symbols-outlined text-[16px]">print</span>
-                            Cetak Rekap (Z-Report)
+                            <span className="hidden sm:inline">Cetak Rekap</span> (Z-Report)
                         </button>
+
+                        <div className="flex items-center gap-2 ml-auto sm:ml-0">
+                            <ThemeToggle />
+                            <UserMenu />
+                        </div>
                     </div>
                 </header>
 

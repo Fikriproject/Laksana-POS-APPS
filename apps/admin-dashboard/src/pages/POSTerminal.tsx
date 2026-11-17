@@ -6,6 +6,7 @@ import api from '../services/api';
 import Sidebar from '../components/Sidebar';
 import { formatRupiah } from '../utils/format';
 import ThemeToggle from '../components/ThemeToggle';
+import UserMenu from '../components/UserMenu';
 import PrintableReceipt from '../components/PrintableReceipt';
 import PrintableZReport from '../components/PrintableZReport';
 import { OpenShiftModal, PettyCashModal, CloseShiftModal } from '../components/ShiftModals';
@@ -909,15 +910,10 @@ const POSTerminal = () => {
                             )}
                         </div>
 
-                        {/* Kanan: Theme Toggle & Profile Avatar (Tanpa detail teks pengguna & tanpa tombol Sync) */}
+                        {/* Kanan: Theme Toggle & User Menu */}
                         <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 ml-auto">
                             <ThemeToggle />
-                            <div 
-                                className="size-8 sm:size-9 rounded-full bg-primary/10 dark:bg-primary/20 border border-primary/25 text-primary dark:text-indigo-400 flex items-center justify-center font-bold text-xs sm:text-sm shadow-sm shrink-0 cursor-default select-none"
-                                title={`${user?.full_name || 'Kasir'} (${user?.role || 'Staff'})`}
-                            >
-                                <span className="material-symbols-outlined text-[20px] sm:text-[22px]">account_circle</span>
-                            </div>
+                            <UserMenu />
                         </div>
                     </header>
 

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useOutletContext } from 'react-router-dom';
 import api from '../services/api';
 import { DashboardContextType } from '../layouts/DashboardLayout';
+import ThemeToggle from '../components/ThemeToggle';
+import UserMenu from '../components/UserMenu';
 
 interface InventoryItem {
     id: string;
@@ -274,14 +276,16 @@ const InventoryPage = () => {
                             <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Manajemen Inventaris</h1>
                             <p className="text-gray-500 dark:text-[#9d9db9] text-sm max-w-2xl">Kelola stok, kategori, dan lihat riwayat trasaksi barang.</p>
                         </div>
-                        <div className="flex gap-3 w-full md:w-auto">
+                        <div className="flex items-center gap-2 sm:gap-3 w-full md:w-auto justify-end">
                             <button
                                 onClick={handleExportCSV}
-                                className="flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-white dark:bg-[#282839] border border-slate-200 dark:border-[#3b3c54] text-gray-900 dark:text-white text-sm font-medium hover:bg-gray-50 dark:hover:bg-[#323246] transition-colors w-full md:w-auto"
+                                className="flex items-center justify-center gap-1.5 rounded-xl h-10 px-4 bg-white dark:bg-[#282839] border border-slate-200 dark:border-[#3b3c54] text-gray-900 dark:text-white text-xs sm:text-sm font-semibold hover:bg-gray-50 dark:hover:bg-[#323246] transition-colors"
                             >
-                                <span className="material-symbols-outlined text-[20px]">file_download</span>
-                                <span>Export Laporan</span>
+                                <span className="material-symbols-outlined text-[18px]">file_download</span>
+                                <span>Ekspor CSV</span>
                             </button>
+                            <ThemeToggle />
+                            <UserMenu />
                         </div>
                     </div>
                 </header>

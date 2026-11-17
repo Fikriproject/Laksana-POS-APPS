@@ -128,50 +128,79 @@ const Dashboard = () => {
             {/* Header */}
             <Header onMenuClick={toggleSidebar} />
 
-            {/* Stats Grid (Pendapatan & Laba Bersih disembunyikan untuk kasir/karyawan) */}
-            <section className={`grid grid-cols-1 ${canViewFinancials ? 'sm:grid-cols-2 lg:grid-cols-4' : 'sm:grid-cols-2'} gap-4`}>
+            {/* Kartu Ringkasan KPI Utama (Seragam dengan Rekap Harian) */}
+            <section className={`grid grid-cols-2 ${canViewFinancials ? 'lg:grid-cols-4' : 'lg:grid-cols-2'} gap-3 sm:gap-4`}>
+                {/* 1. Omset Penjualan Bersih */}
                 {canViewFinancials && (
-                    <StatCard
-                        icon="payments"
-                        iconBgColor="bg-primary/10"
-                        iconColor="text-primary"
-                        label="Pendapatan (Hari Ini)"
-                        value={loading ? "..." : formatRupiah(stats.revenue)}
-                        change="+12%"
-                        changePositive={true}
-                    />
+                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col justify-between">
+                        <div className="flex items-center justify-between text-gray-500 mb-2">
+                            <span className="text-xs font-semibold">Penjualan Bersih (Omset)</span>
+                            <div className="size-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center">
+                                <span className="material-symbols-outlined text-[18px]">payments</span>
+                            </div>
+                        </div>
+                        <p className="text-lg sm:text-2xl font-black text-gray-900 dark:text-white">
+                            {loading ? "..." : formatRupiah(stats.revenue)}
+                        </p>
+                        <p className="text-[11px] text-gray-400 mt-1">
+                            {stats.transactions} Transaksi Hari Ini
+                        </p>
+                    </div>
                 )}
-                <StatCard
-                    icon="receipt_long"
-                    iconBgColor="bg-blue-500/10"
-                    iconColor="text-blue-500"
-                    label="Transaksi (Hari Ini)"
-                    value={loading ? "..." : stats.transactions.toString()}
-                    change="+5%"
-                    changePositive={true}
-                />
-                {canViewFinancials && (
-                    <StatCard
-                        icon="trending_up"
-                        iconBgColor="bg-emerald-500/10"
-                        iconColor="text-emerald-500"
-                        label="Laba Bersih (Hari Ini)"
-                        value={loading ? "..." : formatRupiah(stats.netProfit)}
-                        change="+8%"
-                        changePositive={true}
-                    />
-                )}
-                <StatCard
-                    icon="warning"
-                    iconBgColor="bg-orange-500/10"
-                    iconColor="text-orange-500"
-                    label="Stok Tipis & Habis"
-                    value={loading ? "..." : `${stats.lowStock} Barang`}
-                    change={stats.lowStock > 0 ? "Perhatian" : "Aman"}
-                    changePositive={stats.lowStock === 0}
-                    actionable={true}
+
+                {/* 2. Total Transaksi */}
+                <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col justify-between">
+                    <div className="flex items-center justify-between text-gray-500 mb-2">
+                        <span className="text-xs font-semibold">Total Transaksi</span>
+                        <div className="size-8 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-[18px]">receipt_long</span>
+                        </div>
+                    </div>
+                    <p className="text-lg sm:text-2xl font-black text-gray-900 dark:text-white">
+                        {loading ? "..." : stats.transactions.toLocaleString('id-ID')}
+                    </p>
+                    <p className="text-[11px] text-gray-400 mt-1">
+                        Aktivitas kasir hari ini
+                    </p>
+                </div>
+
+                {/* 3. Stok Tipis & Habis */}
+                <div
                     onClick={() => setIsStockModalOpen(true)}
-                />
+                    className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col justify-between cursor-pointer hover:border-amber-400 dark:hover:border-amber-500 transition-all group"
+                >
+                    <div className="flex items-center justify-between text-gray-500 mb-2">
+                        <span className="text-xs font-semibold">Stok Tipis & Habis</span>
+                        <div className="size-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <span className="material-symbols-outlined text-[18px]">warning</span>
+                        </div>
+                    </div>
+                    <p className="text-lg sm:text-2xl font-black text-amber-600 dark:text-amber-400">
+                        {loading ? "..." : `${stats.lowStock} Barang`}
+                    </p>
+                    <p className="text-[11px] text-gray-400 mt-1 flex items-center gap-1">
+                        <span>{stats.lowStock > 0 ? "Perlu restock segera" : "Semua stok aman"}</span>
+                        <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                    </p>
+                </div>
+
+                {/* 4. LABA BERSIH (Hero Card Hijau Kontras) */}
+                {canViewFinancials && (
+                    <div className="bg-emerald-600 dark:bg-emerald-600 rounded-2xl p-4 sm:p-5 text-white shadow-lg shadow-emerald-600/25 relative overflow-hidden flex flex-col justify-between">
+                        <div className="flex items-center justify-between text-emerald-100 mb-2">
+                            <span className="text-xs font-bold uppercase tracking-wider">LABA BERSIH HARI INI</span>
+                            <div className="size-8 rounded-lg bg-white/20 text-white flex items-center justify-center">
+                                <span className="material-symbols-outlined text-[18px]">trending_up</span>
+                            </div>
+                        </div>
+                        <p className="text-lg sm:text-2xl font-black text-white">
+                            {loading ? "..." : formatRupiah(stats.netProfit)}
+                        </p>
+                        <p className="text-[11px] text-emerald-100 mt-1">
+                            Keuntungan riil masuk kantong
+                        </p>
+                    </div>
+                )}
             </section>
 
             <LowStockReportModal

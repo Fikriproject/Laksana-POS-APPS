@@ -4,6 +4,8 @@ import { DashboardContextType } from '../layouts/DashboardLayout';
 import toast from 'react-hot-toast';
 import PrintableTestReceipt, { PrinterConfig } from '../components/PrintableTestReceipt';
 import api from '../services/api';
+import ThemeToggle from '../components/ThemeToggle';
+import UserMenu from '../components/UserMenu';
 
 const DEFAULT_CONFIG: PrinterConfig = {
     name: 'Printer Kasir Utama (POS-80)',
@@ -103,7 +105,7 @@ const PrinterSettingsPage: React.FC = () => {
     return (
         <div className="flex flex-col h-full w-full bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white print:hidden">
             {/* Header */}
-            <header className="flex-shrink-0 px-4 md:px-8 py-4 md:py-6 border-b border-slate-200 dark:border-[#282839] bg-white dark:bg-surface-dark transition-colors">
+            <header className="flex-shrink-0 px-4 md:px-8 py-4 md:py-6 border-b border-slate-200 dark:border-[#282839] bg-white dark:bg-surface-dark transition-colors flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div className="flex items-center gap-3">
                     <button
                         onClick={toggleSidebar}
@@ -113,14 +115,19 @@ const PrinterSettingsPage: React.FC = () => {
                         <span className="material-symbols-outlined text-[24px]">menu</span>
                     </button>
                     <div>
-                        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
-                            <span className="material-symbols-outlined text-primary text-[28px] sm:text-[32px]">print</span>
+                        <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
+                            <span className="material-symbols-outlined text-primary text-[26px]">print</span>
                             Pengaturan Printer
                         </h1>
-                        <p className="text-gray-500 dark:text-text-secondary text-xs sm:text-sm mt-1">
+                        <p className="text-gray-500 dark:text-text-secondary text-xs mt-0.5">
                             Konfigurasi printer thermal LAN, WiFi, dan Bluetooth untuk mencetak nota dari tablet, HP, dan PC.
                         </p>
                     </div>
+                </div>
+
+                <div className="flex items-center gap-2 sm:gap-3 ml-auto md:ml-0">
+                    <ThemeToggle />
+                    <UserMenu />
                 </div>
             </header>
 

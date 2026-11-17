@@ -21,10 +21,10 @@ const ChartSection = ({ data }: ChartSectionProps) => {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
 
-    // Format date for display (e.g., "Mon", "Tue")
+    // Format tanggal untuk sumbu X (misal: "Sen", "Sel", "Rab")
     const formatXAxis = (dateStr: string) => {
         const date = new Date(dateStr.includes('T') ? dateStr : `${dateStr}T12:00:00`);
-        return date.toLocaleDateString('en-US', { weekday: 'short' });
+        return date.toLocaleDateString('id-ID', { weekday: 'short' });
     };
 
     const formatTooltip = (value: any) => {
@@ -32,16 +32,19 @@ const ChartSection = ({ data }: ChartSectionProps) => {
     };
 
     return (
-        <section className="bg-surface-light dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
+        <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-[#282839] shadow-sm p-5 sm:p-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                 <div>
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">Weekly Sales Overview</h3>
-                    <p className="text-gray-500 dark:text-text-secondary text-sm">Revenue performance over the last 7 days</p>
+                    <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">Tren Penjualan Mingguan</h3>
+                    <p className="text-gray-500 dark:text-text-secondary text-xs sm:text-sm">Performa omset penjualan selama 7 hari terakhir</p>
                 </div>
-                <button className="flex items-center gap-2 text-sm font-medium text-primary bg-primary/10 px-4 py-2 rounded-lg hover:bg-primary/20 transition-colors">
-                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>download</span>
-                    Export Report
-                </button>
+                <a
+                    href="/reports"
+                    className="flex items-center gap-1.5 text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 px-3.5 py-2 rounded-xl transition-colors shadow-sm"
+                >
+                    <span className="material-symbols-outlined text-[16px]">bar_chart</span>
+                    <span>Lihat Laporan Lengkap</span>
+                </a>
             </div>
             <div className="relative w-full h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
@@ -66,12 +69,12 @@ const ChartSection = ({ data }: ChartSectionProps) => {
                             contentStyle={{
                                 backgroundColor: isDark ? '#1e1e2d' : '#ffffff',
                                 border: isDark ? '1px solid #282839' : '1px solid #e2e8f0',
-                                borderRadius: '8px',
+                                borderRadius: '12px',
                                 color: isDark ? '#fff' : '#1e293b'
                             }}
                             itemStyle={{ color: isDark ? '#fff' : '#6467f2' }}
                             labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
-                            labelFormatter={(label: any) => new Date(String(label)).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                            labelFormatter={(label: any) => new Date(String(label)).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                         />
                         <Area
                             type="monotone"

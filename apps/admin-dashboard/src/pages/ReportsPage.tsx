@@ -4,6 +4,8 @@ import api from '../services/api';
 import { formatRupiah } from '../utils/format';
 import { useTheme } from '../context/ThemeContext';
 import { DashboardContextType } from '../layouts/DashboardLayout';
+import ThemeToggle from '../components/ThemeToggle';
+import UserMenu from '../components/UserMenu';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     PieChart, Pie, Cell, LineChart, Line, Legend
@@ -512,11 +514,16 @@ const ReportsPage = () => {
 
                             <button
                                 onClick={handleExport}
-                                className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors text-sm font-medium shadow-lg shadow-primary/20 w-full sm:w-auto justify-center"
+                                className="flex items-center gap-1.5 px-3.5 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl transition-all text-xs font-bold shadow-md shadow-primary/25 w-full sm:w-auto justify-center"
                             >
                                 <span className="material-symbols-outlined text-[18px]">download</span>
-                                Ekspor CSV
+                                <span>Ekspor CSV</span>
                             </button>
+
+                            <div className="flex items-center gap-2 shrink-0 ml-auto sm:ml-0">
+                                <ThemeToggle />
+                                <UserMenu />
+                            </div>
                         </div>
                     </div>
 
@@ -563,26 +570,65 @@ const ReportsPage = () => {
                             {/* SALES TAB */}
                             {activeTab === 'sales' && salesSummary && (
                                 <div className="flex flex-col gap-6">
-                                    {/* Stats Cards */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                        {[
-                                            { label: 'Total Pendapatan', value: formatRupiah(salesSummary.total_revenue), icon: 'payments', color: 'text-green-500', bg: 'bg-green-500/10' },
-                                            { label: 'Transaksi', value: salesSummary.total_transactions, icon: 'receipt_long', color: 'text-blue-500', bg: 'bg-blue-500/10' },
-                                            { label: 'Rata-rata Order', value: formatRupiah(salesSummary.avg_order_value), icon: 'shopping_bag', color: 'text-orange-500', bg: 'bg-orange-500/10' },
-                                            { label: 'Penjualan Bersih', value: formatRupiah(Number(salesSummary.total_revenue) - Number(salesSummary.total_tax || 0)), icon: 'account_balance_wallet', color: 'text-purple-500', bg: 'bg-purple-500/10' },
-                                        ].map((stat, i) => (
-                                            <div key={i} className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-xl p-5 shadow-sm transition-colors">
-                                                <div className="flex justify-between items-start">
-                                                    <div>
-                                                        <p className="text-gray-500 dark:text-text-secondary text-sm font-medium mb-1">{stat.label}</p>
-                                                        <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{stat.value}</h3>
-                                                    </div>
-                                                    <div className={`size-10 rounded-lg ${stat.bg} flex items-center justify-center ${stat.color}`}>
-                                                        <span className="material-symbols-outlined">{stat.icon}</span>
-                                                    </div>
+                                    {/* Stats Cards (Seragam dengan Rekap Harian & Dashboard) */}
+                                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                                        {/* Card 1: Total Pendapatan */}
+                                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col justify-between">
+                                            <div className="flex items-center justify-between text-gray-500 mb-2">
+                                                <span className="text-xs font-semibold">Total Pendapatan</span>
+                                                <div className="size-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center">
+                                                    <span className="material-symbols-outlined text-[18px]">payments</span>
                                                 </div>
                                             </div>
-                                        ))}
+                                            <p className="text-lg sm:text-2xl font-black text-gray-900 dark:text-white">
+                                                {formatRupiah(salesSummary.total_revenue)}
+                                            </p>
+                                            <p className="text-[11px] text-gray-400 mt-1">Total kotor periode ini</p>
+                                        </div>
+
+                                        {/* Card 2: Total Transaksi */}
+                                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col justify-between">
+                                            <div className="flex items-center justify-between text-gray-500 mb-2">
+                                                <span className="text-xs font-semibold">Total Transaksi</span>
+                                                <div className="size-8 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
+                                                    <span className="material-symbols-outlined text-[18px]">receipt_long</span>
+                                                </div>
+                                            </div>
+                                            <p className="text-lg sm:text-2xl font-black text-gray-900 dark:text-white">
+                                                {salesSummary.total_transactions.toLocaleString('id-ID')}
+                                            </p>
+                                            <p className="text-[11px] text-gray-400 mt-1">Transaksi berhasil</p>
+                                        </div>
+
+                                        {/* Card 3: Rata-rata Order */}
+                                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col justify-between">
+                                            <div className="flex items-center justify-between text-gray-500 mb-2">
+                                                <span className="text-xs font-semibold">Rata-rata Order</span>
+                                                <div className="size-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                                                    <span className="material-symbols-outlined text-[18px]">shopping_bag</span>
+                                                </div>
+                                            </div>
+                                            <p className="text-lg sm:text-2xl font-black text-gray-900 dark:text-white">
+                                                {formatRupiah(salesSummary.avg_order_value)}
+                                            </p>
+                                            <p className="text-[11px] text-gray-400 mt-1">Rata-rata per nota</p>
+                                        </div>
+
+                                        {/* Card 4: Penjualan Bersih (Hero Hijau Kontras) */}
+                                        <div className="bg-emerald-600 dark:bg-emerald-600 rounded-2xl p-4 sm:p-5 text-white shadow-lg shadow-emerald-600/25 relative overflow-hidden flex flex-col justify-between">
+                                            <div className="flex items-center justify-between text-emerald-100 mb-2">
+                                                <span className="text-xs font-bold uppercase tracking-wider">PENJUALAN BERSIH</span>
+                                                <div className="size-8 rounded-lg bg-white/20 text-white flex items-center justify-center">
+                                                    <span className="material-symbols-outlined text-[18px]">trending_up</span>
+                                                </div>
+                                            </div>
+                                            <p className="text-lg sm:text-2xl font-black text-white">
+                                                {formatRupiah(Number(salesSummary.total_revenue) - Number(salesSummary.total_tax || 0))}
+                                            </p>
+                                            <p className="text-[11px] text-emerald-100 mt-1">
+                                                Setelah potongan diskon & pajak
+                                            </p>
+                                        </div>
                                     </div>
 
                                     {/* Charts Row */}

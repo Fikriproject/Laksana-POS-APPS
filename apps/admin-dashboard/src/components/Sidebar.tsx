@@ -61,25 +61,6 @@ const Sidebar = ({ className = '', isOpen = false, onClose }: SidebarProps) => {
         }
     };
 
-    const handleShutdown = async () => {
-        const isConfirmed = window.confirm('Apakah Anda yakin ingin MENUTUP APLIKASI SEPENUHNYA?\nServer akan dimatikan.');
-        if (!isConfirmed) return;
-
-        try {
-            toast.loading('Mematikan aplikasi...');
-            await api.post('/system/shutdown');
-            toast.dismiss();
-            toast.success('Aplikasi ditutup.');
-            setTimeout(() => {
-                window.close();
-                document.body.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100vh;background:#000;color:#fff;flex-direction:column;gap:20px;"><h1>Aplikasi Telah Ditutup</h1><p>Silakan tutup browser ini.</p></div>';
-            }, 1000);
-        } catch (error) {
-            console.error(error);
-            toast.error('Gagal mematikan server via API.');
-        }
-    };
-
     // Close sidebar on route change
     useEffect(() => {
         onClose?.();
@@ -185,7 +166,7 @@ const Sidebar = ({ className = '', isOpen = false, onClose }: SidebarProps) => {
                     )}
                 </div>
 
-                {/* Logout & Shutdown */}
+                {/* Logout */}
                 <div className="p-4 border-t border-slate-200 dark:border-[#282839]">
                     <button
                         onClick={logout}
@@ -194,17 +175,6 @@ const Sidebar = ({ className = '', isOpen = false, onClose }: SidebarProps) => {
                         <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-slate-500 dark:text-text-secondary hover:bg-red-500/10 hover:text-red-500">
                             <span className="material-symbols-outlined">logout</span>
                             <span className="text-sm font-medium">Keluar Akun</span>
-                        </div>
-                    </button>
-
-                    <button
-                        onClick={handleShutdown}
-                        className="w-full text-left mt-1"
-                        title="Matikan Server & Aplikasi"
-                    >
-                        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-slate-500 dark:text-text-secondary hover:bg-red-500/10 hover:text-red-500">
-                            <span className="material-symbols-outlined">power_settings_new</span>
-                            <span className="text-sm font-medium">Tutup Aplikasi</span>
                         </div>
                     </button>
                 </div>

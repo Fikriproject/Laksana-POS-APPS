@@ -5,6 +5,8 @@ import toast from 'react-hot-toast';
 import { formatRupiah } from '../utils/format';
 import { BarcodePreview } from '../components/BarcodePreview';
 import { generateBarcodePdf, downloadBlob, openPdfBlob, ProductForBarcode } from '../utils/barcode128';
+import ThemeToggle from '../components/ThemeToggle';
+import UserMenu from '../components/UserMenu';
 
 interface DashboardContextType {
     toggleSidebar: () => void;
@@ -199,16 +201,18 @@ export const BarcodePage = () => {
                     </div>
                 </div>
 
-                {/* Primary Action Button */}
-                <div className="flex items-center gap-2">
+                {/* Primary Action Button & User Controls */}
+                <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                     <button
                         onClick={handleBuildPdf}
                         disabled={loading || selectedCount === 0 || isBuilding}
-                        className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white font-semibold shadow-lg shadow-primary/30 hover:bg-primary-hover active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-primary text-white text-xs sm:text-sm font-bold shadow-md shadow-primary/25 hover:bg-primary-hover active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                     >
-                        <span className="material-symbols-outlined text-[20px]">picture_as_pdf</span>
-                        <span>Mulai Build & Unduh PDF ({selectedCount})</span>
+                        <span className="material-symbols-outlined text-[18px]">picture_as_pdf</span>
+                        <span>Mulai Unduh PDF ({selectedCount})</span>
                     </button>
+                    <ThemeToggle />
+                    <UserMenu />
                 </div>
             </div>
 

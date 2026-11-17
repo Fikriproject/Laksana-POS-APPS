@@ -1,5 +1,6 @@
 import { useAuth } from '../context/AuthContext';
 import ThemeToggle from './ThemeToggle';
+import UserMenu from './UserMenu';
 
 interface HeaderProps {
     onMenuClick?: () => void;
@@ -23,21 +24,22 @@ const Header = ({ onMenuClick }: HeaderProps) => {
     });
 
     return (
-        <header className="flex flex-col md:flex-row justify-between md:items-end gap-4">
-            <div className="flex items-center gap-4">
+        <header className="flex flex-col md:flex-row justify-between md:items-center gap-4 pb-2 border-b border-slate-200/80 dark:border-[#282839]">
+            <div className="flex items-center gap-3 sm:gap-4">
                 {/* Mobile Menu Button */}
                 <button
                     onClick={onMenuClick}
-                    className="p-2 -ml-2 text-gray-500 dark:text-text-secondary hover:text-primary transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 shrink-0" title="Buka Menu"
+                    className="p-2 -ml-2 text-gray-500 dark:text-text-secondary hover:text-primary transition-colors rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 shrink-0"
+                    title="Buka Menu"
                 >
-                    <span className="material-symbols-outlined">menu</span>
+                    <span className="material-symbols-outlined text-[24px]">menu</span>
                 </button>
 
                 <div>
-                    <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
+                    <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
                         {getGreeting()}, {user?.full_name || 'Pengguna'}
                     </h2>
-                    <p className="text-gray-500 dark:text-text-secondary mt-1 text-sm">
+                    <p className="text-gray-500 dark:text-text-secondary mt-0.5 text-xs sm:text-sm">
                         {user?.role === 'admin' || user?.role === 'manager'
                             ? "Ringkasan operasional dan performa toko Anda hari ini."
                             : "Ringkasan transaksi dan status persediaan stok toko hari ini."}
@@ -45,12 +47,13 @@ const Header = ({ onMenuClick }: HeaderProps) => {
                 </div>
             </div>
 
-            <div className="flex items-center gap-3">
-                <ThemeToggle />
-                <div className="flex items-center gap-2 text-text-secondary bg-surface-light dark:bg-surface-dark px-4 py-2 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800">
-                    <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>calendar_today</span>
-                    <span className="text-sm font-medium">{todayDate}</span>
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-auto md:ml-0">
+                <div className="flex items-center gap-2 text-gray-600 dark:text-text-secondary bg-white dark:bg-surface-dark px-3 py-1.5 rounded-xl shadow-sm border border-slate-200 dark:border-[#282839]">
+                    <span className="material-symbols-outlined text-[18px] text-primary">calendar_today</span>
+                    <span className="text-xs font-semibold">{todayDate}</span>
                 </div>
+                <ThemeToggle />
+                <UserMenu />
             </div>
         </header>
     );

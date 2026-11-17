@@ -9,6 +9,8 @@ import { BarcodePreview } from '../components/BarcodePreview';
 import { generateBarcodePdf, downloadBlob, openPdfBlob } from '../utils/barcode128';
 import ImportExcelModal from '../components/ImportExcelModal';
 import BulkMarginModal from '../components/BulkMarginModal';
+import ThemeToggle from '../components/ThemeToggle';
+import UserMenu from '../components/UserMenu';
 
 export interface ProductUnitData {
     id?: string;
@@ -537,10 +539,10 @@ const ProductsPage = () => {
                                 className="block w-full sm:w-64 rounded-lg bg-gray-100 dark:bg-[#282839] border-none py-2 pl-10 pr-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-[#9d9db9] focus:ring-2 focus:ring-primary focus:bg-white dark:focus:bg-[#1c1c27] transition-all"
                             />
                         </form>
-                        <button className="flex items-center justify-center size-9 rounded-lg bg-gray-100 dark:bg-[#282839] text-gray-500 dark:text-[#9d9db9] hover:text-primary dark:hover:text-white hover:bg-gray-200 dark:hover:bg-[#3b3c54] transition-colors relative shrink-0">
-                            <span className="material-symbols-outlined text-[20px]">notifications</span>
-                            <span className="absolute top-2 right-2 size-2 bg-red-500 rounded-full border-2 border-white dark:border-[#282839]" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <ThemeToggle />
+                            <UserMenu />
+                        </div>
                     </div>
                 </header>
 
