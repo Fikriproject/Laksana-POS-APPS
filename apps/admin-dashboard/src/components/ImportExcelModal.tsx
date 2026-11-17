@@ -50,12 +50,35 @@ export const ImportExcelModal: React.FC<ImportExcelModalProps> = ({ isOpen, onCl
         return Number(cleaned) || 0;
     };
 
-    // Bersihkan angka stok
+    // Bersihkan angka stok (mendukung format penjumlahan seperti "24 + 4 Pcs" atau "85+18")
     const parseStock = (val: any): number => {
         if (!val) return 0;
         if (typeof val === 'number') return Math.floor(val);
-        const cleaned = String(val).replace(/[^0-9]/g, '');
+        const s = String(val).trim();
+        if (s.includes('+')) {
+            const parts = s.split('+');
+            let sum = 0;
+            for (const p of parts) {
+                const num = parseInt(p.replace(/[^0-9]/g, ''), 10) || 0;
+                sum += num;
+            }
+            return sum;
+        }
+        const cleaned = s.replace(/[^0-9]/g, '');
         return parseInt(cleaned, 10) || 0;
+    };
+
+    // Helper untuk mengambil nilai kolom secara fleksibel, case-insensitive, dan mengabaikan spasi/simbol
+    const getRowVal = (row: any, ...keys: string[]): any => {
+        const rowKeys = Object.keys(row);
+        for (const key of keys) {
+            const targetClean = key.toLowerCase().replace(/[\s_-]+/g, '');
+            const foundKey = rowKeys.find(k => k.toLowerCase().replace(/[\s_-]+/g, '') === targetClean);
+            if (foundKey && row[foundKey] !== undefined && String(row[foundKey]).trim() !== '') {
+                return row[foundKey];
+            }
+        }
+        return '';
     };
 
     // Format SKU sesuai aturan pengguna: 2 digit kode asli + LKS + digit urutan
@@ -100,9 +123,15 @@ export const ImportExcelModal: React.FC<ImportExcelModalProps> = ({ isOpen, onCl
         try {
             const data = await selectedFile.arrayBuffer();
             const workbook = XLSX.read(data, { type: 'array' });
-            const sheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[sheetName];
-            const rawJson: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+            
+            // Baca SEMUA sheet yang ada di file Excel/CSV
+            let rawJson: any[] = [];
+            const sheetCount = workbook.SheetNames.length;
+            workbook.SheetNames.forEach(sheetName => {
+                const worksheet = workbook.Sheets[sheetName];
+                const sheetRows: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+                rawJson = rawJson.concat(sheetRows);
+            });
 
             if (rawJson.length === 0) {
                 toast.error('File Excel kosong atau tidak terbaca.');
@@ -111,7 +140,7 @@ export const ImportExcelModal: React.FC<ImportExcelModalProps> = ({ isOpen, onCl
             }
 
             // Normalisasi baris
-            recalculateRows(rawJson, wholesalePercent, resellerPercent, wholesaleMinQty, codeFormat, prefixText);
+            recalculateRows(rawJson, wholesalePercent, resellerPercent, wholesaleMinQty, codeFormat, prefixText, sheetCount);
         } catch (err: any) {
             console.error('Error parsing Excel:', err);
             toast.error('Gagal membaca file Excel. Pastikan format file valid (.xlsx, .xls, .csv)');
@@ -127,21 +156,22 @@ export const ImportExcelModal: React.FC<ImportExcelModalProps> = ({ isOpen, onCl
         rsPct: number,
         minQty: number,
         fmt: 'joined' | 'dashed',
-        pfx: string
+        pfx: string,
+        sheetCount: number = 1
     ) => {
         const total = rawRows.length;
         const results: ParsedProductRow[] = [];
 
         rawRows.forEach((row, idx) => {
-            // Deteksi kolom secara fleksibel
-            const name = String(row['Nama Barang'] || row['Nama Produk'] || row['nama_barang'] || row['nama'] || row['Name'] || '').trim();
-            if (!name) return; // Lewati baris kosong
+            // Deteksi kolom secara fleksibel & case-insensitive (huruf besar/kecil/spasi/garis bawah diabaikan)
+            const name = String(getRowVal(row, 'nama_barang', 'nama_produk', 'nama', 'name', 'barang', 'item')).trim();
+            if (!name) return; // Lewati baris kosong atau baris pembatas
 
-            const stock = parseStock(row['Stok'] || row['stok'] || row['Stock'] || row['qty']);
-            const retailPrice = parseCurrency(row['Harga Jual'] || row['harga_jual'] || row['Harga Ecer'] || row['price']);
-            const purchasePrice = parseCurrency(row['Harga Beli'] || row['harga_beli'] || row['Modal'] || row['purchase_price']);
-            const rawCode = String(row['Kode'] || row['kode'] || row['Code'] || row['SKU'] || '').trim();
-            const categoryName = String(row['Kategori'] || row['kategori'] || row['Category'] || 'Umum').trim();
+            const stock = parseStock(getRowVal(row, 'stok', 'stock', 'qty', 'jumlah'));
+            const retailPrice = parseCurrency(getRowVal(row, 'harga_jual', 'harga_ecer', 'ecer', 'price', 'jual'));
+            const purchasePrice = parseCurrency(getRowVal(row, 'harga_beli', 'modal', 'purchase_price', 'beli', 'pokok'));
+            const rawCode = String(getRowVal(row, 'kode', 'code', 'sku', 'barcode')).trim();
+            const categoryName = String(getRowVal(row, 'kategori', 'category', 'kelompok') || 'Umum').trim();
 
             // Hitung harga grosir: Modal + wsPct (pembulatan ratusan terdekat)
             let wsPrice = purchasePrice > 0
@@ -172,7 +202,8 @@ export const ImportExcelModal: React.FC<ImportExcelModalProps> = ({ isOpen, onCl
 
         setParsedRows(results);
         if (results.length > 0) {
-            toast.success(`${results.length} data produk siap di-import!`, { id: 'excel-parsed' });
+            const sheetMsg = sheetCount > 1 ? ` dari ${sheetCount} Sheet` : '';
+            toast.success(`${results.length} data produk${sheetMsg} siap di-import!`, { id: 'excel-parsed' });
         }
     };
 
