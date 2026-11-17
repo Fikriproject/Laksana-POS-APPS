@@ -138,10 +138,10 @@ export async function generateBarcodePdf(
     let cellW = 107.72;
     let cellH = 36.85;
 
-    const koalaPaperSize = options.koalaPaperSize || 'custom170';
-    const deltaX = (options.offsetX || 0) * 2.83465; // offset horizontal (pt)
-    const deltaY = (options.offsetY || 0) * 2.83465; // offset vertikal (pt)
-    const pitchY = (options.pitchYMm || 15.0) * 2.83465; // vertical pitch (pt), default 15.0 mm
+    const koalaPaperSize = options.koalaPaperSize || 'a4'; // Default A4 sesuai setting teruji
+    const deltaX = (options.offsetX !== undefined ? options.offsetX : 0) * 2.83465; // offset horizontal (pt), default 0
+    const deltaY = (options.offsetY !== undefined ? options.offsetY : -4.5) * 2.83465; // offset vertikal (pt), default -4.5 mm
+    const pitchY = (options.pitchYMm !== undefined ? options.pitchYMm : 15.0) * 2.83465; // vertical pitch (pt), default 15.0 mm
     const pitchX = 41.0 * 2.83465; // horizontal pitch (pt), 41.0 mm
 
     if (layout === 'koala109') {
