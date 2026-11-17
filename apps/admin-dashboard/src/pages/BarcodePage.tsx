@@ -4,7 +4,7 @@ import api from '../services/api';
 import toast from 'react-hot-toast';
 import { formatRupiah } from '../utils/format';
 import { BarcodePreview } from '../components/BarcodePreview';
-import { generateBarcodePdf, downloadBlob, openPdfBlob, ProductForBarcode } from '../utils/barcode128';
+import { generateBarcodePdf, downloadBlob, openPdfBlob, ProductForBarcode, BarcodePageLayout } from '../utils/barcode128';
 import ThemeToggle from '../components/ThemeToggle';
 import UserMenu from '../components/UserMenu';
 
@@ -30,7 +30,7 @@ export const BarcodePage = () => {
     const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
 
     // Print & PDF Options
-    const [layout, setLayout] = useState<'grid3x8' | 'grid4x10' | 'grid3x7' | 'single'>('grid3x8');
+    const [layout, setLayout] = useState<BarcodePageLayout>('koala109');
     const [copiesPerProduct, setCopiesPerProduct] = useState(1);
     const [showStoreName, setShowStoreName] = useState(true);
     const [showPrice, setShowPrice] = useState(true);
@@ -156,18 +156,20 @@ export const BarcodePage = () => {
     const handlePrintSingleProduct = async (product: ProductForBarcode, e?: React.MouseEvent) => {
         e?.stopPropagation();
         try {
+            const isKoala = layout === 'koala109';
+            const labelCount = isKoala ? 55 : (layout === 'grid4x10' ? 40 : (layout === 'grid3x7' ? 21 : 24));
             toast.loading(`Membuat barcode untuk ${product.name}...`, { id: 'single-pdf' });
-            // Buat PDF 1 lembar isi 24 label untuk produk ini
+            // Buat PDF 1 lembar penuh untuk produk ini
             const blob = await generateBarcodePdf([product], {
-                layout: 'grid3x8',
-                copiesPerProduct: 24, // 1 lembar stiker penuh isi 24 label untuk buku/produk ini
-                showStoreName: true,
-                showPrice: true,
+                layout,
+                copiesPerProduct: labelCount,
+                showStoreName: !isKoala && showStoreName,
+                showPrice: !isKoala && showPrice,
                 storeName
             });
             toast.dismiss('single-pdf');
             downloadBlob(blob, `Barcode-${product.sku}-${product.name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
-            toast.success(`PDF barcode 1 lembar (${product.name}) siap dicetak!`);
+            toast.success(`PDF barcode 1 lembar (${product.name} - ${labelCount} label) siap dicetak!`);
         } catch {
             toast.dismiss('single-pdf');
             toast.error('Gagal membuat barcode produk.');
@@ -175,7 +177,8 @@ export const BarcodePage = () => {
     };
 
     const selectedCount = selectedProductIds.size;
-    const itemsPerPage = layout === 'grid4x10' ? 40 : (layout === 'grid3x7' ? 21 : (layout === 'single' ? 1 : 24));
+    const itemsPerPage = layout === 'koala109' ? 55 : (layout === 'grid4x10' ? 40 : (layout === 'grid3x7' ? 21 : (layout === 'single' ? 1 : 24)));
+    const paperLabelName = layout === 'koala109' ? 'Lembar Koala 109' : (layout === 'single' ? 'Label' : 'hal. A4');
     const estimatedPages = Math.ceil((selectedCount * copiesPerProduct) / itemsPerPage) || 1;
 
     return (
@@ -254,9 +257,10 @@ export const BarcodePage = () => {
                         <label className="text-xs font-semibold text-gray-600 dark:text-text-secondary">Tata Letak (Layout)</label>
                         <select
                             value={layout}
-                            onChange={(e) => setLayout(e.target.value as any)}
-                            className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-[#282839] bg-white dark:bg-[#1a1a24] text-gray-900 dark:text-white focus:outline-none focus:border-primary"
+                            onChange={(e) => setLayout(e.target.value as BarcodePageLayout)}
+                            className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-[#282839] bg-white dark:bg-[#1a1a24] text-gray-900 dark:text-white focus:outline-none focus:border-primary font-medium"
                         >
+                            <option value="koala109">🏷️ Koala / Tom & Jerry No. 109 (55 Label/Lembar - 13x38 mm)</option>
                             <option value="grid3x8">A4 Grid 3x8 (24 Label/Lembar - Buku & Kitab Standar)</option>
                             <option value="grid3x7">A4 Blueprint GL-A46 (21 Label/Lembar - Ukuran 66x40 mm)</option>
                             <option value="grid4x10">A4 Grid 4x10 (40 Label/Lembar - Stiker Kecil / Polos A4)</option>
@@ -281,28 +285,43 @@ export const BarcodePage = () => {
                     </div>
                 </div>
 
+                {/* Banner Info Khusus Koala 109 */}
+                {layout === 'koala109' && (
+                    <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/25 text-amber-900 dark:text-amber-300 text-xs">
+                        <span className="material-symbols-outlined text-[20px] text-amber-600 dark:text-amber-400 shrink-0">info</span>
+                        <div>
+                            <span className="font-bold">Mode Stiker Koala / Tom & Jerry No. 109 Aktif (55 Label per Lembar - 13x38 mm):</span>
+                            <p className="mt-0.5 text-[11px] text-amber-800/90 dark:text-amber-300/90 leading-relaxed">
+                                Sesuai permintaan Anda, isi label dioptimalkan hanya menampilkan <strong>Nama Barang + Garis Barcode (Code 128) + Nomor SKU</strong> (tanpa nama toko &amp; tanpa harga) agar garis barcode memiliki tinggi maksimal (~5.8 mm) sehingga sangat cepat dan akurat saat discan menggunakan barcode scanner fisik.
+                            </p>
+                        </div>
+                    </div>
+                )}
+
                 {/* Switch Opsi Tampilan & Ringkasan */}
                 <div className="flex flex-wrap items-center justify-between gap-4 pt-3 border-t border-slate-100 dark:border-[#282839]/60">
                     <div className="flex flex-wrap items-center gap-4">
-                        <label className="flex items-center gap-2 cursor-pointer text-xs sm:text-sm text-gray-700 dark:text-gray-300">
+                        <label className={`flex items-center gap-2 text-xs sm:text-sm ${layout === 'koala109' ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer text-gray-700 dark:text-gray-300'}`}>
                             <input
                                 type="checkbox"
-                                checked={showStoreName}
+                                checked={layout === 'koala109' ? false : showStoreName}
+                                disabled={layout === 'koala109'}
                                 onChange={(e) => setShowStoreName(e.target.checked)}
                                 className="rounded text-primary focus:ring-primary size-4"
                             />
-                            <span>Tampilkan Nama Toko</span>
+                            <span>Tampilkan Nama Toko {layout === 'koala109' && '(Off)'}</span>
                         </label>
-                        <label className="flex items-center gap-2 cursor-pointer text-xs sm:text-sm text-gray-700 dark:text-gray-300">
+                        <label className={`flex items-center gap-2 text-xs sm:text-sm ${layout === 'koala109' ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer text-gray-700 dark:text-gray-300'}`}>
                             <input
                                 type="checkbox"
-                                checked={showPrice}
+                                checked={layout === 'koala109' ? false : showPrice}
+                                disabled={layout === 'koala109'}
                                 onChange={(e) => setShowPrice(e.target.checked)}
                                 className="rounded text-primary focus:ring-primary size-4"
                             />
-                            <span>Tampilkan Harga Jual</span>
+                            <span>Tampilkan Harga Jual {layout === 'koala109' && '(Off)'}</span>
                         </label>
-                        {showStoreName && (
+                        {layout !== 'koala109' && showStoreName && (
                             <input
                                 type="text"
                                 value={storeName}
@@ -325,7 +344,7 @@ export const BarcodePage = () => {
                         <span className="text-xs text-gray-400">|</span>
                         <div className="text-xs text-gray-500 dark:text-text-secondary">
                             Terpilih: <strong className="text-gray-900 dark:text-white">{selectedCount}</strong> produk
-                            {' '}(Total <strong>{selectedCount * copiesPerProduct}</strong> label &bull; Estimasi <strong>{estimatedPages}</strong> hal. A4)
+                            {' '}(Total <strong>{selectedCount * copiesPerProduct}</strong> label &bull; Estimasi <strong>{estimatedPages}</strong> {paperLabelName})
                         </div>
                     </div>
                 </div>
@@ -459,10 +478,10 @@ export const BarcodePage = () => {
                                     type="button"
                                     onClick={(e) => handlePrintSingleProduct(p, e)}
                                     className="mt-2.5 w-full flex items-center justify-center gap-1 py-1 px-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 text-[11px] font-medium hover:bg-primary hover:text-white transition-colors"
-                                    title="Unduh 1 lembar (24 label) khusus untuk produk ini"
+                                    title={`Unduh 1 lembar (${itemsPerPage} label) khusus untuk produk ini`}
                                 >
                                     <span className="material-symbols-outlined text-[14px]">print</span>
-                                    <span>Cetak 1 Lembar</span>
+                                    <span>Cetak 1 Lembar ({itemsPerPage})</span>
                                 </button>
                             </div>
                         );

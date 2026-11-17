@@ -75,8 +75,10 @@ export interface ProductForBarcode {
     category_name?: string;
 }
 
+export type BarcodePageLayout = 'grid3x8' | 'koala109' | 'grid4x10' | 'grid3x7' | 'single';
+
 export interface PdfOptions {
-    layout?: 'grid3x8' | 'grid4x10' | 'grid3x7' | 'single';
+    layout?: BarcodePageLayout;
     storeName?: string;
     showPrice?: boolean;
     showStoreName?: boolean;
@@ -119,8 +121,8 @@ export async function generateBarcodePdf(
         }
     });
 
-    const PAGE_W = 595.28; // A4 pt (210mm)
-    const PAGE_H = 841.89; // A4 pt (297mm)
+    let PAGE_W = 595.28; // A4 pt (210mm)
+    let PAGE_H = 841.89; // A4 pt (297mm)
 
     let cols = 3;
     let rows = 8;
@@ -129,7 +131,19 @@ export async function generateBarcodePdf(
     let gapX = 10;
     let gapY = 8;
 
-    if (layout === 'grid4x10') {
+    if (layout === 'koala109') {
+        // Stiker Label Koala / Tom & Jerry No. 109 (55 label per lembar: 5 kolom x 11 baris)
+        // Ukuran per stiker: 13 mm x 38 mm (36.85 pt x 107.72 pt)
+        // Ukuran lembar: 210 mm x 170 mm (595.28 pt x 481.89 pt)
+        PAGE_W = 595.28; // 210mm
+        PAGE_H = 481.89; // 170mm
+        cols = 5;
+        rows = 11;
+        marginX = 8.5;   // ~3.0 mm samping kiri & kanan
+        marginY = 9.92;  // ~3.5 mm atas & bawah
+        gapX = 9.92;     // ~3.5 mm gap horizontal antar kolom
+        gapY = 5.67;     // ~2.0 mm gap vertikal antar baris
+    } else if (layout === 'grid4x10') {
         cols = 4;
         rows = 10;
         marginX = 15;
@@ -165,9 +179,11 @@ export async function generateBarcodePdf(
     for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
         let stream = '';
 
-        // Header halaman kecil
-        stream += '0.5 0.5 0.5 RG 0.5 w\n';
-        stream += `BT /F1 7 Tf ${marginX} ${(PAGE_H - marginY + 8).toFixed(2)} Td (${escapePdfText(storeName)} - Halaman ${pageIdx + 1} dari ${totalPages}) Tj ET\n`;
+        // Header halaman kecil (dilewati untuk Koala 109 agar margin atas bersih)
+        if (layout !== 'koala109') {
+            stream += '0.5 0.5 0.5 RG 0.5 w\n';
+            stream += `BT /F1 7 Tf ${marginX} ${(PAGE_H - marginY + 8).toFixed(2)} Td (${escapePdfText(storeName)} - Halaman ${pageIdx + 1} dari ${totalPages}) Tj ET\n`;
+        }
 
         const startIdx = pageIdx * itemsPerPage;
         const pageItems = itemsToPrint.slice(startIdx, startIdx + itemsPerPage);
@@ -180,58 +196,104 @@ export async function generateBarcodePdf(
             const x = marginX + col * (cellW + gapX);
             const y = PAGE_H - marginY - (row + 1) * cellH - row * gapY;
 
-            // Border label luar (garis tipis abu-abu agar rapi saat digunting/ditempel)
-            stream += '0.85 0.85 0.85 RG 0.4 w\n';
-            stream += `${x.toFixed(2)} ${y.toFixed(2)} ${cellW.toFixed(2)} ${cellH.toFixed(2)} re S\n`;
+            if (layout === 'koala109') {
+                // Layout khusus Koala 109: Stiker 13 x 38 mm
+                // Hanya Nama Barang + Garis Barcode + SKU (Tanpa Nama Toko & Tanpa Harga)
 
-            // Teks Nama Toko (Atas)
-            if (showStoreName) {
-                stream += '0.2 0.2 0.2 rg\n';
-                stream += `BT /F2 ${layout === 'grid4x10' ? '6.5' : '7.5'} Tf ${(x + 8).toFixed(2)} ${(y + cellH - (layout === 'grid4x10' ? 10 : 12)).toFixed(2)} Td (${escapePdfText(storeName)}) Tj ET\n`;
-            }
+                // Garis batas luar stiker (0.25 pt abu-abu terang)
+                stream += '0.88 0.88 0.88 RG 0.25 w\n';
+                stream += `${x.toFixed(2)} ${y.toFixed(2)} ${cellW.toFixed(2)} ${cellH.toFixed(2)} re S\n`;
 
-            // Generate Barcode Batang
-            const barcode = encodeCode128(product.sku || '0000');
-            const barcodeMaxW = cellW - 24;
-            const unitW = barcodeMaxW / barcode.totalModules;
-            const barcodeActualW = barcode.totalModules * unitW;
-            const barcodeStartX = x + (cellW - barcodeActualW) / 2;
-            const barcodeH = layout === 'grid4x10' ? 24 : 32;
-            const barcodeY = y + (showPrice ? 28 : 22);
+                // 1. Nama Barang (Di atas, font 5.5 pt, truncate max 22 karakter)
+                const maxNameLen = 22;
+                const truncatedName = product.name.length > maxNameLen
+                    ? product.name.substring(0, maxNameLen - 2) + '..'
+                    : product.name;
+                const nameFontSize = 5.5;
+                const approxNameW = truncatedName.length * (nameFontSize * 0.48);
+                const nameX = Math.max(x + 2, x + (cellW - approxNameW) / 2);
+                const nameY = y + cellH - 7.5;
+                stream += '0.1 0.1 0.1 rg\n';
+                stream += `BT /F1 ${nameFontSize} Tf ${nameX.toFixed(2)} ${nameY.toFixed(2)} Td (${escapePdfText(truncatedName)}) Tj ET\n`;
 
-            // Gambar batang hitam barcode (100% vector murni)
-            stream += '0 0 0 rg\n';
-            for (const bar of barcode.bars) {
-                const barX = barcodeStartX + bar.x * unitW;
-                const barW = bar.width * unitW;
-                stream += `${barX.toFixed(2)} ${barcodeY.toFixed(2)} ${barW.toFixed(2)} ${barcodeH.toFixed(2)} re f\n`;
-            }
+                // 2. Garis Barcode Code 128 (Tinggi 16.5 pt / ~5.8 mm agar mudah discan)
+                const barcode = encodeCode128(product.sku || '0000');
+                const barcodeMaxW = cellW - 10;
+                const unitW = barcodeMaxW / barcode.totalModules;
+                const barcodeActualW = barcode.totalModules * unitW;
+                const barcodeStartX = x + (cellW - barcodeActualW) / 2;
+                const barcodeH = 16.5;
+                const barcodeY = y + 8.5;
 
-            // Teks SKU di bawah barcode
-            const skuText = barcode.sku;
-            const skuFontSize = layout === 'grid4x10' ? 7 : 8;
-            const approxSkuW = skuText.length * (skuFontSize * 0.55);
-            const skuX = Math.max(x + 4, x + (cellW - approxSkuW) / 2);
-            stream += `BT /F2 ${skuFontSize} Tf ${skuX.toFixed(2)} ${(barcodeY - (layout === 'grid4x10' ? 9 : 10)).toFixed(2)} Td (${escapePdfText(skuText)}) Tj ET\n`;
+                stream += '0 0 0 rg\n';
+                for (const bar of barcode.bars) {
+                    const barX = barcodeStartX + bar.x * unitW;
+                    const barW = bar.width * unitW;
+                    stream += `${barX.toFixed(2)} ${barcodeY.toFixed(2)} ${barW.toFixed(2)} ${barcodeH.toFixed(2)} re f\n`;
+                }
 
-            // Nama Produk (Dipotong jika terlalu panjang agar tidak keluar garis label)
-            const maxNameLen = layout === 'grid4x10' ? 24 : 30;
-            const truncatedName = product.name.length > maxNameLen
-                ? product.name.substring(0, maxNameLen - 2) + '..'
-                : product.name;
-            const nameFontSize = layout === 'grid4x10' ? 6.5 : 7.5;
-            const approxNameW = truncatedName.length * (nameFontSize * 0.5);
-            const nameX = Math.max(x + 4, x + (cellW - approxNameW) / 2);
-            stream += `BT /F1 ${nameFontSize} Tf ${nameX.toFixed(2)} ${(y + (showPrice ? 12 : 6)).toFixed(2)} Td (${escapePdfText(truncatedName)}) Tj ET\n`;
+                // 3. Teks SKU di bawah barcode (font 5.5 pt)
+                const skuText = barcode.sku;
+                const skuFontSize = 5.5;
+                const approxSkuW = skuText.length * (skuFontSize * 0.55);
+                const skuX = Math.max(x + 2, x + (cellW - approxSkuW) / 2);
+                const skuY = y + 2.0;
+                stream += `BT /F2 ${skuFontSize} Tf ${skuX.toFixed(2)} ${skuY.toFixed(2)} Td (${escapePdfText(skuText)}) Tj ET\n`;
+            } else {
+                // Layout standar A4
+                // Border label luar (garis tipis abu-abu agar rapi saat digunting/ditempel)
+                stream += '0.85 0.85 0.85 RG 0.4 w\n';
+                stream += `${x.toFixed(2)} ${y.toFixed(2)} ${cellW.toFixed(2)} ${cellH.toFixed(2)} re S\n`;
 
-            // Harga Produk (Bawah)
-            if (showPrice && product.price > 0) {
-                const priceText = formatRupiahSimple(product.price);
-                const priceFontSize = layout === 'grid4x10' ? 7 : 8;
-                const approxPriceW = priceText.length * (priceFontSize * 0.55);
-                const priceX = Math.max(x + 4, x + (cellW - approxPriceW) / 2);
-                stream += '0.05 0.45 0.25 rg\n'; // Sedikit hijau gelap untuk harga
-                stream += `BT /F2 ${priceFontSize} Tf ${priceX.toFixed(2)} ${(y + 3).toFixed(2)} Td (${escapePdfText(priceText)}) Tj ET\n`;
+                // Teks Nama Toko (Atas)
+                if (showStoreName) {
+                    stream += '0.2 0.2 0.2 rg\n';
+                    stream += `BT /F2 ${layout === 'grid4x10' ? '6.5' : '7.5'} Tf ${(x + 8).toFixed(2)} ${(y + cellH - (layout === 'grid4x10' ? 10 : 12)).toFixed(2)} Td (${escapePdfText(storeName)}) Tj ET\n`;
+                }
+
+                // Generate Barcode Batang
+                const barcode = encodeCode128(product.sku || '0000');
+                const barcodeMaxW = cellW - 24;
+                const unitW = barcodeMaxW / barcode.totalModules;
+                const barcodeActualW = barcode.totalModules * unitW;
+                const barcodeStartX = x + (cellW - barcodeActualW) / 2;
+                const barcodeH = layout === 'grid4x10' ? 24 : 32;
+                const barcodeY = y + (showPrice ? 28 : 22);
+
+                // Gambar batang hitam barcode (100% vector murni)
+                stream += '0 0 0 rg\n';
+                for (const bar of barcode.bars) {
+                    const barX = barcodeStartX + bar.x * unitW;
+                    const barW = bar.width * unitW;
+                    stream += `${barX.toFixed(2)} ${barcodeY.toFixed(2)} ${barW.toFixed(2)} ${barcodeH.toFixed(2)} re f\n`;
+                }
+
+                // Teks SKU di bawah barcode
+                const skuText = barcode.sku;
+                const skuFontSize = layout === 'grid4x10' ? 7 : 8;
+                const approxSkuW = skuText.length * (skuFontSize * 0.55);
+                const skuX = Math.max(x + 4, x + (cellW - approxSkuW) / 2);
+                stream += `BT /F2 ${skuFontSize} Tf ${skuX.toFixed(2)} ${(barcodeY - (layout === 'grid4x10' ? 9 : 10)).toFixed(2)} Td (${escapePdfText(skuText)}) Tj ET\n`;
+
+                // Nama Produk (Dipotong jika terlalu panjang agar tidak keluar garis label)
+                const maxNameLen = layout === 'grid4x10' ? 24 : 30;
+                const truncatedName = product.name.length > maxNameLen
+                    ? product.name.substring(0, maxNameLen - 2) + '..'
+                    : product.name;
+                const nameFontSize = layout === 'grid4x10' ? 6.5 : 7.5;
+                const approxNameW = truncatedName.length * (nameFontSize * 0.5);
+                const nameX = Math.max(x + 4, x + (cellW - approxNameW) / 2);
+                stream += `BT /F1 ${nameFontSize} Tf ${nameX.toFixed(2)} ${(y + (showPrice ? 12 : 6)).toFixed(2)} Td (${escapePdfText(truncatedName)}) Tj ET\n`;
+
+                // Harga Produk (Bawah)
+                if (showPrice && product.price > 0) {
+                    const priceText = formatRupiahSimple(product.price);
+                    const priceFontSize = layout === 'grid4x10' ? 7 : 8;
+                    const approxPriceW = priceText.length * (priceFontSize * 0.55);
+                    const priceX = Math.max(x + 4, x + (cellW - approxPriceW) / 2);
+                    stream += '0.05 0.45 0.25 rg\n'; // Sedikit hijau gelap untuk harga
+                    stream += `BT /F2 ${priceFontSize} Tf ${priceX.toFixed(2)} ${(y + 3).toFixed(2)} Td (${escapePdfText(priceText)}) Tj ET\n`;
+                }
             }
 
             // Notifikasi progress per item
