@@ -220,24 +220,84 @@ return function ($method, $path, $productService, $user) {
         $productService->update($matches[1], ['stock_quantity' => (int)$data['stock_quantity']]);
         Response::success(['stock_quantity' => (int)$data['stock_quantity']], 'Stok berhasil diperbarui');
     }
+
+    // PATCH /api/products/:id/price - Quick price update (Kasir / Staff with edit_price)
+    if ($method === 'PATCH' && preg_match('/^\/([a-zA-Z0-9-]+)\/price$/', $path, $matches)) {
+        if (!RoleMiddleware::hasPermission($user, 'products.edit_price') && !RoleMiddleware::hasPermission($user, 'products.edit')) {
+            Response::error('Akses ditolak. Anda tidak memiliki izin mengubah harga.', 403);
+        }
+
+        $data = json_decode(file_get_contents('php://input'), true) ?? [];
+        if (!isset($data['price']) || $data['price'] === '') {
+            Response::error('Harga jual eceran wajib diisi', 400);
+        }
+
+        $updateData = [
+            'price' => (float)$data['price']
+        ];
+
+        if (array_key_exists('wholesale_price', $data)) {
+            $updateData['wholesale_price'] = ($data['wholesale_price'] !== null && $data['wholesale_price'] !== '') 
+                ? (float)$data['wholesale_price'] 
+                : null;
+        }
+        if (array_key_exists('wholesale_min_qty', $data)) {
+            $updateData['wholesale_min_qty'] = ($data['wholesale_min_qty'] !== null && $data['wholesale_min_qty'] !== '') 
+                ? (int)$data['wholesale_min_qty'] 
+                : null;
+        }
+        if (array_key_exists('reseller_price', $data)) {
+            $updateData['reseller_price'] = ($data['reseller_price'] !== null && $data['reseller_price'] !== '') 
+                ? (float)$data['reseller_price'] 
+                : null;
+        }
+
+        $productService->update($matches[1], $updateData);
+        $product = $productService->getById($matches[1]);
+
+        if (!RoleMiddleware::hasPermission($user, 'products.view_cost')) {
+            $product['purchase_price'] = null;
+        }
+
+        Response::success($product, 'Harga produk berhasil diperbarui');
+    }
     
     // PUT /api/products/:id - Update product
     if ($method === 'PUT' && preg_match('/^\/([a-zA-Z0-9-]+)$/', $path, $matches)) {
         $canEdit = RoleMiddleware::hasPermission($user, 'products.edit');
         $canStock = RoleMiddleware::hasPermission($user, 'products.update_stock') || RoleMiddleware::hasPermission($user, 'inventory.adjust');
+        $canPrice = RoleMiddleware::hasPermission($user, 'products.edit_price');
 
-        if (!$canEdit && !$canStock) {
-            Response::error('Akses ditolak. Anda tidak memiliki izin mengedit produk atau stok.', 403);
+        if (!$canEdit && !$canStock && !$canPrice) {
+            Response::error('Akses ditolak. Anda tidak memiliki izin mengedit produk, stok, atau harga.', 403);
         }
         
         $data = json_decode(file_get_contents('php://input'), true) ?? [];
 
-        if (!$canEdit && $canStock) {
-            // Kasir hanya memiliki akses update stok -> amankan hanya field stock_quantity yang diubah!
-            if (!isset($data['stock_quantity'])) {
-                Response::error('Hanya diizinkan memperbarui jumlah stok.', 403);
+        if (!$canEdit) {
+            // Kasir / Staff hanya memiliki akses terbatas (update stok dan/atau harga jual)
+            $allowedData = [];
+            if ($canStock && isset($data['stock_quantity'])) {
+                $allowedData['stock_quantity'] = (int)$data['stock_quantity'];
             }
-            $data = ['stock_quantity' => (int)$data['stock_quantity']];
+            if ($canPrice) {
+                if (isset($data['price']) && $data['price'] !== '') {
+                    $allowedData['price'] = (float)$data['price'];
+                }
+                if (array_key_exists('wholesale_price', $data)) {
+                    $allowedData['wholesale_price'] = ($data['wholesale_price'] !== null && $data['wholesale_price'] !== '') ? (float)$data['wholesale_price'] : null;
+                }
+                if (array_key_exists('wholesale_min_qty', $data)) {
+                    $allowedData['wholesale_min_qty'] = ($data['wholesale_min_qty'] !== null && $data['wholesale_min_qty'] !== '') ? (int)$data['wholesale_min_qty'] : null;
+                }
+                if (array_key_exists('reseller_price', $data)) {
+                    $allowedData['reseller_price'] = ($data['reseller_price'] !== null && $data['reseller_price'] !== '') ? (float)$data['reseller_price'] : null;
+                }
+            }
+            if (empty($allowedData)) {
+                Response::error('Tidak ada data yang diizinkan untuk diperbarui.', 403);
+            }
+            $data = $allowedData;
         } else {
             // Jika user tidak berhak ubah harga jual, buang perubahan harga
             if (!RoleMiddleware::hasPermission($user, 'products.edit_price')) {

@@ -10,6 +10,7 @@ import { BarcodePreview } from '../components/BarcodePreview';
 import { generateBarcodePdf, downloadBlob, openPdfBlob } from '../utils/barcode128';
 import ImportExcelModal from '../components/ImportExcelModal';
 import BulkMarginModal from '../components/BulkMarginModal';
+import QuickPriceModal from '../components/QuickPriceModal';
 import ThemeToggle from '../components/ThemeToggle';
 import UserMenu from '../components/UserMenu';
 
@@ -106,9 +107,16 @@ const ProductsPage = () => {
     const [quickStockValue, setQuickStockValue] = useState<number>(0);
     const [isSavingStock, setIsSavingStock] = useState(false);
 
+    // Quick Price Modal State (Khusus Kasir / Karyawan sesuaikan harga jual)
+    const [priceModalProduct, setPriceModalProduct] = useState<Product | null>(null);
+
     const openQuickStockModal = (product: Product) => {
         setStockModalProduct(product);
         setQuickStockValue(Number(product.stock_quantity) || 0);
+    };
+
+    const openQuickPriceModal = (product: Product) => {
+        setPriceModalProduct(product);
     };
 
     const handleQuickStockSave = async () => {
@@ -931,84 +939,98 @@ const ProductsPage = () => {
                                                             const lossAmount = Math.max(0, cost - price);
 
                                                             return (
-                                                                <div>
-                                                                    {isLoss ? (
-                                                                        <div>
-                                                                            <div
-                                                                                className="inline-flex items-center flex-wrap gap-1 text-red-600 dark:text-red-400 font-bold"
-                                                                                title={`⚠️ PERINGATAN POTENSI RUGI:\nHarga Jual (Rp ${numOnly}) lebih rendah dari Modal Beli (${formatRupiah(cost)}).\nRugi: Rp ${formatRupiah(lossAmount).replace(/^Rp\s?/, '')} per ${product.base_unit || 'pcs'}`}
-                                                                            >
-                                                                                <span className="inline-flex items-center">
-                                                                                    <span>Rp</span>
-                                                                                    <span className="inline-flex items-center justify-center font-black text-xs text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-950/80 px-1 py-0.5 rounded border border-red-300 dark:border-red-700 mx-0.5 shadow-sm animate-pulse">
-                                                                                        (*)
+                                                                <div className="flex items-start justify-between gap-1 group/price">
+                                                                    <div className="min-w-0">
+                                                                        {isLoss ? (
+                                                                            <div>
+                                                                                <div
+                                                                                    className="inline-flex items-center flex-wrap gap-1 text-red-600 dark:text-red-400 font-bold"
+                                                                                    title={`⚠️ PERINGATAN POTENSI RUGI:\nHarga Jual (Rp ${numOnly}) lebih rendah dari Modal Beli (${formatRupiah(cost)}).\nRugi: Rp ${formatRupiah(lossAmount).replace(/^Rp\s?/, '')} per ${product.base_unit || 'pcs'}`}
+                                                                                >
+                                                                                    <span className="inline-flex items-center">
+                                                                                        <span>Rp</span>
+                                                                                        <span className="inline-flex items-center justify-center font-black text-xs text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-950/80 px-1 py-0.5 rounded border border-red-300 dark:border-red-700 mx-0.5 shadow-sm animate-pulse">
+                                                                                            (*)
+                                                                                        </span>
+                                                                                        <span>{numOnly}</span>
                                                                                     </span>
-                                                                                    <span>{numOnly}</span>
-                                                                                </span>
-                                                                                <span className="text-[10px] text-red-400 dark:text-red-500 font-normal">/{product.base_unit || 'pcs'}</span>
+                                                                                    <span className="text-[10px] text-red-400 dark:text-red-500 font-normal">/{product.base_unit || 'pcs'}</span>
+                                                                                </div>
+                                                                                <div className="text-[10px] font-bold text-red-600 dark:text-red-400 flex items-center gap-0.5 mt-0.5 animate-pulse">
+                                                                                    <span className="material-symbols-outlined text-[13px]">warning</span>
+                                                                                    <span>Rugi Rp {formatRupiah(lossAmount).replace(/^Rp\s?/, '')}</span>
+                                                                                </div>
                                                                             </div>
-                                                                            <div className="text-[10px] font-bold text-red-600 dark:text-red-400 flex items-center gap-0.5 mt-0.5 animate-pulse">
-                                                                                <span className="material-symbols-outlined text-[13px]">warning</span>
-                                                                                <span>Rugi Rp {formatRupiah(lossAmount).replace(/^Rp\s?/, '')}</span>
+                                                                        ) : (
+                                                                            <div>
+                                                                                <span>Rp {numOnly}</span>{' '}
+                                                                                <span className="text-[10px] text-gray-400">/{product.base_unit || 'pcs'}</span>
                                                                             </div>
-                                                                        </div>
-                                                                    ) : (
-                                                                        <div>
-                                                                            <span>Rp {numOnly}</span>{' '}
-                                                                            <span className="text-[10px] text-gray-400">/{product.base_unit || 'pcs'}</span>
-                                                                        </div>
-                                                                    )}
+                                                                        )}
 
-                                                                    {(product.wholesale_price || product.reseller_price) && (
-                                                                        <div className="flex flex-wrap gap-1 text-[10px] font-semibold mt-1">
-                                                                            {product.wholesale_price && (() => {
-                                                                                const isWsLoss = canViewCost && cost > 0 && wsPrice > 0 && wsPrice < cost;
-                                                                                const wsNum = formatRupiah(wsPrice).replace(/^Rp\s?/, '');
-                                                                                const wsLossAmount = Math.max(0, cost - wsPrice);
-                                                                                return (
-                                                                                    <span
-                                                                                        className={`px-1.5 py-0.5 rounded ${
-                                                                                            isWsLoss
-                                                                                                ? 'bg-red-100 dark:bg-red-950/70 text-red-600 dark:text-red-400 border border-red-300 dark:border-red-800 font-bold'
-                                                                                                : 'bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400'
-                                                                                        }`}
-                                                                                        title={
-                                                                                            isWsLoss
-                                                                                                ? `⚠️ Grosir Rugi: Rp ${wsNum} < Modal ${formatRupiah(cost)} (Rugi Rp ${formatRupiah(wsLossAmount).replace(/^Rp\s?/, '')})`
-                                                                                                : `Grosir min ${product.wholesale_min_qty || 12} ${product.base_unit || 'pcs'}`
-                                                                                        }
-                                                                                    >
-                                                                                        G: Rp{isWsLoss && <span className="text-red-600 dark:text-red-400 font-black ml-0.5 mr-0.5">(*)</span>}{wsNum}
-                                                                                    </span>
-                                                                                );
-                                                                            })()}
-                                                                            {product.reseller_price && (() => {
-                                                                                const isRsLoss = canViewCost && cost > 0 && rsPrice > 0 && rsPrice < cost;
-                                                                                const rsNum = formatRupiah(rsPrice).replace(/^Rp\s?/, '');
-                                                                                const rsLossAmount = Math.max(0, cost - rsPrice);
-                                                                                return (
-                                                                                    <span
-                                                                                        className={`px-1.5 py-0.5 rounded ${
-                                                                                            isRsLoss
-                                                                                                ? 'bg-red-100 dark:bg-red-950/70 text-red-600 dark:text-red-400 border border-red-300 dark:border-red-800 font-bold'
-                                                                                                : 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400'
-                                                                                        }`}
-                                                                                        title={
-                                                                                            isRsLoss
-                                                                                                ? `⚠️ Reseller Rugi: Rp ${rsNum} < Modal ${formatRupiah(cost)} (Rugi Rp ${formatRupiah(rsLossAmount).replace(/^Rp\s?/, '')})`
-                                                                                                : 'Reseller'
-                                                                                        }
-                                                                                    >
-                                                                                        R: Rp{isRsLoss && <span className="text-red-600 dark:text-red-400 font-black ml-0.5 mr-0.5">(*)</span>}{rsNum}
-                                                                                    </span>
-                                                                                );
-                                                                            })()}
-                                                                        </div>
-                                                                    )}
-                                                                    {product.units && product.units.length > 0 && (
-                                                                        <span className="inline-block mt-1 text-[9px] px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-bold">
-                                                                            +{product.units.length} Satuan ({product.units.map(u => u.unit_name).join(', ')})
-                                                                        </span>
+                                                                        {(product.wholesale_price || product.reseller_price) && (
+                                                                            <div className="flex flex-wrap gap-1 text-[10px] font-semibold mt-1">
+                                                                                {product.wholesale_price && (() => {
+                                                                                    const isWsLoss = canViewCost && cost > 0 && wsPrice > 0 && wsPrice < cost;
+                                                                                    const wsNum = formatRupiah(wsPrice).replace(/^Rp\s?/, '');
+                                                                                    const wsLossAmount = Math.max(0, cost - wsPrice);
+                                                                                    return (
+                                                                                        <span
+                                                                                            className={`px-1.5 py-0.5 rounded ${
+                                                                                                isWsLoss
+                                                                                                    ? 'bg-red-100 dark:bg-red-950/70 text-red-600 dark:text-red-400 border border-red-300 dark:border-red-800 font-bold'
+                                                                                                    : 'bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400'
+                                                                                            }`}
+                                                                                            title={
+                                                                                                isWsLoss
+                                                                                                    ? `⚠️ Grosir Rugi: Rp ${wsNum} < Modal ${formatRupiah(cost)} (Rugi Rp ${formatRupiah(wsLossAmount).replace(/^Rp\s?/, '')})`
+                                                                                                    : `Grosir min ${product.wholesale_min_qty || 12} ${product.base_unit || 'pcs'}`
+                                                                                            }
+                                                                                        >
+                                                                                            G: Rp{isWsLoss && <span className="text-red-600 dark:text-red-400 font-black ml-0.5 mr-0.5">(*)</span>}{wsNum}
+                                                                                        </span>
+                                                                                    );
+                                                                                })()}
+                                                                                {product.reseller_price && (() => {
+                                                                                    const isRsLoss = canViewCost && cost > 0 && rsPrice > 0 && rsPrice < cost;
+                                                                                    const rsNum = formatRupiah(rsPrice).replace(/^Rp\s?/, '');
+                                                                                    const rsLossAmount = Math.max(0, cost - rsPrice);
+                                                                                    return (
+                                                                                        <span
+                                                                                            className={`px-1.5 py-0.5 rounded ${
+                                                                                                isRsLoss
+                                                                                                    ? 'bg-red-100 dark:bg-red-950/70 text-red-600 dark:text-red-400 border border-red-300 dark:border-red-800 font-bold'
+                                                                                                    : 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400'
+                                                                                            }`}
+                                                                                            title={
+                                                                                                isRsLoss
+                                                                                                    ? `⚠️ Reseller Rugi: Rp ${rsNum} < Modal ${formatRupiah(cost)} (Rugi Rp ${formatRupiah(rsLossAmount).replace(/^Rp\s?/, '')})`
+                                                                                                    : 'Reseller'
+                                                                                            }
+                                                                                        >
+                                                                                            R: Rp{isRsLoss && <span className="text-red-600 dark:text-red-400 font-black ml-0.5 mr-0.5">(*)</span>}{rsNum}
+                                                                                        </span>
+                                                                                    );
+                                                                                })()}
+                                                                            </div>
+                                                                        )}
+                                                                        {product.units && product.units.length > 0 && (
+                                                                            <span className="inline-block mt-1 text-[9px] px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-bold">
+                                                                                +{product.units.length} Satuan ({product.units.map(u => u.unit_name).join(', ')})
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+
+                                                                    {/* Quick Price Edit Button (Kasir / Staff bisa ubah harga) */}
+                                                                    {canEditPrice && (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => openQuickPriceModal(product)}
+                                                                            className="size-6 shrink-0 inline-flex items-center justify-center rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 hover:bg-purple-600 hover:text-white transition-all shadow-sm opacity-80 group-hover/price:opacity-100"
+                                                                            title="Ubah Harga Jual, Grosir & Reseller"
+                                                                        >
+                                                                            <span className="material-symbols-outlined text-[14px]">price_change</span>
+                                                                        </button>
                                                                     )}
                                                                 </div>
                                                             );
@@ -1083,19 +1105,32 @@ const ProductsPage = () => {
                                                                 <button
                                                                     onClick={() => openEditModal(product)}
                                                                     className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-500 hover:bg-blue-500/20 transition-colors"
-                                                                    title="Edit Data Produk"
+                                                                    title="Edit Data Produk (Master)"
                                                                 >
                                                                     <span className="material-symbols-outlined text-[18px]">edit</span>
                                                                 </button>
-                                                            ) : canUpdateStock ? (
-                                                                <button
-                                                                    onClick={() => openQuickStockModal(product)}
-                                                                    className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors"
-                                                                    title="Input & Update Stok Fisik"
-                                                                >
-                                                                    <span className="material-symbols-outlined text-[18px]">edit_square</span>
-                                                                </button>
-                                                            ) : null}
+                                                            ) : (
+                                                                <>
+                                                                    {canUpdateStock && (
+                                                                        <button
+                                                                            onClick={() => openQuickStockModal(product)}
+                                                                            className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+                                                                            title="Input & Update Stok Fisik"
+                                                                        >
+                                                                            <span className="material-symbols-outlined text-[18px]">edit_square</span>
+                                                                        </button>
+                                                                    )}
+                                                                    {canEditPrice && (
+                                                                        <button
+                                                                            onClick={() => openQuickPriceModal(product)}
+                                                                            className="p-2 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20 transition-colors"
+                                                                            title="Ubah Harga Jual, Grosir & Reseller"
+                                                                        >
+                                                                            <span className="material-symbols-outlined text-[18px]">price_change</span>
+                                                                        </button>
+                                                                    )}
+                                                                </>
+                                                            )}
                                                             {canDelete && (
                                                                 <button
                                                                     onClick={() => handleDelete(product.id)}
@@ -1771,9 +1806,42 @@ const ProductsPage = () => {
                                         <span>SKU: {stockModalProduct.sku}</span>
                                         <span>Satuan: {stockModalProduct.base_unit || 'pcs'}</span>
                                     </div>
-                                    <div className="flex items-center justify-between text-xs font-semibold text-slate-600 dark:text-slate-300 mt-2 pt-2 border-t border-slate-200 dark:border-white/5">
-                                        <span>Harga Jual:</span>
-                                        <span className="text-primary font-bold">{formatRupiah(stockModalProduct.price)}</span>
+                                    <div className="flex items-center justify-between gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300 mt-2 pt-2 border-t border-slate-200 dark:border-white/5">
+                                        <div>
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="text-slate-500">Harga Jual:</span>
+                                                <span className="text-primary font-bold">{formatRupiah(stockModalProduct.price)}</span>
+                                            </div>
+                                            {(stockModalProduct.wholesale_price || stockModalProduct.reseller_price) && (
+                                                <div className="flex flex-wrap items-center gap-1.5 mt-1 text-[11px]">
+                                                    {stockModalProduct.wholesale_price && (
+                                                        <span className="px-1.5 py-0.5 rounded bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 font-semibold">
+                                                            Grosir: {formatRupiah(stockModalProduct.wholesale_price)} (min {stockModalProduct.wholesale_min_qty || 12})
+                                                        </span>
+                                                    )}
+                                                    {stockModalProduct.reseller_price && (
+                                                        <span className="px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 font-semibold">
+                                                            Reseller: {formatRupiah(stockModalProduct.reseller_price)}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                        {canEditPrice && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const prod = stockModalProduct;
+                                                    setStockModalProduct(null);
+                                                    openQuickPriceModal(prod);
+                                                }}
+                                                className="px-2.5 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-600 hover:text-white text-xs font-bold flex items-center gap-1 transition-all shadow-sm shrink-0"
+                                                title="Klik untuk menyesuaikan harga eceran, grosir & reseller"
+                                            >
+                                                <span className="material-symbols-outlined text-[15px]">price_change</span>
+                                                <span>Ubah Harga</span>
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
 
@@ -1860,6 +1928,23 @@ const ProductsPage = () => {
                         </div>
                     </div>
                 )}
+
+                {/* Quick Price Modal (Kasir / Staff ubah harga eceran, grosir, reseller) */}
+                <QuickPriceModal
+                    isOpen={!!priceModalProduct}
+                    product={priceModalProduct}
+                    onClose={() => setPriceModalProduct(null)}
+                    onSuccess={(updated) => {
+                        setProductList(prev => prev.map(p => p.id === priceModalProduct?.id ? { ...p, ...updated } : p));
+                        fetchFilterCounts();
+                    }}
+                    onSwitchToStock={(prod) => {
+                        setPriceModalProduct(null);
+                        openQuickStockModal(prod);
+                    }}
+                    canViewCost={canViewCost}
+                    canUpdateStock={canUpdateStock}
+                />
             </main>
         </div>
     );
