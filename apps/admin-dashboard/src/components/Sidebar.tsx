@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import toast from 'react-hot-toast';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 
 interface SidebarLinkProps {
@@ -10,10 +10,11 @@ interface SidebarLinkProps {
     label: string;
     to: string;
     danger?: boolean;
+    badge?: number;
     onClick?: () => void;
 }
 
-const SidebarLink = ({ icon, label, to, danger, onClick }: SidebarLinkProps) => {
+const SidebarLink = ({ icon, label, to, danger, badge, onClick }: SidebarLinkProps) => {
     const location = useLocation();
     const isActive = location.pathname === to;
 
@@ -30,7 +31,16 @@ const SidebarLink = ({ icon, label, to, danger, onClick }: SidebarLinkProps) => 
     return (
         <Link to={to} onClick={onClick} className={`${baseClasses} ${colorClasses}`}>
             <span className="material-symbols-outlined text-[22px]">{icon}</span>
-            <span className="text-sm font-medium">{label}</span>
+            <span className="text-sm font-medium flex-1">{label}</span>
+            {badge !== undefined && badge > 0 && (
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                    isActive
+                        ? 'bg-white/25 text-white'
+                        : 'bg-orange-500 text-white animate-pulse'
+                }`} title={`${badge} produk baru menunggu konfirmasi & input harga modal`}>
+                    {badge}
+                </span>
+            )}
         </Link>
     );
 };
@@ -45,6 +55,24 @@ const Sidebar = ({ className = '', isOpen = false, onClose }: SidebarProps) => {
     const { logout, user, hasPermission } = useAuth();
     const location = useLocation();
     const { isInstallable, isInstalled, installApp } = usePWAInstall();
+    const [pendingProductsCount, setPendingProductsCount] = useState(0);
+
+    const canReviewPendingProducts = user?.role === 'admin' || (hasPermission('products.edit') && hasPermission('products.view_cost'));
+
+    useEffect(() => {
+        if (!user || !canReviewPendingProducts) return;
+        const loadPendingCount = async () => {
+            try {
+                const res = await api.get('/products/filter-counts');
+                setPendingProductsCount(Number(res.data?.data?.pending || 0));
+            } catch {
+                // Abaikan jika gagal memuat badge
+            }
+        };
+        loadPendingCount();
+        window.addEventListener('products-pending-updated', loadPendingCount);
+        return () => window.removeEventListener('products-pending-updated', loadPendingCount);
+    }, [user, canReviewPendingProducts, location.pathname]);
 
     const handleInstallClick = async () => {
         if (isInstallable) {
@@ -147,6 +175,7 @@ const Sidebar = ({ className = '', isOpen = false, onClose }: SidebarProps) => {
                             icon={link.icon}
                             label={link.label}
                             to={link.to}
+                            badge={link.to === '/products' ? pendingProductsCount : undefined}
                             onClick={() => onClose?.()}
                         />
                     ))}

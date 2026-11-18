@@ -11,6 +11,7 @@ import { generateBarcodePdf, downloadBlob, openPdfBlob } from '../utils/barcode1
 import ImportExcelModal from '../components/ImportExcelModal';
 import BulkMarginModal from '../components/BulkMarginModal';
 import QuickPriceModal from '../components/QuickPriceModal';
+import ApproveProductModal from '../components/ApproveProductModal';
 import ThemeToggle from '../components/ThemeToggle';
 import UserMenu from '../components/UserMenu';
 
@@ -40,9 +41,12 @@ export interface Product {
     low_stock_threshold: number;
     is_active: number | boolean;
     updated_at: string;
+    created_at?: string;
     image_url: string;
     category_id: number | null;
     units?: ProductUnitData[];
+    approval_status?: 'approved' | 'pending' | 'rejected' | string;
+    submitted_by?: string | null;
 }
 
 const ProductsPage = () => {
@@ -55,12 +59,13 @@ const ProductsPage = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
-    const [conditionFilter, setConditionFilter] = useState<'all' | 'out_of_stock' | 'low_stock' | 'loss'>('all');
+    const [conditionFilter, setConditionFilter] = useState<'all' | 'out_of_stock' | 'low_stock' | 'loss' | 'pending'>('all');
     const [filterCounts, setFilterCounts] = useState({
         total: 0,
         out_of_stock: 0,
         low_stock: 0,
-        loss: 0
+        loss: 0,
+        pending: 0
     });
     const [categories, setCategories] = useState<any[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
@@ -93,6 +98,7 @@ const ProductsPage = () => {
 
     // Granular Permissions Auth
     const { user, hasPermission } = useAuth();
+    const isAdmin = user?.role === 'admin';
     const canViewCost = hasPermission('products.view_cost');
     const canUpdateStock = hasPermission('products.update_stock') || hasPermission('inventory.adjust');
     const canEditPrice = hasPermission('products.edit_price');
@@ -101,6 +107,11 @@ const ProductsPage = () => {
     const canDelete = hasPermission('products.delete');
     const canImportExport = hasPermission('products.import_export');
     const canPrintBarcode = hasPermission('barcode.print');
+    const requiresApprovalOnCreate = !isAdmin && !canViewCost;
+    const canApprovePending = isAdmin || (canEdit && canViewCost);
+
+    // Approve Pending Product Modal State (Khusus Admin konfirmasi & isi modal)
+    const [approveModalProduct, setApproveModalProduct] = useState<Product | null>(null);
 
     // Quick Stock Modal State (Khusus Kasir / Karyawan input stok fisik)
     const [stockModalProduct, setStockModalProduct] = useState<Product | null>(null);
@@ -162,6 +173,26 @@ const ProductsPage = () => {
         }
     };
 
+    const fetchFilterCounts = async () => {
+        try {
+            const params = new URLSearchParams();
+            if (categoryFilter && categoryFilter !== 'all') params.append('category_id', categoryFilter);
+            const res = await api.get(`/products/filter-counts?${params.toString()}`);
+            if (res.data?.data) {
+                setFilterCounts({
+                    total: 0,
+                    out_of_stock: 0,
+                    low_stock: 0,
+                    loss: 0,
+                    pending: 0,
+                    ...res.data.data
+                });
+            }
+        } catch (error) {
+            console.error('Error fetching filter counts:', error);
+        }
+    };
+
     const fetchProducts = async () => {
         setLoading(true);
         try {
@@ -183,7 +214,14 @@ const ProductsPage = () => {
                     setPaginationInfo(response.data.data.pagination);
                 }
                 if (response.data.data.counts) {
-                    setFilterCounts(response.data.data.counts);
+                    setFilterCounts({
+                        total: 0,
+                        out_of_stock: 0,
+                        low_stock: 0,
+                        loss: 0,
+                        pending: 0,
+                        ...response.data.data.counts
+                    });
                 }
             } else {
                 setProductList(response.data.data);
@@ -449,14 +487,15 @@ const ProductsPage = () => {
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const price = parseFloat(formData.price);
-            const purchase_price = parseFloat(formData.purchase_price);
+            const isCashierSubmission = !currentProduct && requiresApprovalOnCreate;
+            const price = formData.price !== '' ? parseFloat(formData.price) : 0;
+            const purchase_price = isCashierSubmission ? 0 : (formData.purchase_price !== '' ? parseFloat(formData.purchase_price) : 0);
             const stock_quantity = parseInt(formData.stock_quantity);
             const wholesale_price = formData.wholesale_price ? parseFloat(formData.wholesale_price) : null;
             const reseller_price = formData.reseller_price ? parseFloat(formData.reseller_price) : null;
             const wholesale_min_qty = parseInt(formData.wholesale_min_qty) || 12;
 
-            if (purchase_price > 0 && price < purchase_price) {
+            if (!isCashierSubmission && canViewCost && purchase_price > 0 && price < purchase_price) {
                 const proceed = await confirm({
                     title: 'Peringatan Harga Jual Rugi!',
                     message: `Harga jual ecer (${formatRupiah(price)}) lebih murah dari harga beli modal (${formatRupiah(purchase_price)}). Anda akan mengalami kerugian. Tetap simpan?`,
@@ -482,13 +521,19 @@ const ProductsPage = () => {
 
             if (currentProduct) {
                 await api.put(`/products/${currentProduct.id}`, payload);
+                toast.success('Produk berhasil diperbarui!');
             } else {
-                await api.post('/products', payload);
+                const res = await api.post('/products', payload);
+                if (isCashierSubmission) {
+                    toast.success(res.data?.message || 'Produk diajukan! Menunggu konfirmasi & input harga modal dari Admin.', { duration: 4500 });
+                    window.dispatchEvent(new Event('products-pending-updated'));
+                } else {
+                    toast.success('Produk berhasil ditambahkan!');
+                }
             }
 
             setIsModalOpen(false);
-            fetchProducts(); // Refresh list
-            toast.success(currentProduct ? 'Produk berhasil diperbarui!' : 'Produk berhasil ditambahkan!');
+            fetchProducts(); // Refresh list & counts
         } catch (error: any) {
             console.error('Error saving product:', error);
             const msg = error.response?.data?.message || 'Gagal menyimpan produk. Pastikan semua field valid.';
@@ -661,6 +706,8 @@ const ProductsPage = () => {
                                                 ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800 text-amber-600 dark:text-amber-400'
                                                 : conditionFilter === 'loss'
                                                 ? 'bg-rose-50 dark:bg-rose-950/30 border-rose-300 dark:border-rose-800 text-rose-600 dark:text-rose-400'
+                                                : conditionFilter === 'pending'
+                                                ? 'bg-orange-50 dark:bg-orange-950/30 border-orange-300 dark:border-orange-800 text-orange-600 dark:text-orange-400'
                                                 : 'bg-white dark:bg-[#111118] border-slate-200 dark:border-[#282839] text-gray-900 dark:text-white'
                                         }`}
                                     >
@@ -668,6 +715,7 @@ const ProductsPage = () => {
                                         <option value="out_of_stock">🔴 Barang Habis (Stok 0)</option>
                                         <option value="low_stock">⚠️ Stok Sedikit (Menipis)</option>
                                         {canViewCost && <option value="loss">💥 Penjualan Rugi (Jual &lt; Modal)</option>}
+                                        <option value="pending">⏳ Menunggu Konfirmasi Admin ({filterCounts.pending})</option>
                                     </select>
                                     <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400 dark:text-[#9d9db9]">
                                         <span className="material-symbols-outlined text-[18px]">expand_more</span>
@@ -801,6 +849,35 @@ const ProductsPage = () => {
                                     </span>
                                 </button>
                             )}
+
+                            {/* Chip 5: Menunggu Konfirmasi Admin (Ajuan Kasir) */}
+                            {(canApprovePending || canCreate || filterCounts.pending > 0) && (
+                                <button
+                                    type="button"
+                                    onClick={() => setConditionFilter(conditionFilter === 'pending' ? 'all' : 'pending')}
+                                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border shadow-sm ${
+                                        conditionFilter === 'pending'
+                                            ? 'bg-orange-500 text-white border-orange-500 shadow-orange-500/25 ring-2 ring-orange-500/20'
+                                            : filterCounts.pending > 0
+                                            ? 'bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-300 border-orange-300 dark:border-orange-700 hover:bg-orange-100 dark:hover:bg-orange-950/50'
+                                            : 'bg-white dark:bg-[#111118] text-gray-700 dark:text-gray-300 border-slate-200 dark:border-[#282839] hover:border-orange-400 hover:text-orange-500'
+                                    }`}
+                                >
+                                    <span className={`material-symbols-outlined text-[14px] ${conditionFilter === 'pending' ? 'text-white' : 'text-orange-500'} ${filterCounts.pending > 0 && conditionFilter !== 'pending' ? 'animate-pulse' : ''}`}>
+                                        hourglass_top
+                                    </span>
+                                    <span>{canApprovePending ? 'Menunggu Konfirmasi' : 'Ajuan Menunggu Admin'}</span>
+                                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                                        conditionFilter === 'pending'
+                                            ? 'bg-white/25 text-white'
+                                            : filterCounts.pending > 0
+                                            ? 'bg-orange-500 text-white'
+                                            : 'bg-orange-100 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400'
+                                    }`}>
+                                        {filterCounts.pending.toLocaleString('id-ID')}
+                                    </span>
+                                </button>
+                            )}
                         </div>
 
                         {/* Banner Aktif Filter Khusus */}
@@ -815,6 +892,8 @@ const ProductsPage = () => {
                                                 ? 'Barang Habis (Stok 0)'
                                                 : conditionFilter === 'low_stock'
                                                 ? 'Barang Stok Sedikit (Menipis)'
+                                                : conditionFilter === 'pending'
+                                                ? 'Produk Baru Menunggu Konfirmasi & Input Modal Admin'
                                                 : 'Barang Penjualan Harga Rugi (Jual < Modal)'}
                                         </strong>{' '}
                                         ({paginationInfo.total.toLocaleString('id-ID')} produk ditemukan)
@@ -880,6 +959,8 @@ const ProductsPage = () => {
                                                                 ? 'Aman! Tidak ada produk dengan stok menipis.'
                                                                 : conditionFilter === 'loss'
                                                                 ? 'Bagus! Semua harga jual produk sudah di atas modal (tidak ada yang rugi).'
+                                                                : conditionFilter === 'pending'
+                                                                ? 'Tidak ada pengajuan produk baru yang menunggu konfirmasi.'
                                                                 : 'Tidak ada produk ditemukan.'}
                                                         </p>
                                                         {conditionFilter !== 'all' && (
@@ -899,10 +980,11 @@ const ProductsPage = () => {
                                                 const price = parseFloat(String(product.price || 0)) || 0;
                                                 const wsPrice = parseFloat(String(product.wholesale_price || 0)) || 0;
                                                 const rsPrice = parseFloat(String(product.reseller_price || 0)) || 0;
-                                                const isRowLoss = canViewCost && cost > 0 && (price < cost || (wsPrice > 0 && wsPrice < cost) || (rsPrice > 0 && rsPrice < cost));
+                                                const isPending = product.approval_status === 'pending' || conditionFilter === 'pending';
+                                                const isRowLoss = !isPending && canViewCost && cost > 0 && (price < cost || (wsPrice > 0 && wsPrice < cost) || (rsPrice > 0 && rsPrice < cost));
 
                                                 return (
-                                                <tr key={product.id} className={`hover:bg-gray-50 dark:hover:bg-[#1c1c27] transition-colors group ${isRowLoss ? 'bg-rose-50/40 dark:bg-rose-950/20' : ''}`}>
+                                                <tr key={product.id} className={`hover:bg-gray-50 dark:hover:bg-[#1c1c27] transition-colors group ${isPending ? 'bg-amber-50/40 dark:bg-amber-950/10' : isRowLoss ? 'bg-rose-50/40 dark:bg-rose-950/20' : ''}`}>
                                                     <td className="p-4">
                                                         <div
                                                             className="size-10 rounded-lg bg-gray-200 dark:bg-[#282839] bg-center bg-cover border border-slate-300 dark:border-[#3b3c54]"
@@ -910,15 +992,24 @@ const ProductsPage = () => {
                                                         />
                                                     </td>
                                                     <td className="p-4">
-                                                        <div className="font-medium text-gray-900 dark:text-white flex items-center gap-1.5">
+                                                        <div className="font-medium text-gray-900 dark:text-white flex items-center flex-wrap gap-1.5">
                                                             <span>{product.name}</span>
+                                                            {isPending && (
+                                                                <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
+                                                                    MENUNGGU ADMIN
+                                                                </span>
+                                                            )}
                                                             {isRowLoss && (
                                                                 <span className="px-1.5 py-0.2 rounded text-[10px] font-black bg-rose-100 dark:bg-rose-950/80 text-rose-600 dark:text-rose-400 border border-rose-300 dark:border-rose-800" title="Harga jual di bawah harga beli modal">
                                                                     RUGI
                                                                 </span>
                                                             )}
                                                         </div>
-                                                        <div className="text-gray-500 dark:text-[#55556d] text-xs mt-0.5">Diperbarui {new Date(product.updated_at).toLocaleDateString('id-ID')}</div>
+                                                        <div className="text-gray-500 dark:text-[#55556d] text-xs mt-0.5">
+                                                            {isPending
+                                                                ? `Diajukan oleh ${product.submitted_by || 'Kasir'} • ${new Date(product.created_at || product.updated_at).toLocaleDateString('id-ID')}`
+                                                                : `Diperbarui ${new Date(product.updated_at).toLocaleDateString('id-ID')}`}
+                                                        </div>
                                                     </td>
                                                     <td className="p-4 text-gray-500 dark:text-[#9d9db9] font-mono">{product.sku}</td>
                                                     <td className="p-4">
@@ -928,12 +1019,18 @@ const ProductsPage = () => {
                                                     </td>
                                                     {canViewCost && (
                                                         <td className="p-4 text-gray-900 dark:text-white font-medium text-sm text-yellow-600 dark:text-yellow-500">
-                                                            {formatRupiah(product.purchase_price || 0)}
+                                                            {isPending ? (
+                                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 text-[11px] font-bold">
+                                                                    Belum diisi
+                                                                </span>
+                                                            ) : (
+                                                                formatRupiah(product.purchase_price || 0)
+                                                            )}
                                                         </td>
                                                     )}
                                                     <td className="p-4 text-gray-900 dark:text-white font-medium">
                                                         {(() => {
-                                                            const isLoss = canViewCost && cost > 0 && price < cost;
+                                                            const isLoss = !isPending && canViewCost && cost > 0 && price < cost;
                                                             const formatted = formatRupiah(price);
                                                             const numOnly = formatted.replace(/^Rp\s?/, '');
                                                             const lossAmount = Math.max(0, cost - price);
@@ -941,7 +1038,11 @@ const ProductsPage = () => {
                                                             return (
                                                                 <div className="flex items-start justify-between gap-1 group/price">
                                                                     <div className="min-w-0">
-                                                                        {isLoss ? (
+                                                                        {isPending && price <= 0 ? (
+                                                                            <span className="text-xs italic text-amber-600 dark:text-amber-400 font-semibold">
+                                                                                Belum diisi kasir
+                                                                            </span>
+                                                                        ) : isLoss ? (
                                                                             <div>
                                                                                 <div
                                                                                     className="inline-flex items-center flex-wrap gap-1 text-red-600 dark:text-red-400 font-bold"
@@ -1079,66 +1180,93 @@ const ProductsPage = () => {
                                                         </div>
                                                     </td>
                                                     <td className="p-4 text-center">
-                                                        <label className={`relative inline-flex items-center ${canEdit ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}>
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={!!product.is_active}
-                                                                disabled={!canEdit}
-                                                                onChange={() => canEdit && toggleActive(product.id)}
-                                                                className="sr-only peer"
-                                                            />
-                                                            <div className="w-9 h-5 bg-gray-200 dark:bg-[#282839] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary" />
-                                                        </label>
+                                                        {isPending ? (
+                                                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 text-[11px] font-bold">
+                                                                <span className="material-symbols-outlined text-[13px]">hourglass_top</span>
+                                                                Pending
+                                                            </span>
+                                                        ) : (
+                                                            <label className={`relative inline-flex items-center ${canEdit ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}>
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={!!product.is_active}
+                                                                    disabled={!canEdit}
+                                                                    onChange={() => canEdit && toggleActive(product.id)}
+                                                                    className="sr-only peer"
+                                                                />
+                                                                <div className="w-9 h-5 bg-gray-200 dark:bg-[#282839] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary" />
+                                                            </label>
+                                                        )}
                                                     </td>
                                                     <td className="p-4 text-right">
                                                         <div className="flex items-center justify-end gap-2 opacity-100">
-                                                            {canPrintBarcode && (
-                                                                <button
-                                                                    onClick={() => handleDownloadSingleProductPdf(product)}
-                                                                    className="p-2 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20 transition-colors"
-                                                                    title="Unduh 1 Lembar Barcode Produk Ini"
-                                                                >
-                                                                    <span className="material-symbols-outlined text-[18px]">barcode_scanner</span>
-                                                                </button>
-                                                            )}
-                                                            {canEdit ? (
-                                                                <button
-                                                                    onClick={() => openEditModal(product)}
-                                                                    className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-500 hover:bg-blue-500/20 transition-colors"
-                                                                    title="Edit Data Produk (Master)"
-                                                                >
-                                                                    <span className="material-symbols-outlined text-[18px]">edit</span>
-                                                                </button>
+                                                            {isPending ? (
+                                                                canApprovePending ? (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setApproveModalProduct(product)}
+                                                                        className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm shadow-emerald-600/20 transition-all flex items-center gap-1.5 whitespace-nowrap"
+                                                                        title="Review data, isi harga modal (HPP), lalu setujui & aktifkan"
+                                                                    >
+                                                                        <span className="material-symbols-outlined text-[16px]">fact_check</span>
+                                                                        <span>Konfirmasi &amp; Modal</span>
+                                                                    </button>
+                                                                ) : (
+                                                                    <span className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 text-[11px] font-semibold">
+                                                                        Menunggu Admin
+                                                                    </span>
+                                                                )
                                                             ) : (
                                                                 <>
-                                                                    {canUpdateStock && (
+                                                                    {canPrintBarcode && (
                                                                         <button
-                                                                            onClick={() => openQuickStockModal(product)}
-                                                                            className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors"
-                                                                            title="Input & Update Stok Fisik"
+                                                                            onClick={() => handleDownloadSingleProductPdf(product)}
+                                                                            className="p-2 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20 transition-colors"
+                                                                            title="Unduh 1 Lembar Barcode Produk Ini"
                                                                         >
-                                                                            <span className="material-symbols-outlined text-[18px]">edit_square</span>
+                                                                            <span className="material-symbols-outlined text-[18px]">barcode_scanner</span>
                                                                         </button>
                                                                     )}
-                                                                    {canEditPrice && (
+                                                                    {canEdit ? (
                                                                         <button
-                                                                            onClick={() => openQuickPriceModal(product)}
-                                                                            className="p-2 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20 transition-colors"
-                                                                            title="Ubah Harga Jual, Grosir & Reseller"
+                                                                            onClick={() => openEditModal(product)}
+                                                                            className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-500 hover:bg-blue-500/20 transition-colors"
+                                                                            title="Edit Data Produk (Master)"
                                                                         >
-                                                                            <span className="material-symbols-outlined text-[18px]">price_change</span>
+                                                                            <span className="material-symbols-outlined text-[18px]">edit</span>
+                                                                        </button>
+                                                                    ) : (
+                                                                        <>
+                                                                            {canUpdateStock && (
+                                                                                <button
+                                                                                    onClick={() => openQuickStockModal(product)}
+                                                                                    className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+                                                                                    title="Input & Update Stok Fisik"
+                                                                                >
+                                                                                    <span className="material-symbols-outlined text-[18px]">edit_square</span>
+                                                                                </button>
+                                                                            )}
+                                                                            {canEditPrice && (
+                                                                                <button
+                                                                                    onClick={() => openQuickPriceModal(product)}
+                                                                                    className="p-2 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20 transition-colors"
+                                                                                    title="Ubah Harga Jual, Grosir & Reseller"
+                                                                                >
+                                                                                    <span className="material-symbols-outlined text-[18px]">price_change</span>
+                                                                                </button>
+                                                                            )}
+                                                                        </>
+                                                                    )}
+                                                                    {canDelete && (
+                                                                        <button
+                                                                            onClick={() => handleDelete(product.id)}
+                                                                            className="p-2 rounded-lg bg-red-500/10 text-red-600 dark:text-red-500 hover:bg-red-500/20 transition-colors"
+                                                                            title="Hapus Produk"
+                                                                        >
+                                                                            <span className="material-symbols-outlined text-[18px]">delete</span>
                                                                         </button>
                                                                     )}
                                                                 </>
-                                                            )}
-                                                            {canDelete && (
-                                                                <button
-                                                                    onClick={() => handleDelete(product.id)}
-                                                                    className="p-2 rounded-lg bg-red-500/10 text-red-600 dark:text-red-500 hover:bg-red-500/20 transition-colors"
-                                                                    title="Hapus Produk"
-                                                                >
-                                                                    <span className="material-symbols-outlined text-[18px]">delete</span>
-                                                                </button>
                                                             )}
                                                         </div>
                                                     </td>
@@ -1248,6 +1376,21 @@ const ProductsPage = () => {
 
                             {/* Modal Body Form */}
                             <form onSubmit={handleFormSubmit} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
+                                {/* Banner Info khusus pengajuan Kasir (tanpa modal -> menunggu konfirmasi Admin) */}
+                                {!currentProduct && requiresApprovalOnCreate && (
+                                    <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 flex items-start gap-3">
+                                        <span className="material-symbols-outlined text-amber-600 dark:text-amber-400 text-[20px] mt-0.5 shrink-0">
+                                            hourglass_top
+                                        </span>
+                                        <div className="text-xs text-amber-800 dark:text-amber-200 leading-relaxed">
+                                            <p className="font-bold">Mode Pengajuan Produk Baru (Menunggu Konfirmasi Admin)</p>
+                                            <p className="mt-0.5 text-amber-700/90 dark:text-amber-300/90">
+                                                Anda <strong>tidak perlu mengisi harga modal</strong>. Harga jual ecer, grosir, dan reseller boleh dikosongkan jika belum tahu. Produk yang diajukan akan masuk ke antrean Admin untuk dilengkapi harga modalnya sebelum aktif di kasir POS.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* SECTION 1: Informasi Produk Dasar */}
                                 <div className="space-y-4">
                                     <div>
@@ -1372,46 +1515,50 @@ const ProductsPage = () => {
                                                 (per {formData.base_unit || 'satuan'})
                                             </span>
                                         </div>
-                                        <button
-                                            type="button"
-                                            onClick={handleAutoCalculatePrices}
-                                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 text-xs font-semibold border border-indigo-200 dark:border-indigo-800 transition-all shadow-sm"
-                                            title="Hitung otomatis harga ecer (+35%), grosir (+20%), dan reseller (+10%) dari modal"
-                                        >
-                                            <span className="material-symbols-outlined text-[14px]">bolt</span>
-                                            <span>Isi Otomatis Margin Aman</span>
-                                        </button>
+                                        {canViewCost && (
+                                            <button
+                                                type="button"
+                                                onClick={handleAutoCalculatePrices}
+                                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 text-xs font-semibold border border-indigo-200 dark:border-indigo-800 transition-all shadow-sm"
+                                                title="Hitung otomatis harga ecer (+35%), grosir (+20%), dan reseller (+10%) dari modal"
+                                            >
+                                                <span className="material-symbols-outlined text-[14px]">bolt</span>
+                                                <span>Isi Otomatis Margin Aman</span>
+                                            </button>
+                                        )}
                                     </div>
 
-                                    {/* 4 Kolom Harga */}
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                                        {/* 1. Modal / HPP */}
-                                        <div className="p-3 rounded-xl bg-white dark:bg-[#1c1c27] border border-slate-200 dark:border-[#282839] shadow-sm">
-                                            <div className="flex items-center justify-between mb-1.5">
-                                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 uppercase">
-                                                    Modal (HPP)
-                                                </span>
+                                    {/* Kolom Harga (3 kolom untuk Kasir tanpa modal, 4 kolom untuk Admin) */}
+                                    <div className={`grid grid-cols-1 sm:grid-cols-2 ${canViewCost ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-3`}>
+                                        {/* 1. Modal / HPP (Hanya tampil jika punya izin lihat modal) */}
+                                        {canViewCost && (
+                                            <div className="p-3 rounded-xl bg-white dark:bg-[#1c1c27] border border-slate-200 dark:border-[#282839] shadow-sm">
+                                                <div className="flex items-center justify-between mb-1.5">
+                                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 uppercase">
+                                                        Modal (HPP)
+                                                    </span>
+                                                </div>
+                                                <label className="block text-xs font-bold text-gray-800 dark:text-gray-200 mb-1">
+                                                    Harga Pokok
+                                                </label>
+                                                <div className="relative">
+                                                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">Rp</span>
+                                                    <input
+                                                        type="number"
+                                                        required
+                                                        min="0"
+                                                        step="any"
+                                                        value={formData.purchase_price}
+                                                        onChange={e => setFormData({ ...formData, purchase_price: e.target.value })}
+                                                        placeholder="0"
+                                                        className="w-full pl-8 pr-3 py-1.5 bg-gray-50 dark:bg-[#111118] border border-slate-200 dark:border-[#282839] rounded-lg text-sm font-bold text-gray-900 dark:text-white focus:outline-none focus:border-primary"
+                                                    />
+                                                </div>
+                                                <p className="text-[10px] text-gray-400 mt-1 leading-tight">
+                                                    Biaya kulakan per {formData.base_unit || 'pcs'}.
+                                                </p>
                                             </div>
-                                            <label className="block text-xs font-bold text-gray-800 dark:text-gray-200 mb-1">
-                                                Harga Pokok
-                                            </label>
-                                            <div className="relative">
-                                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">Rp</span>
-                                                <input
-                                                    type="number"
-                                                    required
-                                                    min="0"
-                                                    step="any"
-                                                    value={formData.purchase_price}
-                                                    onChange={e => setFormData({ ...formData, purchase_price: e.target.value })}
-                                                    placeholder="0"
-                                                    className="w-full pl-8 pr-3 py-1.5 bg-gray-50 dark:bg-[#111118] border border-slate-200 dark:border-[#282839] rounded-lg text-sm font-bold text-gray-900 dark:text-white focus:outline-none focus:border-primary"
-                                                />
-                                            </div>
-                                            <p className="text-[10px] text-gray-400 mt-1 leading-tight">
-                                                Biaya kulakan per {formData.base_unit || 'pcs'}.
-                                            </p>
-                                        </div>
+                                        )}
 
                                         {/* 2. Harga Ecer */}
                                         <div className="p-3 rounded-xl bg-white dark:bg-[#1c1c27] border border-slate-200 dark:border-[#282839] shadow-sm">
@@ -1419,14 +1566,17 @@ const ProductsPage = () => {
                                                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 uppercase">
                                                     Eceran
                                                 </span>
+                                                {!currentProduct && requiresApprovalOnCreate && (
+                                                    <span className="text-[10px] text-gray-400 font-medium">Opsional</span>
+                                                )}
                                             </div>
                                             <label className="block text-xs font-bold text-gray-800 dark:text-gray-200 mb-1">
-                                                Harga Ecer <span className="text-red-500">*</span>
+                                                Harga Ecer {(!currentProduct && requiresApprovalOnCreate) ? '' : <span className="text-red-500">*</span>}
                                             </label>
                                             <div className="relative">
                                                 <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 flex items-center">
                                                     Rp
-                                                    {(() => {
+                                                    {canViewCost && (() => {
                                                         const m = calculateMargin(formData.price, formData.purchase_price);
                                                         return m?.isLoss ? (
                                                             <span className="text-red-500 font-black ml-0.5 animate-pulse" title="Harga jual lebih rendah dari modal (*)">(*)</span>
@@ -1435,16 +1585,16 @@ const ProductsPage = () => {
                                                 </span>
                                                 <input
                                                     type="number"
-                                                    required
+                                                    required={!(!currentProduct && requiresApprovalOnCreate)}
                                                     min="0"
                                                     step="any"
                                                     value={formData.price}
                                                     onChange={e => setFormData({ ...formData, price: e.target.value })}
-                                                    placeholder="0"
+                                                    placeholder={(!currentProduct && requiresApprovalOnCreate) ? 'Kosongkan jika tdk tahu' : '0'}
                                                     className="w-full pl-8 pr-3 py-1.5 bg-gray-50 dark:bg-[#111118] border border-slate-200 dark:border-[#282839] rounded-lg text-sm font-bold text-gray-900 dark:text-white focus:outline-none focus:border-primary"
                                                 />
                                             </div>
-                                            {(() => {
+                                            {canViewCost ? (() => {
                                                 const m = calculateMargin(formData.price, formData.purchase_price);
                                                 if (!m) return <p className="text-[10px] text-gray-400 mt-1">Pelanggan umum</p>;
                                                 return (
@@ -1452,7 +1602,9 @@ const ProductsPage = () => {
                                                         {m.isLoss ? `⚠️ Rugi Rp ${formatRupiah(Math.abs(m.profit))}` : `Margin ${formatRupiah(m.profit)} · ${m.percentage}%`}
                                                     </p>
                                                 );
-                                            })()}
+                                            })() : (
+                                                <p className="text-[10px] text-gray-400 mt-1">Pelanggan umum (boleh kosong)</p>
+                                            )}
                                         </div>
 
                                         {/* 3. Harga Grosir */}
@@ -1468,7 +1620,7 @@ const ProductsPage = () => {
                                             <div className="relative">
                                                 <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 flex items-center">
                                                     Rp
-                                                    {(() => {
+                                                    {canViewCost && (() => {
                                                         const m = calculateMargin(formData.wholesale_price || formData.price, formData.purchase_price);
                                                         return m?.isLoss ? (
                                                             <span className="text-red-500 font-black ml-0.5 animate-pulse" title="Harga grosir lebih rendah dari modal (*)">(*)</span>
@@ -1481,11 +1633,11 @@ const ProductsPage = () => {
                                                     step="any"
                                                     value={formData.wholesale_price}
                                                     onChange={e => setFormData({ ...formData, wholesale_price: e.target.value })}
-                                                    placeholder="Sama dgn ecer"
+                                                    placeholder="Kosongkan jika tdk tahu"
                                                     className="w-full pl-8 pr-3 py-1.5 bg-gray-50 dark:bg-[#111118] border border-slate-200 dark:border-[#282839] rounded-lg text-sm font-bold text-gray-900 dark:text-white focus:outline-none focus:border-primary"
                                                 />
                                             </div>
-                                            {(() => {
+                                            {canViewCost ? (() => {
                                                 const m = calculateMargin(formData.wholesale_price || formData.price, formData.purchase_price);
                                                 if (!m) return <p className="text-[10px] text-gray-400 mt-1">Pembelian banyak</p>;
                                                 return (
@@ -1493,7 +1645,9 @@ const ProductsPage = () => {
                                                         {m.isLoss ? `⚠️ Rugi Rp ${formatRupiah(Math.abs(m.profit))}` : `Margin ${formatRupiah(m.profit)} · ${m.percentage}%`}
                                                     </p>
                                                 );
-                                            })()}
+                                            })() : (
+                                                <p className="text-[10px] text-gray-400 mt-1">Pembelian banyak (boleh kosong)</p>
+                                            )}
                                             <div className="flex items-center gap-1 mt-1 text-[10px] text-gray-500">
                                                 <span>Min:</span>
                                                 <input
@@ -1520,7 +1674,7 @@ const ProductsPage = () => {
                                             <div className="relative">
                                                 <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 flex items-center">
                                                     Rp
-                                                    {(() => {
+                                                    {canViewCost && (() => {
                                                         const m = calculateMargin(formData.reseller_price || formData.price, formData.purchase_price);
                                                         return m?.isLoss ? (
                                                             <span className="text-red-500 font-black ml-0.5 animate-pulse" title="Harga reseller lebih rendah dari modal (*)">(*)</span>
@@ -1533,11 +1687,11 @@ const ProductsPage = () => {
                                                     step="any"
                                                     value={formData.reseller_price}
                                                     onChange={e => setFormData({ ...formData, reseller_price: e.target.value })}
-                                                    placeholder="Sama dgn ecer"
+                                                    placeholder="Kosongkan jika tdk tahu"
                                                     className="w-full pl-8 pr-3 py-1.5 bg-gray-50 dark:bg-[#111118] border border-slate-200 dark:border-[#282839] rounded-lg text-sm font-bold text-gray-900 dark:text-white focus:outline-none focus:border-primary"
                                                 />
                                             </div>
-                                            {(() => {
+                                            {canViewCost ? (() => {
                                                 const m = calculateMargin(formData.reseller_price || formData.price, formData.purchase_price);
                                                 if (!m) return <p className="text-[10px] text-gray-400 mt-1">Langganan tetap</p>;
                                                 return (
@@ -1545,11 +1699,15 @@ const ProductsPage = () => {
                                                         {m.isLoss ? `⚠️ Rugi Rp ${formatRupiah(Math.abs(m.profit))}` : `Margin ${formatRupiah(m.profit)} · ${m.percentage}%`}
                                                     </p>
                                                 );
-                                            })()}
+                                            })() : (
+                                                <p className="text-[10px] text-gray-400 mt-1">Langganan tetap (boleh kosong)</p>
+                                            )}
                                         </div>
                                     </div>
                                     <p className="text-[11px] text-gray-400 dark:text-gray-500 italic">
-                                        💡 Kosongkan harga grosir/reseller untuk memakai harga ecer standar.
+                                        {!currentProduct && requiresApprovalOnCreate
+                                            ? '💡 Jika harga ecer, grosir, atau reseller belum diketahui, boleh dikosongkan dan nanti dilengkapi oleh Admin.'
+                                            : '💡 Kosongkan harga grosir/reseller untuk memakai harga ecer standar.'}
                                     </p>
                                 </div>
 
@@ -1746,7 +1904,11 @@ const ProductsPage = () => {
                                         disabled={uploading}
                                         className="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-bold shadow-md shadow-primary/25 transition-all disabled:opacity-50"
                                     >
-                                        {currentProduct ? 'Simpan Perubahan' : 'Buat Produk Baru'}
+                                        {currentProduct
+                                            ? 'Simpan Perubahan'
+                                            : requiresApprovalOnCreate
+                                            ? 'Ajukan Produk ke Admin'
+                                            : 'Buat Produk Baru'}
                                     </button>
                                 </div>
                             </form>
@@ -1944,6 +2106,24 @@ const ProductsPage = () => {
                     }}
                     canViewCost={canViewCost}
                     canUpdateStock={canUpdateStock}
+                />
+
+                {/* Modal Konfirmasi & Input Modal Produk Baru dari Kasir (Khusus Admin) */}
+                <ApproveProductModal
+                    isOpen={!!approveModalProduct}
+                    product={approveModalProduct}
+                    categories={categories}
+                    onClose={() => setApproveModalProduct(null)}
+                    onApproved={() => {
+                        fetchProducts();
+                        fetchFilterCounts();
+                        window.dispatchEvent(new Event('products-pending-updated'));
+                    }}
+                    onRejected={() => {
+                        fetchProducts();
+                        fetchFilterCounts();
+                        window.dispatchEvent(new Event('products-pending-updated'));
+                    }}
                 />
             </main>
         </div>

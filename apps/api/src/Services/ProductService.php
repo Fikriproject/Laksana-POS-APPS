@@ -161,6 +161,16 @@ class ProductService
         if (empty($data['base_unit'])) {
             $data['base_unit'] = 'pcs';
         }
+
+        // Default status persetujuan & format boolean is_active yang aman untuk PostgreSQL & MySQL
+        if (empty($data['approval_status'])) {
+            $data['approval_status'] = 'approved';
+        }
+        if (array_key_exists('is_active', $data)) {
+            $isPg = ($this->productModel->getDb()->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'pgsql');
+            $boolActive = filter_var($data['is_active'], FILTER_VALIDATE_BOOLEAN);
+            $data['is_active'] = $isPg ? ($boolActive ? 'true' : 'false') : ($boolActive ? 1 : 0);
+        }
         
         $productId = $this->productModel->create($data);
 
@@ -169,6 +179,30 @@ class ProductService
         }
 
         return $productId;
+    }
+
+    /**
+     * Admin menyetujui produk yang diajukan kasir, mengisi harga modal & mengaktifkannya ke katalog + POS
+     */
+    public function approveProduct(string $id, array $data): bool
+    {
+        $isPg = ($this->productModel->getDb()->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'pgsql');
+
+        $updatePayload = [
+            'approval_status' => 'approved',
+            'is_active' => $isPg ? 'true' : 1,
+            'purchase_price' => (float)($data['purchase_price'] ?? 0),
+            'price' => (float)($data['price'] ?? 0),
+        ];
+
+        $optionalFields = ['name', 'sku', 'category_id', 'stock_quantity', 'base_unit', 'wholesale_price', 'wholesale_min_qty', 'reseller_price'];
+        foreach ($optionalFields as $field) {
+            if (array_key_exists($field, $data)) {
+                $updatePayload[$field] = $data[$field];
+            }
+        }
+
+        return $this->update($id, $updatePayload);
     }
 
     public function update(string $id, array $data): bool

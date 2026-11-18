@@ -192,19 +192,93 @@ return function ($method, $path, $productService, $user) {
         RoleMiddleware::requirePermission($user, 'products.create');
         
         $data = json_decode(file_get_contents('php://input'), true) ?? [];
-        
-        $validator = new Validator($data);
-        $validator->required('name')->required('price')->numeric('price');
-        $validator->validate();
+        $canViewCost = RoleMiddleware::hasPermission($user, 'products.view_cost');
+        $isAdmin = (($user['role'] ?? '') === 'admin');
+        $requiresApproval = !$isAdmin && !$canViewCost;
+
+        if ($requiresApproval) {
+            // Kasir / staff tanpa akses harga modal: harga jual ecer/grosir/reseller boleh kosong,
+            // harga modal dikunci 0, dan produk masuk antrean konfirmasi Admin (belum aktif di POS)
+            $validator = new Validator($data);
+            $validator->required('name');
+            $validator->validate();
+
+            if (!isset($data['price']) || $data['price'] === '' || $data['price'] === null) {
+                $data['price'] = 0;
+            }
+            $data['purchase_price'] = 0;
+            $data['approval_status'] = 'pending';
+            $data['is_active'] = false;
+            $data['submitted_by'] = $user['full_name'] ?? $user['username'] ?? 'Kasir';
+        } else {
+            $validator = new Validator($data);
+            $validator->required('name')->required('price')->numeric('price');
+            $validator->validate();
+
+            $data['approval_status'] = 'approved';
+            if (!isset($data['is_active'])) {
+                $data['is_active'] = true;
+            }
+        }
         
         $productId = $productService->create($data);
         $product = $productService->getById($productId);
 
-        if (!RoleMiddleware::hasPermission($user, 'products.view_cost')) {
+        if (!$canViewCost) {
             $product['purchase_price'] = null;
         }
         
-        Response::success($product, 'Produk dibuat', 201);
+        $message = $requiresApproval
+            ? 'Produk berhasil diajukan dan menunggu konfirmasi harga modal dari Admin'
+            : 'Produk dibuat';
+        Response::success($product, $message, 201);
+    }
+
+    // PATCH /api/products/:id/approve - Admin approves pending product & sets purchase price (modal)
+    if ($method === 'PATCH' && preg_match('/^\/([a-zA-Z0-9-]+)\/approve$/', $path, $matches)) {
+        $isAdmin = (($user['role'] ?? '') === 'admin');
+        $canApprove = $isAdmin || (RoleMiddleware::hasPermission($user, 'products.edit') && RoleMiddleware::hasPermission($user, 'products.view_cost'));
+        if (!$canApprove) {
+            Response::error('Akses ditolak. Hanya Admin yang dapat menyetujui produk dan mengisi harga modal.', 403);
+        }
+
+        $existing = $productService->getById($matches[1]);
+        if (!$existing) {
+            Response::error('Produk tidak ditemukan', 404);
+        }
+
+        $data = json_decode(file_get_contents('php://input'), true) ?? [];
+        if (!isset($data['purchase_price']) || $data['purchase_price'] === '' || !is_numeric($data['purchase_price']) || (float)$data['purchase_price'] < 0) {
+            Response::error('Harga modal (HPP) wajib diisi dengan angka valid', 400);
+        }
+        if (!isset($data['price']) || $data['price'] === '' || !is_numeric($data['price']) || (float)$data['price'] <= 0) {
+            Response::error('Harga jual eceran wajib diisi lebih dari 0 sebelum produk diaktifkan', 400);
+        }
+
+        $productService->approveProduct($matches[1], $data);
+        $product = $productService->getById($matches[1]);
+
+        Response::success($product, 'Produk disetujui dan telah aktif di katalog serta kasir POS');
+    }
+
+    // DELETE /api/products/:id/reject - Admin rejects & removes pending product submission
+    if ($method === 'DELETE' && preg_match('/^\/([a-zA-Z0-9-]+)\/reject$/', $path, $matches)) {
+        $isAdmin = (($user['role'] ?? '') === 'admin');
+        $canReject = $isAdmin || (RoleMiddleware::hasPermission($user, 'products.view_cost') && (RoleMiddleware::hasPermission($user, 'products.edit') || RoleMiddleware::hasPermission($user, 'products.delete')));
+        if (!$canReject) {
+            Response::error('Akses ditolak. Anda tidak memiliki izin menolak pengajuan produk.', 403);
+        }
+
+        $existing = $productService->getById($matches[1]);
+        if (!$existing) {
+            Response::error('Produk tidak ditemukan', 404);
+        }
+        if (($existing['approval_status'] ?? 'approved') !== 'pending') {
+            Response::error('Hanya pengajuan produk berstatus menunggu konfirmasi yang dapat ditolak.', 400);
+        }
+
+        $productService->delete($matches[1]);
+        Response::success(null, 'Pengajuan produk ditolak dan dihapus dari antrean');
     }
 
     // PATCH /api/products/:id/stock - Quick stock update (Kasir / Staff with update_stock)
