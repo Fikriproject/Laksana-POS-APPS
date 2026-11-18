@@ -246,10 +246,59 @@ class ProductService
             $isPg = ($db->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'pgsql');
 
             // Prepared statements
-            $stmtCheckSku = $db->prepare("SELECT id FROM products WHERE sku = :sku LIMIT 1");
             $stmtCheckName = $db->prepare("SELECT id FROM products WHERE LOWER(TRIM(name)) = LOWER(TRIM(:name)) LIMIT 1");
             $stmtFindCat = $db->prepare("SELECT id FROM categories WHERE LOWER(TRIM(name)) = LOWER(TRIM(:name)) OR slug = :slug LIMIT 1");
             $stmtInsertCat = $db->prepare("INSERT INTO categories (name, slug, is_active) VALUES (:name, :slug, 1)");
+
+            // Indeks semua SKU eksisting (eksak & versi tanpa strip) untuk mencegah bentrok barcode antar produk berbeda
+            $stmtAllSkus = $db->query("SELECT sku FROM products WHERE sku IS NOT NULL AND sku != ''");
+            $existingSkus = [];
+            $existingNoDashSkus = [];
+            foreach ($stmtAllSkus->fetchAll(\PDO::FETCH_COLUMN) ?: [] as $existingSkuVal) {
+                $normSku = strtolower(trim((string)$existingSkuVal));
+                if ($normSku !== '') {
+                    $existingSkus[$normSku] = true;
+                    $existingNoDashSkus[preg_replace('/[-\s]/', '', $normSku)] = true;
+                }
+            }
+
+            $makeUniqueSku = function (string $desiredSku, string $prodName) use (&$existingSkus, &$existingNoDashSkus): string {
+                $candidate = trim($desiredSku);
+                if ($candidate === '') {
+                    $candidate = $this->generateSku($prodName);
+                }
+
+                $isTaken = function (string $code) use (&$existingSkus, &$existingNoDashSkus): bool {
+                    $norm = strtolower(trim($code));
+                    $noDash = preg_replace('/[-\s]/', '', $norm);
+                    return isset($existingSkus[$norm]) || isset($existingNoDashSkus[$noDash]);
+                };
+
+                if (!$isTaken($candidate)) {
+                    return $candidate;
+                }
+
+                // Jika SKU berakhiran angka (misal AMLKS167 atau AM-LKS-167), naikkan nomor urut sampai unik
+                if (preg_match('/^(.*?)(\d+)$/', $candidate, $m)) {
+                    $prefix = $m[1];
+                    $numLen = strlen($m[2]);
+                    $num = (int)$m[2];
+                    for ($attempt = 0; $attempt < 5000; $attempt++) {
+                        $num++;
+                        $nextCandidate = $prefix . str_pad((string)$num, $numLen, '0', STR_PAD_LEFT);
+                        if (!$isTaken($nextCandidate)) {
+                            return $nextCandidate;
+                        }
+                    }
+                }
+
+                // Fallback akhir dengan akhiran acak unik
+                do {
+                    $nextCandidate = substr($candidate, 0, 42) . '-' . strtoupper(substr(md5(uniqid('', true)), 0, 4));
+                } while ($isTaken($nextCandidate));
+
+                return $nextCandidate;
+            };
             
             $stmtInsertProd = $db->prepare(
                 "INSERT INTO products (id, name, sku, price, purchase_price, stock_quantity, category_id, wholesale_price, wholesale_min_qty, reseller_price, base_unit, is_active)
@@ -352,13 +401,10 @@ class ProductService
                     }
                 }
 
-                // Cek apakah SKU atau Nama sudah ada di sistem
+                // Cocokkan produk lama berdasarkan NAMA agar nomor SKU auto-generate dari file Excel baru
+                // tidak pernah menimpa barang lain yang berbeda nama
                 $existingId = null;
-                if (!empty($sku)) {
-                    $stmtCheckSku->execute(['sku' => $sku]);
-                    $existingId = $stmtCheckSku->fetchColumn();
-                }
-                if (!$existingId && !empty($name)) {
+                if (!empty($name)) {
                     $stmtCheckName->execute(['name' => $name]);
                     $existingId = $stmtCheckName->fetchColumn();
                 }
@@ -382,9 +428,12 @@ class ProductService
                         $skipped++;
                     }
                 } else {
-                    if (empty($sku)) {
-                        $sku = $this->generateSku($name);
-                    }
+                    // Pastikan SKU 100% unik (termasuk terhadap versi tanpa strip seperti AMLKS167 vs AM-LKS-167)
+                    $sku = $makeUniqueSku($sku, $name);
+                    $normNewSku = strtolower(trim($sku));
+                    $existingSkus[$normNewSku] = true;
+                    $existingNoDashSkus[preg_replace('/[-\s]/', '', $normNewSku)] = true;
+
                     // Generate UUID
                     $prodId = sprintf(
                         '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',

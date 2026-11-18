@@ -139,9 +139,10 @@ return function ($method, $path, $productService, $user) {
         Response::success($product);
     }
     
-    // GET /api/products/sku/:sku - Get product by SKU
-    if ($method === 'GET' && preg_match('/^\/sku\/([A-Za-z0-9-]+)$/', $path, $matches)) {
-        $product = $productService->getBySku($matches[1]);
+    // GET /api/products/sku/:sku - Get product by exact SKU or unit barcode
+    if ($method === 'GET' && preg_match('/^\/sku\/([^\/]+)$/', $path, $matches)) {
+        $skuCode = urldecode($matches[1]);
+        $product = $productService->getByBarcode($skuCode);
         
         if (!$product) {
             Response::error('Produk tidak ditemukan', 404);

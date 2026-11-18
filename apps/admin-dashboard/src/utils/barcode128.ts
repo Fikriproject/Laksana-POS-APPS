@@ -289,8 +289,8 @@ export async function generateBarcodePdf(
                 const unitW = barcodeMaxW / barcode.totalModules;
                 const barcodeActualW = barcode.totalModules * unitW;
                 const barcodeStartX = x + (cellW - barcodeActualW) / 2;
-                const barcodeH = layout === 'grid4x10' ? 24 : 32;
-                const barcodeY = y + (showPrice ? 28 : 22);
+                const barcodeH = layout === 'grid4x10' ? 22 : 30;
+                const barcodeY = y + (showPrice ? (layout === 'grid4x10' ? 31 : 36) : (layout === 'grid4x10' ? 23 : 26));
 
                 // Gambar batang hitam barcode (100% vector murni)
                 stream += '0 0 0 rg\n';
@@ -300,12 +300,13 @@ export async function generateBarcodePdf(
                     stream += `${barX.toFixed(2)} ${barcodeY.toFixed(2)} ${barW.toFixed(2)} ${barcodeH.toFixed(2)} re f\n`;
                 }
 
-                // Teks SKU di bawah barcode
+                // Teks SKU di bawah barcode (beri jarak lega agar tidak menumpuk dengan nama produk)
                 const skuText = barcode.sku;
-                const skuFontSize = layout === 'grid4x10' ? 7 : 8;
+                const skuFontSize = layout === 'grid4x10' ? 6.5 : 7.5;
                 const approxSkuW = skuText.length * (skuFontSize * 0.55);
                 const skuX = Math.max(x + 4, x + (cellW - approxSkuW) / 2);
-                stream += `BT /F2 ${skuFontSize} Tf ${skuX.toFixed(2)} ${(barcodeY - (layout === 'grid4x10' ? 9 : 10)).toFixed(2)} Td (${escapePdfText(skuText)}) Tj ET\n`;
+                const skuY = barcodeY - (layout === 'grid4x10' ? 8.5 : 10);
+                stream += `BT /F2 ${skuFontSize} Tf ${skuX.toFixed(2)} ${skuY.toFixed(2)} Td (${escapePdfText(skuText)}) Tj ET\n`;
 
                 // Nama Produk (Dipotong jika terlalu panjang agar tidak keluar garis label)
                 const maxNameLen = layout === 'grid4x10' ? 24 : 30;
@@ -315,7 +316,8 @@ export async function generateBarcodePdf(
                 const nameFontSize = layout === 'grid4x10' ? 6.5 : 7.5;
                 const approxNameW = truncatedName.length * (nameFontSize * 0.5);
                 const nameX = Math.max(x + 4, x + (cellW - approxNameW) / 2);
-                stream += `BT /F1 ${nameFontSize} Tf ${nameX.toFixed(2)} ${(y + (showPrice ? 12 : 6)).toFixed(2)} Td (${escapePdfText(truncatedName)}) Tj ET\n`;
+                const nameY = y + (showPrice ? (layout === 'grid4x10' ? 13.5 : 15.5) : 7.5);
+                stream += `BT /F1 ${nameFontSize} Tf ${nameX.toFixed(2)} ${nameY.toFixed(2)} Td (${escapePdfText(truncatedName)}) Tj ET\n`;
 
                 // Harga Produk (Bawah)
                 if (showPrice && product.price > 0) {
@@ -324,7 +326,7 @@ export async function generateBarcodePdf(
                     const approxPriceW = priceText.length * (priceFontSize * 0.55);
                     const priceX = Math.max(x + 4, x + (cellW - approxPriceW) / 2);
                     stream += '0.05 0.45 0.25 rg\n'; // Sedikit hijau gelap untuk harga
-                    stream += `BT /F2 ${priceFontSize} Tf ${priceX.toFixed(2)} ${(y + 3).toFixed(2)} Td (${escapePdfText(priceText)}) Tj ET\n`;
+                    stream += `BT /F2 ${priceFontSize} Tf ${priceX.toFixed(2)} ${(y + 4.5).toFixed(2)} Td (${escapePdfText(priceText)}) Tj ET\n`;
                 }
             }
 

@@ -17,7 +17,7 @@ class Product extends Model
             "SELECT p.*, c.name as category_name 
              FROM {$this->table} p 
              LEFT JOIN categories c ON p.category_id = c.id 
-             WHERE p.sku = :sku"
+             WHERE LOWER(TRIM(p.sku)) = LOWER(TRIM(:sku))"
         );
         $stmt->execute(['sku' => $sku]);
         

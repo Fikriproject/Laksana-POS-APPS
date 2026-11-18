@@ -154,7 +154,7 @@ const POSTerminal = () => {
         const fetchData = async () => {
             try {
                 const [productsRes, categoriesRes] = await Promise.all([
-                    api.get('/products?per_page=1000'),
+                    api.get('/products?per_page=5000'),
                     api.get('/products/categories')
                 ]);
 
@@ -563,44 +563,100 @@ const POSTerminal = () => {
     const cleanSearch = debouncedSearch.trim().toLowerCase();
 
     // Map pencarian cepat O(1) untuk Barcode / SKU (termasuk barcode satuan bertingkat kemasan dus/lusin)
-    const productSkuMap = useMemo(() => {
-        const map = new Map<string, { product: Product; unit?: ProductUnitData }>();
+    // Memisahkan exactMap (pencocokan 100% persis) dan fallbackMap (tanpa strip/nol di depan)
+    // agar SKU mirip seperti AMLKS167 vs AM-LKS-167 TIDAK PERNAH saling menimpa!
+    const productSkuLookup = useMemo(() => {
+        type SkuEntry = { product: Product; unit?: ProductUnitData };
+        const exactMap = new Map<string, SkuEntry>();
+        const fallbackMap = new Map<string, SkuEntry>();
+        const nameMap = new Map<string, SkuEntry>();
+        const ambiguousFallbackKeys = new Set<string>();
+
+        // Tahap 1: Index semua SKU & Barcode secara EKSAK terlebih dahulu
         for (const p of products) {
             if (p.sku) {
                 const clean = String(p.sku).trim().toLowerCase();
-                map.set(clean, { product: p });
-                const noZero = clean.replace(/^0+/, '');
-                if (noZero) map.set(noZero, { product: p });
-                const noDash = clean.replace(/[-\s]/g, '');
-                if (noDash) map.set(noDash, { product: p });
+                if (clean && !exactMap.has(clean)) {
+                    exactMap.set(clean, { product: p });
+                }
             }
             if ((p as any).barcode) {
                 const cleanB = String((p as any).barcode).trim().toLowerCase();
-                map.set(cleanB, { product: p });
-                const noZeroB = cleanB.replace(/^0+/, '');
-                if (noZeroB) map.set(noZeroB, { product: p });
-            }
-            if (p.id) {
-                map.set(String(p.id).toLowerCase(), { product: p });
-                const skuFallback = `sku-${String(p.id).substring(0, 6).toLowerCase()}`;
-                map.set(skuFallback, { product: p });
-            }
-            if (p.name) {
-                map.set(p.name.trim().toLowerCase(), { product: p });
+                if (cleanB && !exactMap.has(cleanB)) {
+                    exactMap.set(cleanB, { product: p });
+                }
             }
             // Index Barcode Satuan Bertingkat (Kemasan)
             if (p.units && Array.isArray(p.units)) {
                 for (const u of p.units) {
                     if (u.barcode) {
                         const cleanU = String(u.barcode).trim().toLowerCase();
-                        map.set(cleanU, { product: p, unit: u });
-                        const noZeroU = cleanU.replace(/^0+/, '');
-                        if (noZeroU) map.set(noZeroU, { product: p, unit: u });
+                        if (cleanU && !exactMap.has(cleanU)) {
+                            exactMap.set(cleanU, { product: p, unit: u });
+                        }
+                    }
+                }
+            }
+            if (p.id) {
+                const cleanId = String(p.id).toLowerCase();
+                if (!exactMap.has(cleanId)) {
+                    exactMap.set(cleanId, { product: p });
+                }
+                const skuFallback = `sku-${cleanId.substring(0, 6)}`;
+                if (!exactMap.has(skuFallback)) {
+                    exactMap.set(skuFallback, { product: p });
+                }
+            }
+            if (p.name) {
+                const cleanName = p.name.trim().toLowerCase();
+                if (cleanName && !nameMap.has(cleanName)) {
+                    nameMap.set(cleanName, { product: p });
+                }
+            }
+        }
+
+        // Helper untuk mendaftarkan key fallback (noZero / noDash) secara aman tanpa menimpa exactMap / barang lain
+        const registerFallback = (key: string, entry: SkuEntry) => {
+            if (!key || exactMap.has(key) || ambiguousFallbackKeys.has(key)) return;
+            const existing = fallbackMap.get(key);
+            if (existing) {
+                const isSameTarget =
+                    existing.product.id === entry.product.id &&
+                    (existing.unit?.id ?? null) === (entry.unit?.id ?? null);
+                if (!isSameTarget) {
+                    // Terdeteksi tabrakan antara 2 produk berbeda -> nonaktifkan fallback untuk key ini
+                    fallbackMap.delete(key);
+                    ambiguousFallbackKeys.add(key);
+                }
+                return;
+            }
+            fallbackMap.set(key, entry);
+        };
+
+        // Tahap 2: Index variasi fallback (tanpa 0 di depan / tanpa strip) hanya jika 100% tidak bentrok
+        for (const p of products) {
+            if (p.sku) {
+                const clean = String(p.sku).trim().toLowerCase();
+                registerFallback(clean.replace(/^0+/, ''), { product: p });
+                registerFallback(clean.replace(/[-\s]/g, ''), { product: p });
+            }
+            if ((p as any).barcode) {
+                const cleanB = String((p as any).barcode).trim().toLowerCase();
+                registerFallback(cleanB.replace(/^0+/, ''), { product: p });
+                registerFallback(cleanB.replace(/[-\s]/g, ''), { product: p });
+            }
+            if (p.units && Array.isArray(p.units)) {
+                for (const u of p.units) {
+                    if (u.barcode) {
+                        const cleanU = String(u.barcode).trim().toLowerCase();
+                        registerFallback(cleanU.replace(/^0+/, ''), { product: p, unit: u });
+                        registerFallback(cleanU.replace(/[-\s]/g, ''), { product: p, unit: u });
                     }
                 }
             }
         }
-        return map;
+
+        return { exactMap, fallbackMap, nameMap };
     }, [products]);
 
     const isProductActive = (product: Product) => {
@@ -647,10 +703,15 @@ const POSTerminal = () => {
     const searchInputRef = useRef<HTMLInputElement>(null);
 
     // Refs untuk event listener agar tidak perlu re-subscribe listener saat cart / state berubah
-    const productSkuMapRef = useRef(productSkuMap);
+    const productSkuLookupRef = useRef(productSkuLookup);
     useEffect(() => {
-        productSkuMapRef.current = productSkuMap;
-    }, [productSkuMap]);
+        productSkuLookupRef.current = productSkuLookup;
+    }, [productSkuLookup]);
+
+    const productsRef = useRef(products);
+    useEffect(() => {
+        productsRef.current = products;
+    }, [products]);
 
     const addToCartRef = useRef(addToCart);
     useEffect(() => {
@@ -680,8 +741,14 @@ const POSTerminal = () => {
 
     /**
      * Memproses kode barcode dari scanner atau input manual secara instan via Hash Map O(1)
+     * Prioritas 1: Pencocokan 100% eksak (exactMap)
+     * Prioritas 2: Fallback tanpa strip / nol depan HANYA jika tidak bentrok (fallbackMap)
+     * Prioritas 3: Lookup instan ke API server jika barang belum termuat di browser
      */
-    const processBarcodeScan = (scannedCode: string): boolean => {
+    const processBarcodeScan = (
+        scannedCode: string,
+        options?: { allowSingleTextMatch?: boolean }
+    ): boolean => {
         const raw = (scannedCode || '')
             .replace(/[\r\n\t]/g, '')
             .replace(/^\][A-Za-z0-9]{2}/, '') // Hapus prefix AIM identifier jika scanner mengirimkan ]C0, ]E0 dll
@@ -693,43 +760,101 @@ const POSTerminal = () => {
         const cleanNoLeadingZero = clean.replace(/^0+/, '');
         const cleanNoDash = clean.replace(/[-\s]/g, '');
 
-        const currentMap = productSkuMapRef.current;
-        // Cari instan O(1) via Map
-        const found = currentMap.get(clean) ||
-            (cleanNoLeadingZero ? currentMap.get(cleanNoLeadingZero) : undefined) ||
-            (cleanNoDash ? currentMap.get(cleanNoDash) : undefined);
+        const { exactMap, fallbackMap, nameMap } = productSkuLookupRef.current;
+
+        // 1. Wajib cocokkan EKSAK terlebih dahulu (AMLKS167 != AM-LKS-167)
+        const found =
+            exactMap.get(clean) ||
+            fallbackMap.get(clean) ||
+            (cleanNoLeadingZero ? fallbackMap.get(cleanNoLeadingZero) : undefined) ||
+            (cleanNoDash ? fallbackMap.get(cleanNoDash) : undefined) ||
+            nameMap.get(clean);
 
         if (found) {
             const added = addToCartRef.current(found.product, found.unit);
             if (added) {
                 playScanBeep();
                 const unitBadge = found.unit ? ` (${found.unit.unit_name})` : '';
-                toast.success(`Ditambahkan: ${found.product.name}${unitBadge}`, { id: 'scan-success', duration: 1500 });
+                const skuBadge = found.product.sku ? ` [${found.product.sku}]` : '';
+                toast.success(`Ditambahkan: ${found.product.name}${unitBadge}${skuBadge}`, {
+                    id: 'scan-success',
+                    duration: 1800
+                });
             }
             clearSearch();
             return true;
-        } else {
-            // Tampilkan notifikasi JELAS kepada kasir dengan kode barcode yang terbaca
-            toast.error(`Barcode "${raw}" tidak terdaftar di daftar produk!`, {
-                id: 'barcode-not-found',
-                duration: 4000,
-                icon: '⚠️'
-            });
-            clearSearch();
-            return false;
         }
+
+        // 2. Jika kasir mengetik manual di kotak cari lalu tekan Enter, cek kecocokan sinkron (tanpa delay debounce)
+        if (options?.allowSingleTextMatch) {
+            const directMatches = productsRef.current.filter(
+                p => isProductActive(p) && matchesSearchFilter(p, clean)
+            );
+            if (directMatches.length === 1) {
+                const single = directMatches[0];
+                const added = addToCartRef.current(single);
+                if (added) {
+                    playScanBeep();
+                    const skuBadge = single.sku ? ` [${single.sku}]` : '';
+                    toast.success(`Ditambahkan: ${single.name}${skuBadge}`, {
+                        id: 'scan-success',
+                        duration: 1800
+                    });
+                }
+                clearSearch();
+                return true;
+            }
+        }
+
+        // 3. Fallback: Cek langsung ke server (jaga-jaga jika produk baru ditambahkan atau di luar daftar lokal)
+        clearSearch();
+        api.get(`/products/sku/${encodeURIComponent(raw)}`)
+            .then(res => {
+                const fetched = res.data?.data;
+                if (fetched && fetched.id) {
+                    const matchedUnit = fetched.matched_unit as ProductUnitData | undefined;
+                    setProducts(prev =>
+                        prev.some(p => String(p.id) === String(fetched.id)) ? prev : [...prev, fetched]
+                    );
+                    const added = addToCartRef.current(fetched, matchedUnit);
+                    if (added) {
+                        playScanBeep();
+                        const unitBadge = matchedUnit ? ` (${matchedUnit.unit_name})` : '';
+                        const skuBadge = fetched.sku ? ` [${fetched.sku}]` : '';
+                        toast.success(`Ditambahkan: ${fetched.name}${unitBadge}${skuBadge}`, {
+                            id: 'scan-success',
+                            duration: 1800
+                        });
+                    }
+                } else {
+                    toast.error(`Barcode "${raw}" tidak terdaftar di daftar produk!`, {
+                        id: 'barcode-not-found',
+                        duration: 4000,
+                        icon: '⚠️'
+                    });
+                }
+            })
+            .catch(() => {
+                toast.error(`Barcode "${raw}" tidak terdaftar di daftar produk!`, {
+                    id: 'barcode-not-found',
+                    duration: 4000,
+                    icon: '⚠️'
+                });
+            });
+
+        return false;
     };
 
     // Global Keydown Listener: Mendukung pemindaian hands-free (tanpa perlu sentuh layar)
-    // Menggunakan timeout 400ms yang aman untuk USB OTG Android & tidak memblokir input keyboard fisik
+    // Menggunakan timeout 400ms yang aman untuk USB OTG Android & tidak bentrok dengan input kotak pencarian
     useEffect(() => {
         const handleGlobalKeyDown = (e: KeyboardEvent) => {
-            // Abaikan jika user sedang di input form modal lain (misal modal pembayaran/kas diterima)
+            // Abaikan jika fokus sedang berada di kolom input / textarea / select (termasuk searchInputRef yg punya handler sendiri)
             const target = e.target as HTMLElement;
-            const isInsideOtherInput = target && target !== searchInputRef.current && (
+            const isInsideAnyInput = target && (
                 target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT'
             );
-            if (isInsideOtherInput) {
+            if (isInsideAnyInput) {
                 return;
             }
 
@@ -745,24 +870,14 @@ const POSTerminal = () => {
 
             // Jika tombol Enter ditekan (akhir pembacaan barcode scanner)
             if (e.key === 'Enter' || e.keyCode === 13) {
-                const buffer = scanBufferRef.current.trim();
-                const inputValue = (searchInputRef.current?.value || '').trim();
-                const codeToProcess = buffer || inputValue;
+                const codeToProcess = scanBufferRef.current.trim();
+                scanBufferRef.current = '';
 
                 if (codeToProcess.length >= 2) {
-                    const handled = processBarcodeScan(codeToProcess);
-                    if (handled) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        scanBufferRef.current = '';
-                        if (searchInputRef.current) {
-                            searchInputRef.current.blur();
-                        }
-                        clearSearch();
-                        return;
-                    }
+                    e.preventDefault();
+                    e.stopPropagation();
+                    processBarcodeScan(codeToProcess);
                 }
-                scanBufferRef.current = '';
                 return;
             }
 
@@ -780,28 +895,12 @@ const POSTerminal = () => {
         if (e.key === 'Enter') {
             e.preventDefault();
             e.stopPropagation();
-            const val = (e.currentTarget.value || scanBufferRef.current).trim();
+            const val = e.currentTarget.value.trim();
+            scanBufferRef.current = '';
             if (!val) return;
 
-            const handled = processBarcodeScan(val);
-            if (handled) {
-                e.currentTarget.blur();
-                clearSearch();
-                scanBufferRef.current = '';
-                return;
-            }
-
-            // Jika hasil filter hanya 1 produk, langsung tambahkan
-            if (filteredProducts.length === 1) {
-                const single = filteredProducts[0];
-                const added = addToCartRef.current(single);
-                if (added) {
-                    toast.success(`Ditambahkan: ${single.name}`, { duration: 1500 });
-                }
-                e.currentTarget.blur();
-                clearSearch();
-                scanBufferRef.current = '';
-            }
+            processBarcodeScan(val, { allowSingleTextMatch: true });
+            e.currentTarget.blur();
         }
     };
 
