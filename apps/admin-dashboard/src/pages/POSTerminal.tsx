@@ -502,7 +502,7 @@ const POSTerminal = () => {
                 }
             }, 500);
 
-            const res = await api.get('/products?per_page=1000');
+            const res = await api.get('/products?per_page=5000');
             const productsData = res.data.data.products ? res.data.data.products : res.data.data;
             setProducts(productsData);
             fetchCurrentShift();
@@ -833,22 +833,45 @@ const POSTerminal = () => {
 
     const matchesSearchFilter = (product: Product, query: string) => {
         if (!query) return true;
-        return (
-            product.name.toLowerCase().includes(query) ||
-            (product.sku && product.sku.toLowerCase().includes(query)) ||
-            (product.category_name && product.category_name.toLowerCase().includes(query))
-        );
+        const q = query.trim().toLowerCase();
+        const name = (product.name || '').toLowerCase();
+        const sku = (product.sku || '').toLowerCase();
+        const cat = (product.category_name || '').toLowerCase();
+        const barcode = ((product as any).barcode || '').toLowerCase();
+
+        // 1. Pencocokan langsung teks utuh (prioritas utama/cepat)
+        if (name.includes(q) || sku.includes(q) || cat.includes(q) || barcode.includes(q)) {
+            return true;
+        }
+
+        // 2. Pencocokan multi-kata cerdas (Tokenized Search)
+        // Memecah "spidol merah" menjadi ['spidol', 'merah']
+        // Mencocokkan nama seperti "Spidol Permanent Merah" atau "Spidol Montana White Board Merah"
+        const tokens = q.split(/\s+/).filter(Boolean);
+        if (tokens.length <= 1) return false;
+
+        const combinedText = `${name} ${sku} ${cat} ${barcode}`;
+        return tokens.every(token => combinedText.includes(token));
     };
 
     // Memoize filtered products agar tidak re-compute dan memicu re-render 285 kartu produk saat scanner berjalan
     const filteredProducts = useMemo(() => {
         return products.filter(product => {
-            const matchesCat = matchesCategoryFilter(product, activeCategory);
-            const matchesQuery = matchesSearchFilter(product, cleanSearch);
             const active = isProductActive(product);
-            return matchesCat && matchesQuery && active;
+            if (!active) return false;
+
+            const matchesQuery = matchesSearchFilter(product, cleanSearch);
+            if (!matchesQuery) return false;
+
+            // Jika kasir sedang mengetik pencarian (isSearching), cari ke SEMUA kategori secara global!
+            // Kasir tidak perlu repot klik tab 'All' terlebih dahulu.
+            if (isSearching) {
+                return true;
+            }
+
+            return matchesCategoryFilter(product, activeCategory);
         });
-    }, [products, activeCategory, cleanSearch]);
+    }, [products, activeCategory, cleanSearch, isSearching]);
 
     // Cek apakah ada barang yang cocok di kategori lain jika hasil di kategori aktif kosong
     const totalMatchesAllCategories = isSearching && activeCategory !== 'all'
@@ -1057,7 +1080,29 @@ const POSTerminal = () => {
             scanBufferRef.current = '';
             if (!val) return;
 
-            processBarcodeScan(val, { allowSingleTextMatch: true });
+            const cleanVal = val.toLowerCase();
+            const { exactMap, fallbackMap } = productSkuLookupRef.current;
+
+            // 1. Jika teks adalah Barcode atau SKU yang cocok 100% (dari scanner barcode atau ketik SKU persis)
+            if (exactMap.has(cleanVal) || fallbackMap.has(cleanVal)) {
+                processBarcodeScan(val);
+                e.currentTarget.blur();
+                return;
+            }
+
+            // 2. Jika input berupa digit angka barcode (misal hasil scan barcode baru 7-14 digit)
+            if (/^\d{7,14}$/.test(cleanVal)) {
+                processBarcodeScan(val);
+                e.currentTarget.blur();
+                return;
+            }
+
+            // 3. Pencarian Teks Manual (misal "spidol merah", "buku tulis", "map")
+            // Langsung sinkronkan debouncedSearch agar kartu barang langsung tersaring seketika
+            setDebouncedSearch(val);
+
+            // Tutup keyboard virtual tablet (blur) agar kasir leluasa melihat hasil pencarian di layar.
+            // JANGAN hapus teks pencarian dan JANGAN lempar error barcode!
             e.currentTarget.blur();
         }
     };
