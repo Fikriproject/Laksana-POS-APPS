@@ -9,6 +9,7 @@ export interface WebUSBEndpoint {
     endpointNumber: number;
     direction: 'in' | 'out';
     type: 'bulk' | 'interrupt' | 'isochronous';
+    packetSize?: number;
 }
 
 export interface WebUSBAlternate {
@@ -97,7 +98,7 @@ export async function requestUsbPrinter(): Promise<WebUSBDevice> {
         throw new Error('Browser Anda tidak mendukung WebUSB. Gunakan Google Chrome pada Android/PC.');
     }
     const usb = (navigator as any).usb;
-    // Request device with no vendor filter to allow any brand (Xprinter, Epson, Panda, Iware, etc.)
+    // Request device with no vendor filter to allow any brand (Xprinter, Epson, Panda, Iware, Winbond, etc.)
     const device: WebUSBDevice = await usb.requestDevice({ filters: [] });
     return device;
 }
@@ -108,7 +109,7 @@ export async function requestUsbPrinter(): Promise<WebUSBDevice> {
 export async function connectUsbPrinter(device?: WebUSBDevice): Promise<{ device: WebUSBDevice; endpointNumber: number }> {
     const targetDevice = device || activeDevice || (await getPairedUsbDevice());
     if (!targetDevice) {
-        throw new Error('Tidak ada printer USB yang dipilih atau terhubung ke OTG.');
+        throw new Error('Tidak ada printer USB yang dipilih atau terhubung ke kabel OTG.');
     }
 
     try {
@@ -116,40 +117,71 @@ export async function connectUsbPrinter(device?: WebUSBDevice): Promise<{ device
             await targetDevice.open();
         }
 
-        // Pastikan konfigurasi aktif
-        if (!targetDevice.configuration) {
-            await targetDevice.selectConfiguration(1);
+        // Pastikan konfigurasi aktif (tangani jika OS sudah mengunci konfigurasi 1)
+        if (targetDevice.configuration === null || targetDevice.configuration.configurationValue !== 1) {
+            try {
+                await targetDevice.selectConfiguration(1);
+            } catch (cfgErr) {
+                console.warn('selectConfiguration warning (sudah aktif di OS):', cfgErr);
+            }
         }
 
-        // Cari interface printer (Class 7 = Printer, atau fallback interface dengan Bulk OUT endpoint)
+        // Cari interface printer
         let foundInterfaceNumber: number | null = null;
         let foundEndpointNumber: number | null = null;
 
-        for (const iface of targetDevice.configuration.interfaces) {
+        const interfaces = targetDevice.configuration?.interfaces || [];
+
+        // Prioritas 1: Cari interface dengan class 7 (USB Printer Class)
+        for (const iface of interfaces) {
             for (const alt of iface.alternates) {
-                // Cari endpoint OUT bertipe bulk
-                const outEndpoint = alt.endpoints.find(
-                    (ep) => ep.direction === 'out' && (ep.type === 'bulk' || ep.type === 'interrupt')
-                );
-                if (outEndpoint) {
-                    foundInterfaceNumber = iface.interfaceNumber;
-                    foundEndpointNumber = outEndpoint.endpointNumber;
-                    break;
+                if (alt.interfaceClass === 7) {
+                    const outEndpoint = alt.endpoints.find(
+                        (ep) => ep.direction === 'out' && (ep.type === 'bulk' || ep.type === 'interrupt')
+                    );
+                    if (outEndpoint) {
+                        foundInterfaceNumber = iface.interfaceNumber;
+                        foundEndpointNumber = outEndpoint.endpointNumber;
+                        break;
+                    }
                 }
             }
             if (foundEndpointNumber !== null) break;
+        }
+
+        // Prioritas 2: Fallback jika printer generic tidak mendaftarkan class 7 (misal class 0 atau 255)
+        if (foundEndpointNumber === null) {
+            for (const iface of interfaces) {
+                for (const alt of iface.alternates) {
+                    const outEndpoint = alt.endpoints.find(
+                        (ep) => ep.direction === 'out' && (ep.type === 'bulk' || ep.type === 'interrupt')
+                    );
+                    if (outEndpoint) {
+                        foundInterfaceNumber = iface.interfaceNumber;
+                        foundEndpointNumber = outEndpoint.endpointNumber;
+                        break;
+                    }
+                }
+                if (foundEndpointNumber !== null) break;
+            }
         }
 
         if (foundInterfaceNumber === null || foundEndpointNumber === null) {
             throw new Error('Tidak ditemukan port transfer data (Bulk OUT) pada printer USB ini.');
         }
 
-        // Klaim interface jika belum diklaim
+        // Klaim interface
         try {
             await targetDevice.claimInterface(foundInterfaceNumber);
-        } catch (e: any) {
-            // Jika sudah diklaim sebelumnya, lanjutkan
-            console.log('Interface claim info:', e.message);
+        } catch (claimErr: any) {
+            const msg = String(claimErr?.message || '');
+            if (msg.includes('Unable to claim interface') || msg.includes('SecurityError') || msg.includes('Access denied')) {
+                throw new Error(
+                    'Akses ke printer USB ditolak oleh Android karena sedang digunakan oleh aplikasi lain (misal RawBT / ESC-POS service). ' +
+                    'Silakan uninstall atau force stop aplikasi RawBT/ESC-POS di Android, lalu cabut-colok kembali kabel OTG.'
+                );
+            }
+            console.warn('Claim interface info:', claimErr);
         }
 
         activeDevice = targetDevice;
@@ -161,7 +193,7 @@ export async function connectUsbPrinter(device?: WebUSBDevice): Promise<{ device
             localStorage.setItem(
                 'pos_usb_printer_info',
                 JSON.stringify({
-                    productName: targetDevice.productName || 'Thermal Printer USB',
+                    productName: targetDevice.productName || 'Thermal Printer USB 80mm',
                     vendorId: targetDevice.vendorId,
                     productId: targetDevice.productId,
                     connectedAt: new Date().toISOString()
@@ -172,18 +204,25 @@ export async function connectUsbPrinter(device?: WebUSBDevice): Promise<{ device
         return { device: targetDevice, endpointNumber: foundEndpointNumber };
     } catch (err: any) {
         console.error('Koneksi printer USB gagal:', err);
-        throw new Error(`Koneksi printer USB gagal: ${err.message || 'Periksa sambungan kabel OTG.'}`);
+        throw new Error(err.message || 'Koneksi printer USB gagal. Periksa sambungan kabel OTG.');
     }
 }
 
 /**
- * Send raw binary data to the USB printer
+ * Send raw binary data to the USB printer with 64-byte chunking for high stability on Android OTG
  */
 export async function sendRawUsb(data: Uint8Array): Promise<void> {
     const { device, endpointNumber } = await connectUsbPrinter();
-    const result = await device.transferOut(endpointNumber, data);
-    if (result.status !== 'ok') {
-        throw new Error(`Gagal mengirim data ke printer USB. Status: ${result.status}`);
+
+    // Kirim dalam potongan 64 byte (standar aman bulk transfer USB 2.0 Full-Speed)
+    // agar buffer printer thermal tidak overload di Android OTG
+    const chunkSize = 64;
+    for (let offset = 0; offset < data.length; offset += chunkSize) {
+        const chunk = data.slice(offset, offset + chunkSize);
+        const result = await device.transferOut(endpointNumber, chunk);
+        if (result.status !== 'ok') {
+            throw new Error(`Gagal mengirim data ke printer USB (Status: ${result.status})`);
+        }
     }
 }
 

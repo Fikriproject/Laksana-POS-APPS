@@ -534,8 +534,11 @@ const POSTerminal = () => {
             if (saved) printerConfig = { ...printerConfig, ...JSON.parse(saved) };
         } catch (e) {}
 
-        // Jika koneksi disetel ke USB dan browser mendukung WebUSB
-        if (printerConfig.connectionType === 'usb' && isWebUsbSupported()) {
+        // Cek apakah browser mendukung WebUSB dan apakah ada printer USB yang berpasangan
+        const pairedUsb = isWebUsbSupported() ? await getPairedUsbDevice() : null;
+        const shouldUseUsb = isWebUsbSupported() && (printerConfig.connectionType === 'usb' || !!pairedUsb);
+
+        if (shouldUseUsb) {
             try {
                 toast.loading('Mencetak struk via USB OTG...', { id: 'usb-print-job' });
                 await printReceiptUsb(orderToPrint, printerConfig);
@@ -543,17 +546,26 @@ const POSTerminal = () => {
                 setUsbConnected(true);
                 return;
             } catch (usbErr: any) {
-                console.warn('Gagal cetak via USB OTG, beralih ke print standar:', usbErr);
-                toast.error(
-                    `${usbErr.message || 'Printer USB tidak terhubung'}. Membuka dialog cetak sistem...`,
-                    { id: 'usb-print-job', duration: 4000 }
-                );
-                setTimeout(() => window.print(), 300);
+                console.error('Gagal cetak via USB OTG:', usbErr);
+                toast.dismiss('usb-print-job');
+
+                // Tampilkan konfirmasi pesan error yang jelas, jangan langsung buka dialog PDF!
+                const fallbackConfirm = await confirm({
+                    title: 'Gagal Mencetak via USB OTG',
+                    message: `${usbErr.message || 'Printer USB tidak merespon'}.\n\nApakah Anda ingin membuka jendela cetak sistem Android (PDF) sebagai cadangan?`,
+                    confirmText: 'Buka Cetak PDF / Sistem',
+                    cancelText: 'Batal & Cek Kabel',
+                    type: 'danger'
+                });
+
+                if (fallbackConfirm) {
+                    setTimeout(() => window.print(), 300);
+                }
                 return;
             }
         }
 
-        // Standar browser window.print()
+        // Standar browser window.print() jika memang bukan mode USB
         setTimeout(() => window.print(), 300);
     };
 
@@ -573,7 +585,10 @@ const POSTerminal = () => {
             if (saved) printerConfig = { ...printerConfig, ...JSON.parse(saved) };
         } catch (e) {}
 
-        if (printerConfig.connectionType === 'usb' && isWebUsbSupported()) {
+        const pairedUsb = isWebUsbSupported() ? await getPairedUsbDevice() : null;
+        const shouldUseUsb = isWebUsbSupported() && (printerConfig.connectionType === 'usb' || !!pairedUsb);
+
+        if (shouldUseUsb) {
             try {
                 toast.loading('Mencetak Z-Report via USB OTG...', { id: 'usb-zreport-job' });
                 await printZReportUsb(summaryData, printerConfig);
@@ -581,12 +596,20 @@ const POSTerminal = () => {
                 setUsbConnected(true);
                 return;
             } catch (usbErr: any) {
-                console.warn('Gagal cetak Z-Report via USB OTG:', usbErr);
-                toast.error(
-                    `${usbErr.message || 'Printer USB tidak terhubung'}. Membuka dialog cetak sistem...`,
-                    { id: 'usb-zreport-job', duration: 4000 }
-                );
-                setTimeout(() => window.print(), 300);
+                console.error('Gagal cetak Z-Report via USB OTG:', usbErr);
+                toast.dismiss('usb-zreport-job');
+
+                const fallbackConfirm = await confirm({
+                    title: 'Gagal Mencetak Z-Report via USB',
+                    message: `${usbErr.message || 'Printer USB tidak merespon'}.\n\nBuka jendela cetak sistem?`,
+                    confirmText: 'Buka Cetak Sistem',
+                    cancelText: 'Batal',
+                    type: 'danger'
+                });
+
+                if (fallbackConfirm) {
+                    setTimeout(() => window.print(), 300);
+                }
                 return;
             }
         }

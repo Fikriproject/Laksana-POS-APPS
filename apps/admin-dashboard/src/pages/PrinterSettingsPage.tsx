@@ -72,23 +72,17 @@ const PrinterSettingsPage: React.FC = () => {
             const dev = await requestUsbPrinter();
             await connectUsbPrinter(dev);
             setUsbDevice(dev);
-            setConfig((prev) => ({
-                ...prev,
-                connectionType: 'usb',
-                name: dev.productName || 'Thermal Printer 80mm (USB OTG)'
-            }));
-            localStorage.setItem(
-                'pos_printer_settings',
-                JSON.stringify({
-                    ...config,
-                    connectionType: 'usb',
-                    name: dev.productName || 'Thermal Printer 80mm (USB OTG)'
-                })
-            );
+            const updated = {
+                ...config,
+                connectionType: 'usb' as const,
+                name: dev.productName || 'POS80 Printer USB'
+            };
+            setConfig(updated);
+            localStorage.setItem('pos_printer_settings', JSON.stringify(updated));
             toast.success(`Berhasil terhubung ke ${dev.productName || 'Thermal Printer USB'}!`, { icon: '🖨️', duration: 4000 });
         } catch (err: any) {
             if (err.name !== 'NotFoundError') {
-                toast.error(err.message || 'Gagal menyambungkan printer USB');
+                toast.error(err.message || 'Gagal menyambungkan printer USB', { duration: 6000 });
             }
         } finally {
             setIsConnectingUsb(false);
@@ -257,7 +251,12 @@ const PrinterSettingsPage: React.FC = () => {
                                 </label>
                                 <select
                                     value={config.connectionType}
-                                    onChange={(e) => setConfig({ ...config, connectionType: e.target.value as any })}
+                                    onChange={(e) => {
+                                        const newType = e.target.value as any;
+                                        const updated = { ...config, connectionType: newType };
+                                        setConfig(updated);
+                                        localStorage.setItem('pos_printer_settings', JSON.stringify(updated));
+                                    }}
                                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-[#282839] bg-gray-50 dark:bg-[#111118] text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary transition-all font-medium"
                                 >
                                     <option value="usb">Kabel USB OTG Direct (Rekomendasi Utama - Cepat, 100% Bebas Kuota)</option>
