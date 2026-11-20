@@ -6,10 +6,19 @@ import PrintableTestReceipt, { PrinterConfig } from '../components/PrintableTest
 import api from '../services/api';
 import ThemeToggle from '../components/ThemeToggle';
 import UserMenu from '../components/UserMenu';
+import {
+    isWebUsbSupported,
+    getPairedUsbDevice,
+    requestUsbPrinter,
+    connectUsbPrinter,
+    disconnectUsbPrinter,
+    printTestReceiptUsb,
+    WebUSBDevice
+} from '../utils/webUsbPrinter';
 
 const DEFAULT_CONFIG: PrinterConfig = {
-    name: 'Printer Kasir Utama (POS-80)',
-    connectionType: 'tcp',
+    name: 'Printer Kasir Thermal (POS-80 USB)',
+    connectionType: 'usb',
     ipAddress: '192.168.1.200',
     port: 9100,
     paperWidth: '80mm',
@@ -38,6 +47,60 @@ const PrinterSettingsPage: React.FC = () => {
 
     const [isTestingSocket, setIsTestingSocket] = useState(false);
     const [socketStatus, setSocketStatus] = useState<'idle' | 'success' | 'failed'>('idle');
+    const [usbDevice, setUsbDevice] = useState<WebUSBDevice | null>(null);
+    const [isConnectingUsb, setIsConnectingUsb] = useState(false);
+
+    // Cek apakah ada printer USB yang sebelumnya sudah pernah diberi izin
+    useEffect(() => {
+        if (isWebUsbSupported()) {
+            getPairedUsbDevice().then((dev) => {
+                if (dev) {
+                    setUsbDevice(dev);
+                }
+            });
+        }
+    }, []);
+
+    // Sambungkan printer USB via browser prompt
+    const handleConnectUsb = async () => {
+        if (!isWebUsbSupported()) {
+            toast.error('Browser ini tidak mendukung WebUSB. Silakan gunakan Google Chrome pada Android/PC.');
+            return;
+        }
+        setIsConnectingUsb(true);
+        try {
+            const dev = await requestUsbPrinter();
+            await connectUsbPrinter(dev);
+            setUsbDevice(dev);
+            setConfig((prev) => ({
+                ...prev,
+                connectionType: 'usb',
+                name: dev.productName || 'Thermal Printer 80mm (USB OTG)'
+            }));
+            localStorage.setItem(
+                'pos_printer_settings',
+                JSON.stringify({
+                    ...config,
+                    connectionType: 'usb',
+                    name: dev.productName || 'Thermal Printer 80mm (USB OTG)'
+                })
+            );
+            toast.success(`Berhasil terhubung ke ${dev.productName || 'Thermal Printer USB'}!`, { icon: '🖨️', duration: 4000 });
+        } catch (err: any) {
+            if (err.name !== 'NotFoundError') {
+                toast.error(err.message || 'Gagal menyambungkan printer USB');
+            }
+        } finally {
+            setIsConnectingUsb(false);
+        }
+    };
+
+    // Putuskan koneksi printer USB
+    const handleDisconnectUsb = async () => {
+        await disconnectUsbPrinter();
+        setUsbDevice(null);
+        toast.success('Koneksi printer USB diputuskan.');
+    };
 
     // Save to localStorage
     const handleSave = () => {
@@ -54,24 +117,43 @@ const PrinterSettingsPage: React.FC = () => {
 
     // Reset to default settings
     const handleReset = () => {
-        if (window.confirm('Kembalikan konfigurasi printer ke pengaturan bawaan (192.168.1.200:9100, Kertas 80mm)?')) {
+        if (window.confirm('Kembalikan konfigurasi printer ke pengaturan bawaan (Kertas 80mm, USB OTG)?')) {
             setConfig(DEFAULT_CONFIG);
             localStorage.setItem('pos_printer_settings', JSON.stringify(DEFAULT_CONFIG));
             toast.success('Pengaturan printer dikembalikan ke default.');
         }
     };
 
-    // Test print via browser dialog / POS-80 driver
-    const handleTestPrint = () => {
+    // Test print via USB OTG langsung atau browser dialog
+    const handleTestPrint = async () => {
         // Simpan dulu setting aktif
         localStorage.setItem('pos_printer_settings', JSON.stringify(config));
 
-        toast.loading('Menyiapkan struk uji coba...', { id: 'test-print', duration: 1500 });
+        if (config.connectionType === 'usb') {
+            if (!isWebUsbSupported()) {
+                toast.error('Browser ini tidak mendukung WebUSB. Mengalihkan ke jendela cetak sistem...');
+                setTimeout(() => window.print(), 300);
+                return;
+            }
 
-        setTimeout(() => {
-            window.print();
-            toast.success('Perintah cetak uji coba terkirim!', { id: 'test-print' });
-        }, 300);
+            toast.loading('Mencetak struk uji coba via USB OTG...', { id: 'test-print' });
+            try {
+                await printTestReceiptUsb(config);
+                toast.success('Struk uji coba berhasil dicetak via kabel USB OTG!', { id: 'test-print', icon: '🖨️' });
+            } catch (err: any) {
+                console.error(err);
+                toast.error(
+                    `${err.message || 'Printer USB belum terhubung'}. Pastikan kabel OTG tercolok lalu klik tombol "Sambungkan Printer USB".`,
+                    { id: 'test-print', duration: 5000 }
+                );
+            }
+        } else {
+            toast.loading('Menyiapkan struk uji coba...', { id: 'test-print', duration: 1500 });
+            setTimeout(() => {
+                window.print();
+                toast.success('Perintah cetak uji coba terkirim!', { id: 'test-print' });
+            }, 300);
+        }
     };
 
     // Test connection direct socket ke backend jika server lokal
@@ -178,52 +260,139 @@ const PrinterSettingsPage: React.FC = () => {
                                     onChange={(e) => setConfig({ ...config, connectionType: e.target.value as any })}
                                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-[#282839] bg-gray-50 dark:bg-[#111118] text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary transition-all font-medium"
                                 >
-                                    <option value="tcp">LAN, WiFi, Ethernet, atau TCP/IP (Rekomendasi POS Network)</option>
-                                    <option value="system">Driver Sistem Tablet / Browser (POS-80 Driver)</option>
+                                    <option value="usb">Kabel USB OTG Direct (Rekomendasi Utama - Cepat, 100% Bebas Kuota)</option>
+                                    <option value="tcp">LAN, WiFi, Ethernet, atau TCP/IP (Jaringan Lokal Toko)</option>
                                     <option value="bluetooth">Bluetooth Thermal Printer</option>
-                                    <option value="usb">USB Direct Cable</option>
+                                    <option value="system">Driver Sistem / Dialog Cetak Standar (window.print)</option>
                                 </select>
                             </div>
 
-                            {/* IP Address & Port */}
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                <div className="sm:col-span-2 space-y-1.5">
-                                    <label className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300">
-                                        Alamat IP (IP Address)
-                                    </label>
-                                    <div className="relative">
-                                        <input
-                                            type="text"
-                                            value={config.ipAddress}
-                                            onChange={(e) => setConfig({ ...config, ipAddress: e.target.value.trim() })}
-                                            placeholder="192.168.1.200"
-                                            className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 dark:border-[#282839] bg-gray-50 dark:bg-[#111118] font-mono text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary transition-all font-bold"
-                                        />
-                                        <span className="material-symbols-outlined absolute left-3 top-2.5 text-gray-400 text-[18px]">
-                                            lan
+                            {/* Section Khusus USB OTG */}
+                            {config.connectionType === 'usb' && (
+                                <div className="p-4 rounded-xl border border-teal-200 dark:border-teal-900/60 bg-teal-50/50 dark:bg-teal-950/20 space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <span className="material-symbols-outlined text-teal-600 dark:text-teal-400 text-[22px]">
+                                                usb
+                                            </span>
+                                            <div>
+                                                <h3 className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white">
+                                                    Status Koneksi USB OTG
+                                                </h3>
+                                                <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                                                    Direct WebUSB - Tanpa RawBT, Unlimited & Instan
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <span
+                                            className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${
+                                                usbDevice
+                                                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                                                    : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                                            }`}
+                                        >
+                                            {usbDevice ? '● Terhubung' : '○ Belum Terhubung'}
                                         </span>
                                     </div>
-                                    <p className="text-[11px] text-gray-500 dark:text-text-secondary">
-                                        IP static printer thermal di jaringan lokal toko Anda.
-                                    </p>
-                                </div>
 
-                                <div className="space-y-1.5">
-                                    <label className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300">
-                                        Port (Default: 9100)
-                                    </label>
-                                    <input
-                                        type="number"
-                                        value={config.port}
-                                        onChange={(e) => setConfig({ ...config, port: parseInt(e.target.value) || 9100 })}
-                                        placeholder="9100"
-                                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-[#282839] bg-gray-50 dark:bg-[#111118] font-mono text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary transition-all font-bold"
-                                    />
-                                    <p className="text-[11px] text-gray-500 dark:text-text-secondary">
-                                        Standard RAW port
-                                    </p>
+                                    {usbDevice ? (
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-white dark:bg-surface-dark rounded-xl border border-teal-100 dark:border-teal-900/40">
+                                            <div className="text-xs">
+                                                <div className="font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
+                                                    <span className="material-symbols-outlined text-[16px] text-teal-600">print</span>
+                                                    {usbDevice.productName || config.name || 'Thermal Printer USB'}
+                                                </div>
+                                                <div className="text-[10px] text-gray-500">
+                                                    Vendor ID: 0x{usbDevice.vendorId.toString(16)} | Product ID: 0x{usbDevice.productId.toString(16)}
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={handleConnectUsb}
+                                                    disabled={isConnectingUsb}
+                                                    className="px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold transition-all"
+                                                >
+                                                    Ganti Printer
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleDisconnectUsb}
+                                                    className="px-3 py-1.5 rounded-lg border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 text-xs font-bold transition-all"
+                                                >
+                                                    Putuskan
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-2.5">
+                                            <button
+                                                type="button"
+                                                onClick={handleConnectUsb}
+                                                disabled={isConnectingUsb}
+                                                className="w-full py-2.5 px-4 rounded-xl bg-teal-600 hover:bg-teal-700 active:scale-[0.99] text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md shadow-teal-600/20 transition-all disabled:opacity-50"
+                                            >
+                                                {isConnectingUsb ? (
+                                                    <>
+                                                        <span className="material-symbols-outlined text-[18px] animate-spin">refresh</span>
+                                                        <span>Menghubungkan ke USB...</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <span className="material-symbols-outlined text-[18px]">cable</span>
+                                                        <span>Pilih & Sambungkan Printer USB OTG</span>
+                                                    </>
+                                                )}
+                                            </button>
+                                            <p className="text-[11px] text-gray-600 dark:text-gray-400 leading-relaxed">
+                                                <strong>Petunjuk:</strong> Tancapkan kabel USB printer ke tablet/HP lewat adapter OTG. Klik tombol di atas, lalu pada jendela pop-up Chrome, pilih printer Anda dan klik <em>Sambungkan (Connect)</em>.
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
-                            </div>
+                            )}
+
+                            {/* IP Address & Port (Hanya Tampil jika Koneksi TCP / Network) */}
+                            {config.connectionType === 'tcp' && (
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    <div className="sm:col-span-2 space-y-1.5">
+                                        <label className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300">
+                                            Alamat IP (IP Address)
+                                        </label>
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                value={config.ipAddress}
+                                                onChange={(e) => setConfig({ ...config, ipAddress: e.target.value.trim() })}
+                                                placeholder="192.168.1.200"
+                                                className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 dark:border-[#282839] bg-gray-50 dark:bg-[#111118] font-mono text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary transition-all font-bold"
+                                            />
+                                            <span className="material-symbols-outlined absolute left-3 top-2.5 text-gray-400 text-[18px]">
+                                                lan
+                                            </span>
+                                        </div>
+                                        <p className="text-[11px] text-gray-500 dark:text-text-secondary">
+                                            IP static printer thermal di jaringan lokal toko Anda.
+                                        </p>
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300">
+                                            Port (Default: 9100)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={config.port}
+                                            onChange={(e) => setConfig({ ...config, port: parseInt(e.target.value) || 9100 })}
+                                            placeholder="9100"
+                                            className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-[#282839] bg-gray-50 dark:bg-[#111118] font-mono text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary transition-all font-bold"
+                                        />
+                                        <p className="text-[11px] text-gray-500 dark:text-text-secondary">
+                                            Standard RAW port
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Ukuran Kertas */}
                             <div className="space-y-2">
@@ -393,7 +562,15 @@ const PrinterSettingsPage: React.FC = () => {
                             </div>
 
                             <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
-                                Pastikan tablet/HP Anda sudah terhubung ke WiFi toko dan driver <strong>POS-80</strong> aktif. Klik tombol di bawah untuk mencetak struk uji coba:
+                                {config.connectionType === 'usb' ? (
+                                    <>
+                                        Pastikan kabel USB printer tercolok ke tablet/HP via OTG. Klik tombol di bawah untuk mencetak struk uji coba langsung ke printer:
+                                    </>
+                                ) : (
+                                    <>
+                                        Pastikan tablet/HP Anda sudah terhubung ke WiFi toko atau driver printer aktif. Klik tombol di bawah untuk mencetak struk uji coba:
+                                    </>
+                                )}
                             </p>
 
                             {/* Tombol Test Print Utama */}
@@ -403,33 +580,47 @@ const PrinterSettingsPage: React.FC = () => {
                                 className="w-full h-13 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-sm sm:text-base rounded-xl shadow-lg shadow-emerald-600/25 transition-all active:scale-[0.98] flex items-center justify-center gap-2.5"
                             >
                                 <span className="material-symbols-outlined text-[22px]">print</span>
-                                <span>Test Print / Cetak Uji Coba</span>
+                                <span>
+                                    {config.connectionType === 'usb'
+                                        ? 'Test Print USB OTG (Direct ESC/POS)'
+                                        : 'Test Print / Cetak Uji Coba'}
+                                </span>
                             </button>
 
                             {/* Opsi Ping / Socket Test */}
-                            <div className="pt-2 border-t border-slate-200/80 dark:border-white/10 flex items-center justify-between text-xs">
-                                <span className="text-gray-500 dark:text-[#9d9db9]">
-                                    Target Socket: <code className="font-bold text-gray-900 dark:text-white">{config.ipAddress}:{config.port}</code>
-                                </span>
-                                <button
-                                    type="button"
-                                    onClick={handleTestSocket}
-                                    disabled={isTestingSocket}
-                                    className="text-primary hover:underline font-semibold flex items-center gap-1 disabled:opacity-50"
-                                >
-                                    {isTestingSocket ? (
-                                        <>
-                                            <span className="material-symbols-outlined text-[14px] animate-spin">refresh</span>
-                                            <span>Mengecek...</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <span className="material-symbols-outlined text-[14px]">sensors</span>
-                                            <span>Tes Sambungan</span>
-                                        </>
-                                    )}
-                                </button>
-                            </div>
+                            {config.connectionType === 'tcp' ? (
+                                <div className="pt-2 border-t border-slate-200/80 dark:border-white/10 flex items-center justify-between text-xs">
+                                    <span className="text-gray-500 dark:text-[#9d9db9]">
+                                        Target Socket: <code className="font-bold text-gray-900 dark:text-white">{config.ipAddress}:{config.port}</code>
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={handleTestSocket}
+                                        disabled={isTestingSocket}
+                                        className="text-primary hover:underline font-semibold flex items-center gap-1 disabled:opacity-50"
+                                    >
+                                        {isTestingSocket ? (
+                                            <>
+                                                <span className="material-symbols-outlined text-[14px] animate-spin">refresh</span>
+                                                <span>Mengecek...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span className="material-symbols-outlined text-[14px]">sensors</span>
+                                                <span>Tes Sambungan</span>
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            ) : config.connectionType === 'usb' ? (
+                                <div className="pt-2 border-t border-slate-200/80 dark:border-white/10 flex items-center justify-between text-xs text-teal-700 dark:text-teal-400 font-medium">
+                                    <span className="flex items-center gap-1">
+                                        <span className="material-symbols-outlined text-[16px]">verified</span>
+                                        Direct WebUSB OTG Aktif
+                                    </span>
+                                    <span className="text-gray-500 dark:text-gray-400">100% Bebas Kuota & Cepat</span>
+                                </div>
+                            ) : null}
                         </div>
 
                         {/* Struk Thermal Mockup / Live Preview */}
@@ -499,17 +690,17 @@ const PrinterSettingsPage: React.FC = () => {
                         <div className="bg-slate-50 dark:bg-background-dark rounded-2xl border border-slate-200 dark:border-[#282839] p-4 text-xs space-y-2 text-gray-600 dark:text-text-secondary">
                             <h4 className="font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
                                 <span className="material-symbols-outlined text-[16px] text-amber-500">lightbulb</span>
-                                Tips Cetak dari Tablet & HP:
+                                Tips Cetak Praktis & Bebas Biaya:
                             </h4>
-                            <ul className="list-disc pl-4 space-y-1">
+                            <ul className="list-disc pl-4 space-y-1.5">
                                 <li>
-                                    Pastikan tablet terhubung ke <strong>WiFi/Router yang sama</strong> dengan printer (<code className="font-bold">192.168.1.xxx</code>).
+                                    <strong>Koneksi Kabel USB OTG (Paling Direkomendasikan):</strong> Sambungkan kabel USB printer ke tablet/HP lewat adapter OTG. Klik tombol <em>"Pilih & Sambungkan Printer USB OTG"</em> di atas dan klik Sambungkan pada Chrome. Struk akan langsung keluar seketika tanpa perlu aplikasi RawBT lagi (100% Bebas Kuota & Gratis).
                                 </li>
                                 <li>
-                                    Pada tablet Android, tambahkan layanan pencetakan driver <strong>POS-80</strong> atau <strong>RawBT</strong> pada menu <em>Pengaturan &rarr; Perangkat Terhubung &rarr; Pencetakan</em>.
+                                    <strong>Cetak dari PC / Laptop:</strong> Jika kasir menggunakan PC Windows, cukup gunakan driver bawaan printer POS-80 untuk cetak langsung tanpa batas.
                                 </li>
                                 <li>
-                                    Saat dialog cetak muncul, pilih printer <strong>POS-80</strong> dan atur margin ke <strong>Tanpa Margin (None)</strong>.
+                                    <strong>Koneksi Jaringan WiFi / LAN:</strong> Pastikan tablet dan printer berada dalam satu router yang sama (<code className="font-bold">192.168.1.xxx</code>).
                                 </li>
                             </ul>
                         </div>

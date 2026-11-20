@@ -10,6 +10,15 @@ import UserMenu from '../components/UserMenu';
 import PrintableReceipt from '../components/PrintableReceipt';
 import PrintableZReport from '../components/PrintableZReport';
 import { OpenShiftModal, PettyCashModal, CloseShiftModal } from '../components/ShiftModals';
+import {
+    isWebUsbSupported,
+    getPairedUsbDevice,
+    requestUsbPrinter,
+    connectUsbPrinter,
+    printReceiptUsb,
+    printTestReceiptUsb,
+    printZReportUsb
+} from '../utils/webUsbPrinter';
 
 export interface ProductUnitData {
     id?: string;
@@ -107,6 +116,22 @@ const POSTerminal = () => {
     const [isCloseShiftModalOpen, setIsCloseShiftModalOpen] = useState<boolean>(false);
     const [isPettyCashModalOpen, setIsPettyCashModalOpen] = useState<boolean>(false);
     const [zReportData, setZReportData] = useState<any>(null);
+
+    // State Koneksi Printer USB OTG (Direct WebUSB - Bebas RawBT & Unlimited)
+    const [usbConnected, setUsbConnected] = useState<boolean>(false);
+    const [usbPrinterName, setUsbPrinterName] = useState<string>('');
+
+    // Auto-detect printer USB yang sebelumnya sudah pernah diizinkan
+    useEffect(() => {
+        if (isWebUsbSupported()) {
+            getPairedUsbDevice().then((dev) => {
+                if (dev) {
+                    setUsbConnected(true);
+                    setUsbPrinterName(dev.productName || 'Thermal Printer USB 80mm');
+                }
+            });
+        }
+    }, []);
 
     const fetchCurrentShift = async () => {
         try {
@@ -462,7 +487,6 @@ const POSTerminal = () => {
             setCashReceived(0);
 
             // Allow DOM to update with new receipt data before printing
-            // Increased timeout to 500ms to ensure React commit and browser layout are ready
             setTimeout(async () => {
                 toast.success('Transaksi Berhasil!', { duration: 3000 });
                 const printConfirm = await confirm({
@@ -474,7 +498,7 @@ const POSTerminal = () => {
                 });
 
                 if (printConfirm) {
-                    window.print();
+                    await executePrintOrder(savedOrder);
                 }
             }, 500);
 
@@ -492,10 +516,126 @@ const POSTerminal = () => {
         }
     };
 
-    const handlePrint = () => {
+    // Eksekusi cetak nota (Direct WebUSB jika USB OTG aktif, atau fallback ke window.print)
+    const executePrintOrder = async (orderToPrint: any) => {
+        let printerConfig: any = {
+            name: 'Printer Kasir Thermal (POS-80)',
+            connectionType: 'usb',
+            paperWidth: '80mm',
+            autoCut: true,
+            openCashDrawer: true,
+            storeName: 'Kasir Laksana',
+            storeAddress: 'Kramat Dukupuntang',
+            storePhone: '+62 851-8316-7100',
+            receiptFooter: 'Barang yang sudah dibeli tidak dapat ditukar/dikembalikan'
+        };
+        try {
+            const saved = localStorage.getItem('pos_printer_settings');
+            if (saved) printerConfig = { ...printerConfig, ...JSON.parse(saved) };
+        } catch (e) {}
+
+        // Jika koneksi disetel ke USB dan browser mendukung WebUSB
+        if (printerConfig.connectionType === 'usb' && isWebUsbSupported()) {
+            try {
+                toast.loading('Mencetak struk via USB OTG...', { id: 'usb-print-job' });
+                await printReceiptUsb(orderToPrint, printerConfig);
+                toast.success('Struk berhasil dicetak via USB OTG!', { id: 'usb-print-job', icon: '🖨️' });
+                setUsbConnected(true);
+                return;
+            } catch (usbErr: any) {
+                console.warn('Gagal cetak via USB OTG, beralih ke print standar:', usbErr);
+                toast.error(
+                    `${usbErr.message || 'Printer USB tidak terhubung'}. Membuka dialog cetak sistem...`,
+                    { id: 'usb-print-job', duration: 4000 }
+                );
+                setTimeout(() => window.print(), 300);
+                return;
+            }
+        }
+
+        // Standar browser window.print()
+        setTimeout(() => window.print(), 300);
+    };
+
+    // Eksekusi cetak Z-Report tutup kasir
+    const executePrintZReport = async (summaryData: any) => {
+        let printerConfig: any = {
+            connectionType: 'usb',
+            paperWidth: '80mm',
+            autoCut: true,
+            openCashDrawer: true,
+            storeName: 'Kasir Laksana',
+            storeAddress: 'Kramat Dukupuntang',
+            storePhone: '+62 851-8316-7100'
+        };
+        try {
+            const saved = localStorage.getItem('pos_printer_settings');
+            if (saved) printerConfig = { ...printerConfig, ...JSON.parse(saved) };
+        } catch (e) {}
+
+        if (printerConfig.connectionType === 'usb' && isWebUsbSupported()) {
+            try {
+                toast.loading('Mencetak Z-Report via USB OTG...', { id: 'usb-zreport-job' });
+                await printZReportUsb(summaryData, printerConfig);
+                toast.success('Laporan Z-Report berhasil dicetak!', { id: 'usb-zreport-job', icon: '🖨️' });
+                setUsbConnected(true);
+                return;
+            } catch (usbErr: any) {
+                console.warn('Gagal cetak Z-Report via USB OTG:', usbErr);
+                toast.error(
+                    `${usbErr.message || 'Printer USB tidak terhubung'}. Membuka dialog cetak sistem...`,
+                    { id: 'usb-zreport-job', duration: 4000 }
+                );
+                setTimeout(() => window.print(), 300);
+                return;
+            }
+        }
+
+        setTimeout(() => window.print(), 300);
+    };
+
+    // Handler tombol klik icon USB di header
+    const handleUsbButtonClick = async () => {
+        if (!isWebUsbSupported()) {
+            toast.error('Browser ini tidak mendukung WebUSB. Silakan gunakan Google Chrome.');
+            return;
+        }
+
+        try {
+            if (!usbConnected) {
+                const dev = await requestUsbPrinter();
+                await connectUsbPrinter(dev);
+                setUsbConnected(true);
+                setUsbPrinterName(dev.productName || 'Thermal Printer USB 80mm');
+                toast.success(`Terhubung ke ${dev.productName || 'Thermal Printer USB'}!`, { icon: '🖨️' });
+            } else {
+                const ans = await confirm({
+                    title: 'Status Printer USB OTG',
+                    message: `Printer "${usbPrinterName}" sedang terhubung via kabel OTG. Apakah Anda ingin menguji cetak struk?`,
+                    confirmText: 'Test Cetak Struk',
+                    cancelText: 'Tutup',
+                    type: 'info'
+                });
+                if (ans) {
+                    let cfg: any = { paperWidth: '80mm', autoCut: true, storeName: 'Kasir Laksana' };
+                    try {
+                        const saved = localStorage.getItem('pos_printer_settings');
+                        if (saved) cfg = { ...cfg, ...JSON.parse(saved) };
+                    } catch (e) {}
+                    await printTestReceiptUsb(cfg);
+                    toast.success('Struk uji coba berhasil dicetak via USB OTG!', { icon: '🖨️' });
+                }
+            }
+        } catch (err: any) {
+            if (err.name !== 'NotFoundError') {
+                toast.error(err.message || 'Gagal menyambungkan printer USB');
+            }
+        }
+    };
+
+    const handlePrint = async () => {
         if (lastOrder) {
-            // Already set via effect, just print
-            window.print();
+            await executePrintOrder(lastOrder);
         } else if (cart.length > 0) {
             // Create a temporary receipt object from the cart
             const previewData = {
@@ -513,14 +653,9 @@ const POSTerminal = () => {
                 tax_amount: taxAmount,
                 total_amount: total,
                 amount_paid: cashReceived > 0 ? cashReceived : total,
-                // If prepaying/exact
             };
             setReceiptData(previewData);
-
-            // Wait for clean render
-            setTimeout(() => {
-                window.print();
-            }, 300);
+            await executePrintOrder(previewData);
         } else {
             toast.error("Tidak ada data transaksi untuk dicetak.");
         }
@@ -1014,8 +1149,31 @@ const POSTerminal = () => {
                             )}
                         </div>
 
-                        {/* Kanan: Theme Toggle & User Menu */}
+                        {/* Kanan: USB OTG Connect, Theme Toggle & User Menu */}
                         <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 ml-auto">
+                            {isWebUsbSupported() && (
+                                <button
+                                    type="button"
+                                    onClick={handleUsbButtonClick}
+                                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all shadow-sm ${
+                                        usbConnected
+                                            ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100'
+                                            : 'bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/30 dark:hover:bg-amber-950/50 border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300'
+                                    }`}
+                                    title={
+                                        usbConnected
+                                            ? `Printer USB Terhubung: ${usbPrinterName} (Klik untuk test print struk)`
+                                            : 'Klik untuk sambungkan Printer USB OTG (100% Gratis & Bebas Kuota)'
+                                    }
+                                >
+                                    <span className="material-symbols-outlined text-[16px]">
+                                        {usbConnected ? 'print' : 'cable'}
+                                    </span>
+                                    <span className="hidden sm:inline">
+                                        {usbConnected ? 'USB 80mm' : 'Konek USB'}
+                                    </span>
+                                </button>
+                            )}
                             <ThemeToggle />
                             <UserMenu />
                         </div>
@@ -1614,7 +1772,7 @@ const POSTerminal = () => {
                         type: 'success'
                     });
                     if (shouldPrint) {
-                        setTimeout(() => window.print(), 300);
+                        await executePrintZReport(summary);
                     }
                 }}
             />
