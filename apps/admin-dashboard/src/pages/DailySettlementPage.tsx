@@ -8,6 +8,12 @@ import PrintableZReport, { ZReportData } from '../components/PrintableZReport';
 import PrintableReceipt from '../components/PrintableReceipt';
 import ThemeToggle from '../components/ThemeToggle';
 import UserMenu from '../components/UserMenu';
+import {
+    isWebUsbSupported,
+    getPairedUsbDevice,
+    printReceiptUsb,
+    printZReportUsb
+} from '../utils/webUsbPrinter';
 
 interface DashboardContextType {
     toggleSidebar: () => void;
@@ -107,16 +113,79 @@ export const DailySettlementPage = () => {
 
     const [printMode, setPrintMode] = useState<'zreport' | 'receipt'>('zreport');
 
-    const handlePrintZReport = () => {
+    const handlePrintZReport = async () => {
         if (!settlementData) return;
+
+        let printerConfig: any = {
+            paperWidth: '80mm',
+            autoCut: true,
+            openCashDrawer: true,
+            storeName: 'Kasir Laksana',
+            storeAddress: 'Kramat Dukupuntang',
+            storePhone: '+62 851-8316-7100'
+        };
+        try {
+            const saved = localStorage.getItem('pos_printer_settings');
+            if (saved) printerConfig = { ...printerConfig, ...JSON.parse(saved) };
+        } catch (e) {}
+
+        const pairedUsb = isWebUsbSupported() ? await getPairedUsbDevice() : null;
+        const shouldUseUsb = isWebUsbSupported() && (printerConfig.connectionType === 'usb' || !!pairedUsb);
+
+        if (shouldUseUsb && zReportPrintData) {
+            try {
+                toast.loading('Mencetak Z-Report via USB OTG...', { id: 'settlement-zreport-job' });
+                await printZReportUsb(zReportPrintData, printerConfig);
+                toast.success('Laporan Z-Report berhasil dicetak via USB OTG!', { id: 'settlement-zreport-job', icon: '🖨️' });
+                return;
+            } catch (usbErr: any) {
+                console.error('Gagal cetak Z-Report via USB OTG:', usbErr);
+                toast.dismiss('settlement-zreport-job');
+                toast.error(usbErr.message || 'Gagal cetak Z-Report via USB');
+                return;
+            }
+        }
+
         setPrintMode('zreport');
         setTimeout(() => {
             window.print();
         }, 250);
     };
 
-    const handlePrintReceipt = () => {
+    const handlePrintReceipt = async () => {
         if (!selectedReceipt) return;
+
+        let printerConfig: any = {
+            paperWidth: '80mm',
+            autoCut: true,
+            openCashDrawer: true,
+            storeName: 'Kasir Laksana',
+            storeAddress: 'Kramat Dukupuntang',
+            storePhone: '+62 851-8316-7100',
+            receiptFooter: 'Barang yang sudah dibeli tidak dapat ditukar/dikembalikan'
+        };
+        try {
+            const saved = localStorage.getItem('pos_printer_settings');
+            if (saved) printerConfig = { ...printerConfig, ...JSON.parse(saved) };
+        } catch (e) {}
+
+        const pairedUsb = isWebUsbSupported() ? await getPairedUsbDevice() : null;
+        const shouldUseUsb = isWebUsbSupported() && (printerConfig.connectionType === 'usb' || !!pairedUsb);
+
+        if (shouldUseUsb) {
+            try {
+                toast.loading('Mencetak nota via USB OTG...', { id: 'settlement-receipt-job' });
+                await printReceiptUsb(selectedReceipt, printerConfig);
+                toast.success('Nota berhasil dicetak via USB OTG!', { id: 'settlement-receipt-job', icon: '🖨️' });
+                return;
+            } catch (usbErr: any) {
+                console.error('Gagal cetak via USB OTG:', usbErr);
+                toast.dismiss('settlement-receipt-job');
+                toast.error(usbErr.message || 'Gagal cetak via USB');
+                return;
+            }
+        }
+
         setPrintMode('receipt');
         setTimeout(() => {
             window.print();

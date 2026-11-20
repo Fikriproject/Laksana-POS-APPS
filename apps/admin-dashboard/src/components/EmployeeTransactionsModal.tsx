@@ -2,7 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { formatRupiah } from '../utils/format';
 import api from '../services/api';
+import toast from 'react-hot-toast';
 import PrintableReceipt from './PrintableReceipt';
+import {
+    isWebUsbSupported,
+    getPairedUsbDevice,
+    printReceiptUsb
+} from '../utils/webUsbPrinter';
 
 interface TransactionDetail {
     id: string;
@@ -70,6 +76,58 @@ const EmployeeTransactionsModal: React.FC<EmployeeTransactionsModalProps> = ({
         } finally {
             setLoading(false);
         }
+    };
+
+    const handlePrintReceipt = async () => {
+        if (!viewingReceipt) return;
+
+        const orderData = {
+            ...viewingReceipt,
+            created_at: viewingReceipt.transaction_date,
+            amount_paid: viewingReceipt.payment_amount,
+            user_name: employeeName || 'Kasir',
+            items: (viewingReceipt.items || []).map((item) => ({
+                product_name: item.product_name,
+                quantity: item.quantity,
+                unit_price: item.price,
+                subtotal: item.subtotal
+            }))
+        };
+
+        let printerConfig: any = {
+            name: 'Printer Kasir Thermal (POS-80)',
+            connectionType: 'usb',
+            paperWidth: '80mm',
+            autoCut: true,
+            openCashDrawer: true,
+            storeName: 'Kasir Laksana',
+            storeAddress: 'Kramat Dukupuntang',
+            storePhone: '+62 851-8316-7100',
+            receiptFooter: 'Barang yang sudah dibeli tidak dapat ditukar/dikembalikan'
+        };
+        try {
+            const saved = localStorage.getItem('pos_printer_settings');
+            if (saved) printerConfig = { ...printerConfig, ...JSON.parse(saved) };
+        } catch (e) {}
+
+        const pairedUsb = isWebUsbSupported() ? await getPairedUsbDevice() : null;
+        const shouldUseUsb = isWebUsbSupported() && (printerConfig.connectionType === 'usb' || !!pairedUsb);
+
+        if (shouldUseUsb) {
+            try {
+                toast.loading('Mencetak struk via USB OTG...', { id: 'reprint-job' });
+                await printReceiptUsb(orderData, printerConfig);
+                toast.success('Struk berhasil dicetak via USB OTG!', { id: 'reprint-job', icon: '🖨️' });
+                return;
+            } catch (usbErr: any) {
+                console.error('Gagal cetak via USB OTG:', usbErr);
+                toast.dismiss('reprint-job');
+                toast.error(usbErr.message || 'Gagal cetak via USB');
+                return;
+            }
+        }
+
+        window.print();
     };
 
     if (!isOpen) return null;
@@ -194,11 +252,11 @@ const EmployeeTransactionsModal: React.FC<EmployeeTransactionsModalProps> = ({
                                 <h3 className="font-bold text-lg text-gray-900">Nota Preview</h3>
                                 <div className="flex gap-2">
                                     <button
-                                        onClick={() => window.print()}
-                                        className="flex items-center gap-1 bg-primary text-white px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-primary/90 transition-colors"
+                                        onClick={handlePrintReceipt}
+                                        className="flex items-center gap-1 bg-primary text-white px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-primary/90 transition-colors shadow-sm"
                                     >
                                         <span className="material-symbols-outlined text-[18px]">print</span>
-                                        Print
+                                        Print Nota
                                     </button>
                                     <button
                                         onClick={() => setViewingReceipt(null)}
