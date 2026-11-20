@@ -839,19 +839,35 @@ const POSTerminal = () => {
         const cat = (product.category_name || '').toLowerCase();
         const barcode = ((product as any).barcode || '').toLowerCase();
 
-        // 1. Pencocokan langsung teks utuh (prioritas utama/cepat)
+        // 1. Pencocokan langsung teks asli utuh (prioritas utama/paling cepat)
         if (name.includes(q) || sku.includes(q) || cat.includes(q) || barcode.includes(q)) {
             return true;
         }
 
-        // 2. Pencocokan multi-kata cerdas (Tokenized Search)
-        // Memecah "spidol merah" menjadi ['spidol', 'merah']
-        // Mencocokkan nama seperti "Spidol Permanent Merah" atau "Spidol Montana White Board Merah"
-        const tokens = q.split(/\s+/).filter(Boolean);
-        if (tokens.length <= 1) return false;
+        // 2. Normalisasi Tanda Strip (-) dan Simbol:
+        // Memungkinkan mencari "p88" untuk menemukan "Pensil Joyko P-88",
+        // "sm0680" untuk menemukan "Gunting M2000 SM-0680", "pl05" untuk "PL-05", dll.
+        const productRaw = `${name} ${sku} ${cat} ${barcode}`;
+        const productNoSymbols = productRaw.replace(/[-_./'"\\,()[\]]/g, '');
+        const productSpaceSymbols = productRaw.replace(/[-_./'"\\,()[\]]/g, ' ');
+        const allProductText = `${productRaw} ${productNoSymbols} ${productSpaceSymbols}`;
 
-        const combinedText = `${name} ${sku} ${cat} ${barcode}`;
-        return tokens.every(token => combinedText.includes(token));
+        const qNoSymbols = q.replace(/[-_./'"\\,()[\]]/g, '');
+        if (allProductText.includes(q) || (qNoSymbols && allProductText.includes(qNoSymbols))) {
+            return true;
+        }
+
+        // 3. Pencocokan multi-kata cerdas (Tokenized Search dengan toleransi simbol '-')
+        // Memecah "pensil joyko p88", "spidol merah", "gunting sm0680" menjadi token kata independen
+        const tokens = q.split(/\s+/).filter(Boolean);
+        if (tokens.length <= 1) {
+            return qNoSymbols ? allProductText.includes(qNoSymbols) : false;
+        }
+
+        return tokens.every(token => {
+            const cleanTok = token.replace(/[-_./'"\\,()[\]]/g, '');
+            return allProductText.includes(token) || (cleanTok && allProductText.includes(cleanTok));
+        });
     };
 
     // Memoize filtered products agar tidak re-compute dan memicu re-render 285 kartu produk saat scanner berjalan

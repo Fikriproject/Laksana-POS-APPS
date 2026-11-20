@@ -200,13 +200,43 @@ class Product extends Model
 
     public function search(string $query, int $limit = 100, ?string $condition = null): array
     {
-        $searchTerm = "%{$query}%";
-        // Check driver for Case Insensitivity
         $driver = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME);
         $operator = $driver === 'pgsql' ? 'ILIKE' : 'LIKE';
         $isPendingFilter = ($condition === 'pending' || $condition === 'menunggu');
 
-        $where = "(p.name {$operator} :name_query OR p.sku {$operator} :sku_query)";
+        $searchTerm = "%{$query}%";
+        $cleanQuery = preg_replace('/[-_.\/\s]/', '', $query);
+        $cleanSearchTerm = "%{$cleanQuery}%";
+
+        // Dukungan pencarian fleksibel: teks asli & teks tanpa tanda strip (-)
+        $searchClauses = [
+            "(p.name {$operator} :name_query OR p.sku {$operator} :sku_query OR REPLACE(REPLACE(p.name, '-', ''), ' ', '') {$operator} :clean_name_query OR REPLACE(REPLACE(p.sku, '-', ''), ' ', '') {$operator} :clean_sku_query)"
+        ];
+
+        // Jika multi-kata (misal: "joyko p88" atau "spidol merah")
+        $tokens = array_filter(preg_split('/\s+/', trim($query)));
+        $tokenParams = [];
+        if (count($tokens) > 1) {
+            $tokenIdx = 0;
+            $tokenConditions = [];
+            foreach ($tokens as $token) {
+                $tParam = ":tok_{$tokenIdx}";
+                $tCleanParam = ":tok_clean_{$tokenIdx}";
+                $tokenClean = preg_replace('/[-_.\/\s]/', '', $token);
+
+                $tokenConditions[] = "(p.name {$operator} {$tParam} OR p.sku {$operator} {$tParam} OR REPLACE(REPLACE(p.name, '-', ''), ' ', '') {$operator} {$tCleanParam})";
+                $tokenParams[$tParam] = "%{$token}%";
+                $tokenParams[$tCleanParam] = "%{$tokenClean}%";
+                $tokenIdx++;
+            }
+            if (!empty($tokenConditions)) {
+                $searchClauses[] = "(" . implode(' AND ', $tokenConditions) . ")";
+            }
+        }
+
+        $searchWhere = "(" . implode(' OR ', $searchClauses) . ")";
+
+        $where = $searchWhere;
         if ($isPendingFilter) {
             $where .= " AND p.approval_status = 'pending'";
         } else {
@@ -230,6 +260,11 @@ class Product extends Model
         );
         $stmt->bindValue(':name_query', $searchTerm);
         $stmt->bindValue(':sku_query', $searchTerm);
+        $stmt->bindValue(':clean_name_query', $cleanSearchTerm);
+        $stmt->bindValue(':clean_sku_query', $cleanSearchTerm);
+        foreach ($tokenParams as $param => $val) {
+            $stmt->bindValue($param, $val);
+        }
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
         
