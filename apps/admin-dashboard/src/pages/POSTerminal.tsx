@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useConfirm } from '../context/ConfirmContext';
 import toast from 'react-hot-toast';
@@ -86,6 +87,8 @@ interface CartItem {
 
 const POSTerminal = () => {
     const { user, hasPermission } = useAuth();
+    const location = useLocation();
+    const navigate = useNavigate();
     const canDiscount = hasPermission('pos.discount');
     const canVoidItem = hasPermission('pos.void_item');
     const canCustomItem = hasPermission('pos.custom_item');
@@ -178,6 +181,27 @@ const POSTerminal = () => {
             console.error("Gagal memeriksa shift kasir:", err);
         }
     };
+
+    // Buka modal Cetak Ulang Struk via Menu Sidebar (hanya jika ada izin pos.reprint atau admin)
+    useEffect(() => {
+        const handleOpen = () => {
+            if (canReprint || user?.role === 'admin') {
+                handleOpenReprintModal();
+            }
+        };
+        window.addEventListener('open-reprint-modal', handleOpen);
+        return () => window.removeEventListener('open-reprint-modal', handleOpen);
+    }, [canReprint, user]);
+
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        if (params.get('action') === 'reprint') {
+            if (canReprint || user?.role === 'admin') {
+                handleOpenReprintModal();
+            }
+            navigate('/pos', { replace: true });
+        }
+    }, [location.search, canReprint, user, navigate]);
 
     // Toggle Product Images in POS (persisted in localStorage)
     const [showProductImages, setShowProductImages] = useState<boolean>(() => {
@@ -1423,21 +1447,8 @@ const POSTerminal = () => {
                             )}
                         </div>
 
-                        {/* Kanan: Cetak Ulang Struk, USB OTG Connect, Theme Toggle & User Menu */}
+                        {/* Kanan: USB OTG Connect, Theme Toggle & User Menu */}
                         <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 ml-auto">
-                            {/* Tombol Cetak Ulang Struk Lama (pos.reprint atau admin) */}
-                            {(canReprint || user?.role === 'admin') && (
-                                <button
-                                    type="button"
-                                    onClick={handleOpenReprintModal}
-                                    className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-xs font-bold transition-all shadow-sm"
-                                    title="Lihat riwayat transaksi & cetak ulang struk nota"
-                                >
-                                    <span className="material-symbols-outlined text-[16px]">receipt_long</span>
-                                    <span className="hidden md:inline">Cetak Ulang Struk</span>
-                                </button>
-                            )}
-
                             {isWebUsbSupported() && (
                                 <button
                                     type="button"
@@ -1978,19 +1989,6 @@ const POSTerminal = () => {
                                                 <span>Simpan</span>
                                             </button>
                                         </div>
-
-                                        {/* Tombol Cetak Ulang Struk Lama di Kolom Pembayaran */}
-                                        {(canReprint || user?.role === 'admin') && (
-                                            <button
-                                                type="button"
-                                                onClick={handleOpenReprintModal}
-                                                className="w-full mt-2 h-8 sm:h-9 rounded-xl border border-dashed border-indigo-200 dark:border-indigo-800/60 bg-indigo-50/50 hover:bg-indigo-100/70 dark:bg-indigo-950/20 dark:hover:bg-indigo-950/40 text-indigo-600 dark:text-indigo-300 text-xs font-bold transition-all flex items-center justify-center gap-1.5 print:hidden"
-                                                title="Lihat transaksi sebelumnya & cetak ulang struk"
-                                            >
-                                                <span className="material-symbols-outlined text-[16px]">history</span>
-                                                <span>Cetak Ulang Struk Lama</span>
-                                            </button>
-                                        )}
                                     </div>
                                 )}
 

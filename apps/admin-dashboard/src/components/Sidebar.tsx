@@ -115,6 +115,7 @@ const Sidebar = ({ className = '', isOpen = false, onClose }: SidebarProps) => {
         { icon: "inventory_2", label: "Inventaris", to: "/inventory", permission: 'inventory.view', roles: ['admin', 'manager'] },
         { icon: "bar_chart", label: "Laporan", to: "/reports", permission: 'reports.view', roles: ['admin', 'manager'] },
         { icon: "print", label: "Pengaturan Printer", to: "/settings/printer", permission: 'settings.printer', roles: ['admin', 'manager', 'cashier'] },
+        { icon: "receipt_long", label: "Cetak Ulang Struk", to: "/pos?action=reprint", action: "reprint_modal", permission: 'pos.reprint', roles: ['admin', 'manager', 'cashier'] },
         { icon: "person", label: "Profil & Akun", to: "/profile", roles: ['admin', 'manager', 'cashier'] },
     ];
 
@@ -176,7 +177,12 @@ const Sidebar = ({ className = '', isOpen = false, onClose }: SidebarProps) => {
                             label={link.label}
                             to={link.to}
                             badge={link.to === '/products' ? pendingProductsCount : undefined}
-                            onClick={() => onClose?.()}
+                            onClick={() => {
+                                if ((link as any).action === 'reprint_modal') {
+                                    window.dispatchEvent(new Event('open-reprint-modal'));
+                                }
+                                onClose?.();
+                            }}
                         />
                     ))}
                 </nav>
