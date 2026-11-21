@@ -16,6 +16,11 @@ cd "$ROOT_DIR"
 echo -e "\n\033[1;33m[1/5] Mengambil update terbaru dari GitHub...\033[0m"
 git pull origin main
 
+# Pastikan timezone sistem server disetel ke Asia/Jakarta (WIB)
+if command -v timedatectl &> /dev/null; then
+    sudo timedatectl set-timezone Asia/Jakarta 2>/dev/null || timedatectl set-timezone Asia/Jakarta 2>/dev/null || true
+fi
+
 echo -e "\n\033[1;33m[2/5] Membangun Frontend (Production Build)...\033[0m"
 cd "$ROOT_DIR"
 BUILD_SUCCESS=0

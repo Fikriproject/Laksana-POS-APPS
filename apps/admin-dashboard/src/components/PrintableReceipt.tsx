@@ -1,5 +1,5 @@
 import React from 'react';
-import { formatRupiah } from '../utils/format';
+import { formatRupiah, formatDateTime } from '../utils/format';
 
 interface ReceiptItem {
     product_name: string;
@@ -71,7 +71,7 @@ const PrintableReceipt: React.FC<PrintableReceiptProps> = ({ order, className = 
                     </div>
                     <div className="flex justify-between">
                         <span>Tgl:</span>
-                        <span>{new Date(order.created_at).toLocaleString('id-ID')}</span>
+                        <span>{formatDateTime(order.created_at)}</span>
                     </div>
                     <div className="flex justify-between">
                         <span>Kasir:</span>

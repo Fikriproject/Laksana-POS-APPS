@@ -92,6 +92,13 @@ class Database
                 }
 
                 $this->connection = new PDO($dsn, $this->username, $this->password, $options);
+
+                // Set database session timezone explicitly to Asia/Jakarta (WIB / UTC+7)
+                if ($this->driver === 'mysql') {
+                    $this->connection->exec("SET time_zone = '+07:00'");
+                } elseif ($this->driver === 'pgsql') {
+                    $this->connection->exec("SET timezone = 'Asia/Jakarta'");
+                }
             } catch (PDOException $e) {
                 // In production, avoid exposing full error details if possible, but keeping it for debugging
                 throw new PDOException("Database connection failed: " . $e->getMessage());

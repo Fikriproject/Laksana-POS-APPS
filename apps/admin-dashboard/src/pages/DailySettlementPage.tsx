@@ -3,7 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import api from '../services/api';
-import { formatRupiah } from '../utils/format';
+import { formatRupiah, formatDateTime, formatTime } from '../utils/format';
 import PrintableZReport, { ZReportData } from '../components/PrintableZReport';
 import PrintableReceipt from '../components/PrintableReceipt';
 import ThemeToggle from '../components/ThemeToggle';
@@ -208,7 +208,7 @@ export const DailySettlementPage = () => {
                         <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/5">
                             <div>
                                 <h3 className="font-bold text-gray-900 dark:text-white text-base">Detail Nota {selectedReceipt.order_number}</h3>
-                                <p className="text-xs text-gray-500">{new Date(selectedReceipt.created_at).toLocaleString('id-ID')}</p>
+                                <p className="text-xs text-gray-500">{formatDateTime(selectedReceipt.created_at)}</p>
                             </div>
                             <button
                                 onClick={() => setSelectedReceipt(null)}
@@ -600,7 +600,7 @@ export const DailySettlementPage = () => {
                                                                 {ord.order_number}
                                                             </td>
                                                             <td className="py-3 px-4 text-gray-500">
-                                                                {new Date(ord.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                                                                {formatTime(ord.created_at)}
                                                             </td>
                                                             <td className="py-3 px-4 text-gray-700 dark:text-gray-300 font-medium">
                                                                 {ord.cashier_name || 'Admin'}
@@ -659,7 +659,7 @@ export const DailySettlementPage = () => {
                                                     {settlementData.expenses.map((exp: any) => (
                                                         <tr key={exp.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                                                             <td className="py-3 px-4 text-gray-500">
-                                                                {exp.created_at ? new Date(exp.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'}
+                                                                {exp.created_at ? formatTime(exp.created_at) : '-'}
                                                             </td>
                                                             <td className="py-3 px-4 font-medium text-gray-700 dark:text-gray-300">
                                                                 {exp.user_name || 'Kasir'}

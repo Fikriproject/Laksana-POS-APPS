@@ -40,6 +40,10 @@ sed -i 's/#*HandleLidSwitchExternalPower=.*/HandleLidSwitchExternalPower=ignore/
 systemctl restart systemd-logind || true
 echo -e "${GREEN}✓ Pengaturan 24/7 laptop berhasil diterapkan.${NC}"
 
+echo -e "\n${YELLOW}[+] Mengatur Zona Waktu Server ke Asia/Jakarta (WIB GMT+7)...${NC}"
+timedatectl set-timezone Asia/Jakarta 2>/dev/null || true
+echo -e "${GREEN}✓ Zona waktu server disetel ke Asia/Jakarta (WIB).${NC}"
+
 echo -e "\n${YELLOW}[3/10] Memperbarui repositori dan menginstall paket dasar...${NC}"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -y

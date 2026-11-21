@@ -5,7 +5,7 @@ import { useConfirm } from '../context/ConfirmContext';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import Sidebar from '../components/Sidebar';
-import { formatRupiah } from '../utils/format';
+import { formatRupiah, formatDate, formatTime, formatDateTime } from '../utils/format';
 import ThemeToggle from '../components/ThemeToggle';
 import UserMenu from '../components/UserMenu';
 import PrintableReceipt from '../components/PrintableReceipt';
@@ -2225,7 +2225,7 @@ const POSTerminal = () => {
                                                 </span>
                                             </div>
                                             <div className="flex items-center gap-3 text-[11px] text-gray-500 mt-0.5">
-                                                <span>{new Date(ord.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}, {new Date(ord.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
+                                                <span>{formatDate(ord.created_at, { day: 'numeric', month: 'short' })}, {formatTime(ord.created_at)}</span>
                                                 <span>•</span>
                                                 <span>Kasir: {ord.cashier_name || ord.user_name || 'Kasir'}</span>
                                             </div>
@@ -2304,7 +2304,7 @@ const POSTerminal = () => {
                                     Nota {selectedReprintReceipt.order_number}
                                 </h3>
                                 <p className="text-xs text-gray-500">
-                                    {new Date(selectedReprintReceipt.created_at).toLocaleString('id-ID')}
+                                    {formatDateTime(selectedReprintReceipt.created_at)}
                                 </p>
                             </div>
                             <button

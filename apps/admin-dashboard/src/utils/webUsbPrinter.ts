@@ -4,6 +4,8 @@
  * Works on Android Chrome & Chromium Browsers without RawBT or third-party paid apps.
  */
 
+import { formatDateTime } from './format';
+
 // Type definitions for WebUSB if not present in standard TypeScript environment
 export interface WebUSBEndpoint {
     endpointNumber: number;
@@ -402,7 +404,7 @@ export function buildReceiptBytes(order: any, config?: PrinterConfig): Uint8Arra
     builder.line2Col('No. Nota :', order.order_number || '-');
     builder.line2Col(
         'Tanggal  :',
-        order.created_at ? new Date(order.created_at).toLocaleString('id-ID') : new Date().toLocaleString('id-ID')
+        order.created_at ? formatDateTime(order.created_at) : formatDateTime(new Date())
     );
     builder.line2Col('Kasir    :', order.user_name || 'Kasir');
 
