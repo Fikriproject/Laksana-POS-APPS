@@ -124,6 +124,8 @@ const POSTerminal = () => {
     const [reprintSearch, setReprintSearch] = useState<string>('');
     const [selectedReprintReceipt, setSelectedReprintReceipt] = useState<any>(null);
     const [printingOrderId, setPrintingOrderId] = useState<string | null>(null);
+    const [reprintDateFilter, setReprintDateFilter] = useState<string>('');
+    const [reprintDatePreset, setReprintDatePreset] = useState<'all' | 'today' | 'yesterday' | 'custom'>('today');
 
     // State Koneksi Printer USB OTG (Direct WebUSB - Bebas RawBT & Unlimited)
     const [usbConnected, setUsbConnected] = useState<boolean>(false);
@@ -713,10 +715,26 @@ const POSTerminal = () => {
     };
 
     // Fungsi & Handler untuk Fitur Cetak Ulang Struk Lama (pos.reprint)
-    const fetchRecentOrders = async () => {
+    const getTodayDateStr = () => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    };
+
+    const getYesterdayDateStr = () => {
+        const d = new Date();
+        d.setDate(d.getDate() - 1);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    };
+
+    const fetchRecentOrders = async (dateOverride?: string) => {
         setReprintLoading(true);
         try {
-            const res = await api.get('/orders?per_page=50');
+            const dateToUse = dateOverride !== undefined ? dateOverride : reprintDateFilter;
+            let url = '/orders?per_page=100';
+            if (dateToUse) {
+                url += `&date=${encodeURIComponent(dateToUse)}`;
+            }
+            const res = await api.get(url);
             const list = res.data?.data?.orders || res.data?.data || [];
             setReprintOrders(Array.isArray(list) ? list : []);
         } catch (err: any) {
@@ -727,11 +745,46 @@ const POSTerminal = () => {
         }
     };
 
+    const handleDatePresetSelect = (preset: 'all' | 'today' | 'yesterday') => {
+        setReprintDatePreset(preset);
+        let dateVal = '';
+        if (preset === 'today') {
+            dateVal = getTodayDateStr();
+        } else if (preset === 'yesterday') {
+            dateVal = getYesterdayDateStr();
+        }
+        setReprintDateFilter(dateVal);
+        fetchRecentOrders(dateVal);
+    };
+
+    const handleCustomDateChange = (val: string) => {
+        setReprintDateFilter(val);
+        if (!val) {
+            setReprintDatePreset('all');
+            fetchRecentOrders('');
+        } else {
+            const today = getTodayDateStr();
+            const yest = getYesterdayDateStr();
+            if (val === today) {
+                setReprintDatePreset('today');
+            } else if (val === yest) {
+                setReprintDatePreset('yesterday');
+            } else {
+                setReprintDatePreset('custom');
+            }
+            fetchRecentOrders(val);
+        }
+    };
+
     const handleOpenReprintModal = () => {
         setIsReprintModalOpen(true);
         setSelectedReprintReceipt(null);
         setReprintSearch('');
-        fetchRecentOrders();
+        // Buka secara default menampilkan transaksi "Hari Ini"
+        const todayStr = getTodayDateStr();
+        setReprintDatePreset('today');
+        setReprintDateFilter(todayStr);
+        fetchRecentOrders(todayStr);
     };
 
     const handlePrintPastReceipt = async (orderSummary: any) => {
@@ -1002,18 +1055,34 @@ const POSTerminal = () => {
         ? products.filter(p => isProductActive(p) && matchesSearchFilter(p, cleanSearch)).length
         : 0;
 
-    // Filter riwayat nota transaksi untuk modal cetak ulang struk
+    // Filter riwayat nota transaksi untuk modal cetak ulang struk (Teks & Tanggal)
     const filteredReprintOrders = useMemo(() => {
-        if (!reprintSearch.trim()) return reprintOrders;
-        const q = reprintSearch.trim().toLowerCase();
-        return reprintOrders.filter((ord: any) => {
-            const num = (ord.order_number || '').toLowerCase();
-            const cashier = (ord.cashier_name || ord.user_name || '').toLowerCase();
-            const total = String(ord.total_amount || '');
-            const method = (ord.payment_method || '').toLowerCase();
-            return num.includes(q) || cashier.includes(q) || total.includes(q) || method.includes(q);
-        });
-    }, [reprintOrders, reprintSearch]);
+        let list = reprintOrders;
+
+        // Filter tanggal jika ada
+        if (reprintDateFilter) {
+            const cleanD = reprintDateFilter.replace(/-/g, '');
+            list = list.filter((ord: any) => {
+                const dateMatches = ord.created_at && ord.created_at.startsWith(reprintDateFilter);
+                const orderNumMatches = ord.order_number && ord.order_number.includes(cleanD);
+                return Boolean(dateMatches || orderNumMatches);
+            });
+        }
+
+        // Filter teks pencarian (No. nota, nama kasir, total nominal, metode bayar)
+        if (reprintSearch.trim()) {
+            const q = reprintSearch.trim().toLowerCase();
+            list = list.filter((ord: any) => {
+                const num = (ord.order_number || '').toLowerCase();
+                const cashier = (ord.cashier_name || ord.user_name || '').toLowerCase();
+                const total = String(ord.total_amount || '');
+                const method = (ord.payment_method || '').toLowerCase();
+                return num.includes(q) || cashier.includes(q) || total.includes(q) || method.includes(q);
+            });
+        }
+
+        return list;
+    }, [reprintOrders, reprintDateFilter, reprintSearch]);
 
     // --- Barcode Scanner Engine & Audio Feedback ---
     const scanBufferRef = useRef<string>('');
@@ -2031,38 +2100,102 @@ const POSTerminal = () => {
                             </button>
                         </div>
 
-                        {/* Search & Refresh Bar */}
-                        <div className="p-3 sm:p-4 bg-gray-50 dark:bg-background-dark/50 border-b border-slate-100 dark:border-white/5 flex items-center gap-2">
-                            <div className="flex-1 flex items-center bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-xl px-3 py-1.5 focus-within:border-primary">
-                                <span className="material-symbols-outlined text-gray-400 text-[18px] mr-2">search</span>
-                                <input
-                                    type="text"
-                                    value={reprintSearch}
-                                    onChange={(e) => setReprintSearch(e.target.value)}
-                                    placeholder="Cari nomor nota, nama kasir, atau nominal..."
-                                    className="w-full bg-transparent text-xs sm:text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none border-none p-0"
-                                />
-                                {reprintSearch && (
+                        {/* Search, Filter Harian & Pemilih Tanggal */}
+                        <div className="p-3 sm:p-4 bg-gray-50 dark:bg-background-dark/50 border-b border-slate-100 dark:border-white/5 space-y-2.5">
+                            {/* Baris 1: Kolom Pencarian Cepat & Tombol Refresh */}
+                            <div className="flex items-center gap-2">
+                                <div className="flex-1 flex items-center bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-xl px-3 py-1.5 focus-within:border-primary">
+                                    <span className="material-symbols-outlined text-gray-400 text-[18px] mr-2">search</span>
+                                    <input
+                                        type="text"
+                                        value={reprintSearch}
+                                        onChange={(e) => setReprintSearch(e.target.value)}
+                                        placeholder="Cari nomor nota, nama kasir, atau nominal..."
+                                        className="w-full bg-transparent text-xs sm:text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none border-none p-0"
+                                    />
+                                    {reprintSearch && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setReprintSearch('')}
+                                            className="text-gray-400 hover:text-gray-600 text-xs"
+                                        >
+                                            <span className="material-symbols-outlined text-[16px]">close</span>
+                                        </button>
+                                    )}
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => fetchRecentOrders(reprintDateFilter)}
+                                    disabled={reprintLoading}
+                                    className="p-2 rounded-xl border border-slate-200 dark:border-[#282839] bg-white dark:bg-surface-dark text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-50"
+                                    title="Muat ulang riwayat nota"
+                                >
+                                    <span className={`material-symbols-outlined text-[18px] ${reprintLoading ? 'animate-spin' : ''}`}>
+                                        refresh
+                                    </span>
+                                </button>
+                            </div>
+
+                            {/* Baris 2: Filter Cepat Harian (Hari Ini / Kemarin / Semua) & Pemilih Tanggal Kalender */}
+                            <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+                                {/* Tombol Cepat Harian */}
+                                <div className="flex items-center bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] p-0.5 rounded-xl text-xs font-semibold">
                                     <button
                                         type="button"
-                                        onClick={() => setReprintSearch('')}
-                                        className="text-gray-400 hover:text-gray-600 text-xs"
+                                        onClick={() => handleDatePresetSelect('today')}
+                                        className={`px-3 py-1 rounded-lg transition-all ${
+                                            reprintDatePreset === 'today'
+                                                ? 'bg-primary text-white font-bold shadow-sm'
+                                                : 'text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-white'
+                                        }`}
                                     >
-                                        <span className="material-symbols-outlined text-[16px]">close</span>
+                                        Hari Ini
                                     </button>
-                                )}
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDatePresetSelect('yesterday')}
+                                        className={`px-3 py-1 rounded-lg transition-all ${
+                                            reprintDatePreset === 'yesterday'
+                                                ? 'bg-primary text-white font-bold shadow-sm'
+                                                : 'text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-white'
+                                        }`}
+                                    >
+                                        Kemarin
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDatePresetSelect('all')}
+                                        className={`px-3 py-1 rounded-lg transition-all ${
+                                            reprintDatePreset === 'all'
+                                                ? 'bg-primary text-white font-bold shadow-sm'
+                                                : 'text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-white'
+                                        }`}
+                                    >
+                                        Semua
+                                    </button>
+                                </div>
+
+                                {/* Pemilih Tanggal Spesifik (Date Picker) */}
+                                <div className="flex items-center gap-1.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-xl px-2.5 py-1 text-xs">
+                                    <span className="material-symbols-outlined text-[16px] text-gray-400">calendar_today</span>
+                                    <input
+                                        type="date"
+                                        value={reprintDateFilter}
+                                        onChange={(e) => handleCustomDateChange(e.target.value)}
+                                        className="bg-transparent text-gray-900 dark:text-white font-semibold text-xs focus:outline-none border-none p-0 cursor-pointer"
+                                    />
+                                    {reprintDateFilter && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDatePresetSelect('all')}
+                                            className="text-gray-400 hover:text-red-500 p-0.5 ml-0.5"
+                                            title="Hapus filter tanggal"
+                                        >
+                                            <span className="material-symbols-outlined text-[14px]">cancel</span>
+                                        </button>
+                                    )}
+                                </div>
                             </div>
-                            <button
-                                type="button"
-                                onClick={fetchRecentOrders}
-                                disabled={reprintLoading}
-                                className="p-2 rounded-xl border border-slate-200 dark:border-[#282839] bg-white dark:bg-surface-dark text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-50"
-                                title="Muat ulang riwayat nota"
-                            >
-                                <span className={`material-symbols-outlined text-[18px] ${reprintLoading ? 'animate-spin' : ''}`}>
-                                    refresh
-                                </span>
-                            </button>
                         </div>
 
                         {/* Daftar Transaksi */}
@@ -2143,7 +2276,13 @@ const POSTerminal = () => {
                         {/* Footer Modal */}
                         <div className="p-3 sm:p-4 bg-gray-50 dark:bg-background-dark/50 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
                             <span className="text-xs text-gray-500">
-                                Menampilkan {filteredReprintOrders.length} transaksi terakhir
+                                {reprintDateFilter ? (
+                                    <span>
+                                        Menampilkan <strong>{filteredReprintOrders.length}</strong> transaksi ({reprintDatePreset === 'today' ? 'Hari Ini' : reprintDatePreset === 'yesterday' ? 'Kemarin' : reprintDateFilter})
+                                    </span>
+                                ) : (
+                                    <span>Menampilkan <strong>{filteredReprintOrders.length}</strong> transaksi terakhir</span>
+                                )}
                             </span>
                             <button
                                 type="button"

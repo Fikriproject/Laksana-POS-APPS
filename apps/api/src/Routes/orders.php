@@ -21,6 +21,17 @@ return function ($method, $path, $orderService, $shiftService, $user) {
         $startDate = $_GET['start_date'] ?? null;
         $endDate = $_GET['end_date'] ?? null;
         
+        if (isset($_GET['date']) && !empty($_GET['date'])) {
+            $d = trim((string)$_GET['date']);
+            $startDate = $d . ' 00:00:00';
+            $endDate = $d . ' 23:59:59';
+        } elseif ($startDate && strlen($startDate) === 10) {
+            $startDate .= ' 00:00:00';
+            if ($endDate && strlen($endDate) === 10) {
+                $endDate .= ' 23:59:59';
+            }
+        }
+        
         $result = $orderService->getOrders($page, $perPage, $startDate, $endDate);
         Response::success($result);
     }
