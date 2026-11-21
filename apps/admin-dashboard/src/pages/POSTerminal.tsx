@@ -117,19 +117,47 @@ const POSTerminal = () => {
     const [isPettyCashModalOpen, setIsPettyCashModalOpen] = useState<boolean>(false);
     const [zReportData, setZReportData] = useState<any>(null);
 
+    // State Cetak Ulang Struk Lama (Izin: pos.reprint)
+    const [isReprintModalOpen, setIsReprintModalOpen] = useState<boolean>(false);
+    const [reprintOrders, setReprintOrders] = useState<any[]>([]);
+    const [reprintLoading, setReprintLoading] = useState<boolean>(false);
+    const [reprintSearch, setReprintSearch] = useState<string>('');
+    const [selectedReprintReceipt, setSelectedReprintReceipt] = useState<any>(null);
+    const [printingOrderId, setPrintingOrderId] = useState<string | null>(null);
+
     // State Koneksi Printer USB OTG (Direct WebUSB - Bebas RawBT & Unlimited)
     const [usbConnected, setUsbConnected] = useState<boolean>(false);
     const [usbPrinterName, setUsbPrinterName] = useState<string>('');
 
-    // Auto-detect printer USB yang sebelumnya sudah pernah diizinkan
+    // Auto-detect printer USB yang sebelumnya sudah pernah diizinkan & pantau kabel OTG terpasang/lepas
     useEffect(() => {
         if (isWebUsbSupported()) {
+            const usb = (navigator as any).usb;
+            const handleConnect = (e: any) => {
+                setUsbConnected(true);
+                setUsbPrinterName(e.device?.productName || 'Thermal Printer USB 80mm');
+                toast.success('Printer USB OTG terdeteksi!', { icon: '🖨️' });
+            };
+            const handleDisconnect = () => {
+                setUsbConnected(false);
+                setUsbPrinterName('');
+                toast('Kabel Printer USB terlepas', { icon: '🔌' });
+            };
+
+            usb.addEventListener('connect', handleConnect);
+            usb.addEventListener('disconnect', handleDisconnect);
+
             getPairedUsbDevice().then((dev) => {
                 if (dev) {
                     setUsbConnected(true);
                     setUsbPrinterName(dev.productName || 'Thermal Printer USB 80mm');
                 }
             });
+
+            return () => {
+                usb.removeEventListener('connect', handleConnect);
+                usb.removeEventListener('disconnect', handleDisconnect);
+            };
         }
     }, []);
 
@@ -684,6 +712,86 @@ const POSTerminal = () => {
         }
     };
 
+    // Fungsi & Handler untuk Fitur Cetak Ulang Struk Lama (pos.reprint)
+    const fetchRecentOrders = async () => {
+        setReprintLoading(true);
+        try {
+            const res = await api.get('/orders?per_page=50');
+            const list = res.data?.data?.orders || res.data?.data || [];
+            setReprintOrders(Array.isArray(list) ? list : []);
+        } catch (err: any) {
+            console.error('Failed to fetch recent orders:', err);
+            toast.error(err.response?.data?.message || 'Gagal memuat riwayat transaksi');
+        } finally {
+            setReprintLoading(false);
+        }
+    };
+
+    const handleOpenReprintModal = () => {
+        setIsReprintModalOpen(true);
+        setSelectedReprintReceipt(null);
+        setReprintSearch('');
+        fetchRecentOrders();
+    };
+
+    const handlePrintPastReceipt = async (orderSummary: any) => {
+        setPrintingOrderId(orderSummary.id);
+        try {
+            let fullOrder = orderSummary;
+            if (!orderSummary.items || orderSummary.items.length === 0) {
+                toast.loading('Mengambil detail nota...', { id: 'reprint-load' });
+                const res = await api.get(`/orders/${orderSummary.id}`);
+                toast.dismiss('reprint-load');
+                fullOrder = res.data?.data || orderSummary;
+            }
+
+            const orderToPrint = {
+                ...fullOrder,
+                order_number: fullOrder.order_number,
+                created_at: fullOrder.created_at,
+                user_name: fullOrder.cashier_name || fullOrder.user_name || user?.full_name || 'Kasir',
+                items: (fullOrder.items || []).map((item: any) => ({
+                    product_name: item.product_name || item.name || 'Produk',
+                    quantity: Number(item.quantity) || 1,
+                    unit_price: Number(item.unit_price) || Number(item.price) || 0,
+                    subtotal: Number(item.subtotal) || (Number(item.quantity) * Number(item.unit_price))
+                })),
+                subtotal: Number(fullOrder.subtotal) || 0,
+                discount_amount: Number(fullOrder.discount_amount) || 0,
+                tax_amount: Number(fullOrder.tax_amount) || 0,
+                total_amount: Number(fullOrder.total_amount) || 0,
+                amount_paid: Number(fullOrder.amount_paid) || Number(fullOrder.total_amount) || 0,
+                change_amount: Math.max(0, (Number(fullOrder.amount_paid) || 0) - (Number(fullOrder.total_amount) || 0)),
+                payment_method: fullOrder.payment_method || 'CASH'
+            };
+
+            await executePrintOrder(orderToPrint);
+        } catch (err: any) {
+            toast.dismiss('reprint-load');
+            console.error('Error reprinting receipt:', err);
+            toast.error('Gagal mencetak struk: ' + (err.message || 'Kesalahan sistem'));
+        } finally {
+            setPrintingOrderId(null);
+        }
+    };
+
+    const handleViewReceiptDetail = async (orderSummary: any) => {
+        try {
+            if (orderSummary.items && orderSummary.items.length > 0) {
+                setSelectedReprintReceipt(orderSummary);
+            } else {
+                toast.loading('Memuat rincian nota...', { id: 'load-receipt-detail' });
+                const res = await api.get(`/orders/${orderSummary.id}`);
+                toast.dismiss('load-receipt-detail');
+                setSelectedReprintReceipt(res.data?.data || orderSummary);
+            }
+        } catch (err: any) {
+            toast.dismiss('load-receipt-detail');
+            console.error('Failed to load receipt details:', err);
+            toast.error('Gagal memuat rincian nota');
+        }
+    };
+
     const handleSave = () => {
         if (cart.length === 0) return;
         localStorage.setItem('pos_saved_cart', JSON.stringify(cart));
@@ -893,6 +1001,19 @@ const POSTerminal = () => {
     const totalMatchesAllCategories = isSearching && activeCategory !== 'all'
         ? products.filter(p => isProductActive(p) && matchesSearchFilter(p, cleanSearch)).length
         : 0;
+
+    // Filter riwayat nota transaksi untuk modal cetak ulang struk
+    const filteredReprintOrders = useMemo(() => {
+        if (!reprintSearch.trim()) return reprintOrders;
+        const q = reprintSearch.trim().toLowerCase();
+        return reprintOrders.filter((ord: any) => {
+            const num = (ord.order_number || '').toLowerCase();
+            const cashier = (ord.cashier_name || ord.user_name || '').toLowerCase();
+            const total = String(ord.total_amount || '');
+            const method = (ord.payment_method || '').toLowerCase();
+            return num.includes(q) || cashier.includes(q) || total.includes(q) || method.includes(q);
+        });
+    }, [reprintOrders, reprintSearch]);
 
     // --- Barcode Scanner Engine & Audio Feedback ---
     const scanBufferRef = useRef<string>('');
@@ -1233,8 +1354,21 @@ const POSTerminal = () => {
                             )}
                         </div>
 
-                        {/* Kanan: USB OTG Connect, Theme Toggle & User Menu */}
+                        {/* Kanan: Cetak Ulang Struk, USB OTG Connect, Theme Toggle & User Menu */}
                         <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 ml-auto">
+                            {/* Tombol Cetak Ulang Struk Lama (pos.reprint atau admin) */}
+                            {(canReprint || user?.role === 'admin') && (
+                                <button
+                                    type="button"
+                                    onClick={handleOpenReprintModal}
+                                    className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-xs font-bold transition-all shadow-sm"
+                                    title="Lihat riwayat transaksi & cetak ulang struk nota"
+                                >
+                                    <span className="material-symbols-outlined text-[16px]">receipt_long</span>
+                                    <span className="hidden md:inline">Cetak Ulang Struk</span>
+                                </button>
+                            )}
+
                             {isWebUsbSupported() && (
                                 <button
                                     type="button"
@@ -1775,6 +1909,19 @@ const POSTerminal = () => {
                                                 <span>Simpan</span>
                                             </button>
                                         </div>
+
+                                        {/* Tombol Cetak Ulang Struk Lama di Kolom Pembayaran */}
+                                        {(canReprint || user?.role === 'admin') && (
+                                            <button
+                                                type="button"
+                                                onClick={handleOpenReprintModal}
+                                                className="w-full mt-2 h-8 sm:h-9 rounded-xl border border-dashed border-indigo-200 dark:border-indigo-800/60 bg-indigo-50/50 hover:bg-indigo-100/70 dark:bg-indigo-950/20 dark:hover:bg-indigo-950/40 text-indigo-600 dark:text-indigo-300 text-xs font-bold transition-all flex items-center justify-center gap-1.5 print:hidden"
+                                                title="Lihat transaksi sebelumnya & cetak ulang struk"
+                                            >
+                                                <span className="material-symbols-outlined text-[16px]">history</span>
+                                                <span>Cetak Ulang Struk Lama</span>
+                                            </button>
+                                        )}
                                     </div>
                                 )}
 
@@ -1860,6 +2007,248 @@ const POSTerminal = () => {
                     }
                 }}
             />
+
+            {/* Modal Cetak Ulang Struk Transaksi (pos.reprint) */}
+            {isReprintModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in print:hidden">
+                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+                        {/* Header Modal */}
+                        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 dark:border-white/5">
+                            <div className="flex items-center gap-2.5">
+                                <div className="size-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-[20px]">receipt_long</span>
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-gray-900 dark:text-white text-base">Cetak Ulang Struk Transaksi</h3>
+                                    <p className="text-xs text-gray-500">Pilih nota transaksi lama yang ingin dicetak kembali</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setIsReprintModalOpen(false)}
+                                className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+                            >
+                                <span className="material-symbols-outlined text-[20px]">close</span>
+                            </button>
+                        </div>
+
+                        {/* Search & Refresh Bar */}
+                        <div className="p-3 sm:p-4 bg-gray-50 dark:bg-background-dark/50 border-b border-slate-100 dark:border-white/5 flex items-center gap-2">
+                            <div className="flex-1 flex items-center bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-xl px-3 py-1.5 focus-within:border-primary">
+                                <span className="material-symbols-outlined text-gray-400 text-[18px] mr-2">search</span>
+                                <input
+                                    type="text"
+                                    value={reprintSearch}
+                                    onChange={(e) => setReprintSearch(e.target.value)}
+                                    placeholder="Cari nomor nota, nama kasir, atau nominal..."
+                                    className="w-full bg-transparent text-xs sm:text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none border-none p-0"
+                                />
+                                {reprintSearch && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setReprintSearch('')}
+                                        className="text-gray-400 hover:text-gray-600 text-xs"
+                                    >
+                                        <span className="material-symbols-outlined text-[16px]">close</span>
+                                    </button>
+                                )}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={fetchRecentOrders}
+                                disabled={reprintLoading}
+                                className="p-2 rounded-xl border border-slate-200 dark:border-[#282839] bg-white dark:bg-surface-dark text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-50"
+                                title="Muat ulang riwayat nota"
+                            >
+                                <span className={`material-symbols-outlined text-[18px] ${reprintLoading ? 'animate-spin' : ''}`}>
+                                    refresh
+                                </span>
+                            </button>
+                        </div>
+
+                        {/* Daftar Transaksi */}
+                        <div className="flex-1 overflow-y-auto p-3 sm:p-4 divide-y divide-slate-100 dark:divide-white/5">
+                            {reprintLoading ? (
+                                <div className="py-12 flex flex-col items-center justify-center text-gray-400 gap-2">
+                                    <span className="material-symbols-outlined animate-spin text-3xl">sync</span>
+                                    <span className="text-xs">Memuat transaksi...</span>
+                                </div>
+                            ) : filteredReprintOrders.length === 0 ? (
+                                <div className="py-12 flex flex-col items-center justify-center text-gray-400 gap-2 text-center">
+                                    <span className="material-symbols-outlined text-4xl text-gray-300 dark:text-gray-600">receipt</span>
+                                    <p className="text-sm font-medium">Tidak ada riwayat transaksi yang ditemukan.</p>
+                                    <p className="text-xs text-gray-400">Pastikan kasir sudah pernah menyelesaikan transaksi.</p>
+                                </div>
+                            ) : (
+                                filteredReprintOrders.map((ord: any) => (
+                                    <div
+                                        key={ord.id}
+                                        className="py-3 flex items-center justify-between gap-3 hover:bg-gray-50 dark:hover:bg-white/5 px-2 rounded-xl transition-colors"
+                                    >
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-bold text-gray-900 dark:text-white text-xs sm:text-sm">
+                                                    {ord.order_number}
+                                                </span>
+                                                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-100 dark:bg-white/10 text-gray-600 dark:text-gray-300">
+                                                    {ord.payment_method || 'CASH'}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-3 text-[11px] text-gray-500 mt-0.5">
+                                                <span>{new Date(ord.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}, {new Date(ord.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
+                                                <span>•</span>
+                                                <span>Kasir: {ord.cashier_name || ord.user_name || 'Kasir'}</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            <div className="text-right mr-1">
+                                                <p className="text-xs sm:text-sm font-bold text-primary">
+                                                    {formatRupiah(ord.total_amount)}
+                                                </p>
+                                                <p className="text-[10px] text-gray-400">
+                                                    {ord.status === 'completed' ? 'Selesai' : ord.status}
+                                                </p>
+                                            </div>
+
+                                            {/* Tombol Lihat Rincian */}
+                                            <button
+                                                type="button"
+                                                onClick={() => handleViewReceiptDetail(ord)}
+                                                className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg border border-slate-200 dark:border-[#282839] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 text-xs font-semibold flex items-center gap-1"
+                                                title="Lihat rincian barang"
+                                            >
+                                                <span className="material-symbols-outlined text-[16px]">visibility</span>
+                                                <span className="hidden sm:inline">Rincian</span>
+                                            </button>
+
+                                            {/* Tombol Cetak Langsung USB OTG */}
+                                            <button
+                                                type="button"
+                                                disabled={printingOrderId === ord.id}
+                                                onClick={() => handlePrintPastReceipt(ord)}
+                                                className="px-2.5 py-1.5 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-bold shadow-sm flex items-center gap-1 disabled:opacity-50"
+                                                title="Cetak struk nota transaksi ini"
+                                            >
+                                                <span className={`material-symbols-outlined text-[16px] ${printingOrderId === ord.id ? 'animate-spin' : ''}`}>
+                                                    {printingOrderId === ord.id ? 'refresh' : 'print'}
+                                                </span>
+                                                <span className="hidden sm:inline">Cetak</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        {/* Footer Modal */}
+                        <div className="p-3 sm:p-4 bg-gray-50 dark:bg-background-dark/50 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
+                            <span className="text-xs text-gray-500">
+                                Menampilkan {filteredReprintOrders.length} transaksi terakhir
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => setIsReprintModalOpen(false)}
+                                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-[#282839] text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5"
+                            >
+                                Tutup
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal Detail Rincian Nota Struk */}
+            {selectedReprintReceipt && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in print:hidden">
+                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#282839] rounded-2xl w-full max-w-md p-5 shadow-2xl flex flex-col max-h-[90vh]">
+                        <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/5">
+                            <div>
+                                <h3 className="font-bold text-gray-900 dark:text-white text-base">
+                                    Nota {selectedReprintReceipt.order_number}
+                                </h3>
+                                <p className="text-xs text-gray-500">
+                                    {new Date(selectedReprintReceipt.created_at).toLocaleString('id-ID')}
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setSelectedReprintReceipt(null)}
+                                className="text-gray-400 hover:text-gray-600 dark:hover:text-white p-1"
+                            >
+                                <span className="material-symbols-outlined text-[20px]">close</span>
+                            </button>
+                        </div>
+
+                        <div className="py-3 space-y-2 flex-1 overflow-y-auto">
+                            <div className="flex justify-between text-xs text-gray-500 pb-2 border-b border-slate-100 dark:border-white/5">
+                                <span>Kasir: <strong>{selectedReprintReceipt.cashier_name || selectedReprintReceipt.user_name || 'Kasir'}</strong></span>
+                                <span>Metode: <strong className="uppercase">{selectedReprintReceipt.payment_method || 'CASH'}</strong></span>
+                            </div>
+
+                            <div className="space-y-2 pt-1">
+                                {selectedReprintReceipt.items && selectedReprintReceipt.items.map((item: any, i: number) => (
+                                    <div key={i} className="flex justify-between text-xs py-1 border-b border-slate-50 dark:border-white/5">
+                                        <div className="min-w-0 pr-2">
+                                            <p className="font-semibold text-gray-800 dark:text-gray-200 truncate">{item.product_name || item.name}</p>
+                                            <p className="text-[11px] text-gray-400">
+                                                {item.quantity} {item.unit_name ? item.unit_name : 'x'} {formatRupiah(item.unit_price || item.price)}
+                                            </p>
+                                        </div>
+                                        <p className="font-bold text-gray-900 dark:text-white shrink-0">
+                                            {formatRupiah(item.subtotal)}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="border-t border-slate-200 dark:border-[#282839] pt-3 space-y-1 text-xs mt-3">
+                                <div className="flex justify-between text-gray-500">
+                                    <span>Subtotal:</span>
+                                    <span>{formatRupiah(selectedReprintReceipt.subtotal)}</span>
+                                </div>
+                                {selectedReprintReceipt.discount_amount > 0 && (
+                                    <div className="flex justify-between text-red-500 font-medium">
+                                        <span>Diskon:</span>
+                                        <span>-{formatRupiah(selectedReprintReceipt.discount_amount)}</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between font-bold text-sm text-gray-900 dark:text-white pt-1">
+                                    <span>Total:</span>
+                                    <span className="text-primary">{formatRupiah(selectedReprintReceipt.total_amount)}</span>
+                                </div>
+                                <div className="flex justify-between text-gray-500">
+                                    <span>Bayar:</span>
+                                    <span>{formatRupiah(selectedReprintReceipt.amount_paid || selectedReprintReceipt.total_amount)}</span>
+                                </div>
+                                {Number(selectedReprintReceipt.amount_paid) > Number(selectedReprintReceipt.total_amount) && (
+                                    <div className="flex justify-between text-emerald-600 font-bold">
+                                        <span>Kembalian:</span>
+                                        <span>{formatRupiah(Number(selectedReprintReceipt.amount_paid) - Number(selectedReprintReceipt.total_amount))}</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="flex gap-2 pt-3 border-t border-slate-100 dark:border-white/5">
+                            <button
+                                onClick={() => setSelectedReprintReceipt(null)}
+                                className="flex-1 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-[#282839] text-gray-600 dark:text-gray-300"
+                            >
+                                Kembali
+                            </button>
+                            <button
+                                disabled={printingOrderId === selectedReprintReceipt.id}
+                                onClick={() => handlePrintPastReceipt(selectedReprintReceipt)}
+                                className="flex-1 py-2 text-xs font-bold rounded-xl bg-primary text-white flex items-center justify-center gap-1.5 shadow-md shadow-primary/25 disabled:opacity-50"
+                            >
+                                <span className={`material-symbols-outlined text-[16px] ${printingOrderId === selectedReprintReceipt.id ? 'animate-spin' : ''}`}>
+                                    {printingOrderId === selectedReprintReceipt.id ? 'refresh' : 'print'}
+                                </span>
+                                Cetak Nota Sekarang
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 };

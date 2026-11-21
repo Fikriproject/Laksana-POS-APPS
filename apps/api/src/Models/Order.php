@@ -26,22 +26,50 @@ class Order extends Model
         return $result ?: null;
     }
 
+    public function findAll(int $limit = 100, int $offset = 0): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT o.*, u.full_name as cashier_name
+             FROM {$this->table} o
+             LEFT JOIN users u ON o.user_id = u.id
+             ORDER BY o.created_at DESC
+             LIMIT :limit OFFSET :offset"
+        );
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
     public function findWithDetails(string $id): ?array
     {
-        $order = $this->findById($id);
+        $stmt = $this->db->prepare(
+            "SELECT o.*, u.full_name as cashier_name
+             FROM {$this->table} o
+             LEFT JOIN users u ON o.user_id = u.id
+             WHERE o.id = :id"
+        );
+        $stmt->execute(['id' => $id]);
+        $order = $stmt->fetch();
         if (!$order) {
             return null;
         }
         
-        // Get order items
+        // Get order items with product details
         $stmt = $this->db->prepare(
-            "SELECT oi.*, p.image_url, p.sku
+            "SELECT oi.*, p.name as product_name, p.image_url, p.sku
              FROM order_items oi
              LEFT JOIN products p ON oi.product_id = p.id
              WHERE oi.order_id = :order_id"
         );
         $stmt->execute(['order_id' => $id]);
-        $order['items'] = $stmt->fetchAll();
+        $items = $stmt->fetchAll();
+        foreach ($items as &$item) {
+            if (empty($item['product_name']) && !empty($item['name'])) {
+                $item['product_name'] = $item['name'];
+            }
+        }
+        $order['items'] = $items;
         
         return $order;
     }
